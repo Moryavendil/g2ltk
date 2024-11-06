@@ -33,7 +33,8 @@ VIOLET = '#4f0e51'
 JAUNE = '#eaac3f'
 
 VERSION = '0.9.4'
-display('tools version '+VERSION)
+__version__ = '0.9.4'
+display('tools version '+__version__)
 
 import warnings
 _warn_skips = (os.path.dirname(__file__),)
