@@ -51,7 +51,7 @@ def find_roots(x: np.ndarray, y: np.ndarray) -> np.ndarray:
                                       find_unexplicit_roots(x,y)) ))
 
 # peaks (min and max) finding
-def find_peaks(x: np.ndarray, y: np.ndarray, peak_category: str = 'all', smooth_derivative=False):
+def find_extrema(x: np.ndarray, y: np.ndarray, peak_category: str = 'all', smooth_derivative=False):
     """
 
     Parameters
@@ -73,8 +73,8 @@ def find_peaks(x: np.ndarray, y: np.ndarray, peak_category: str = 'all', smooth_
     #Todo: determine if it is better to use der1 or der2 here.
     # der1 is noisier ?
 
-    dx, dy = der1(x, y)
-    # dx, dy = der2(x, y)
+    # dx, dy = der1(x, y)
+    dx, dy = der2(x, y)
 
     ### ROOTS OF THE FIRST DERIVATIVE
     roots = find_roots(dx, dy)
@@ -118,7 +118,7 @@ def find_global_peak(x: np.ndarray, y: np.ndarray, peak_category: str = 'raw') -
         return None
 
     try:
-        peaks_positions = find_peaks(x, y, peak_category, smooth_derivative=False)
+        peaks_positions = find_extrema(x, y, peak_category, smooth_derivative=False)
         precise_peak_position = peaks_positions[np.abs(peaks_positions - gross_peak_position).argmin()]
     except:
         precise_peak_position = gross_peak_position

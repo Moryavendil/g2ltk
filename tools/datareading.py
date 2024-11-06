@@ -4,7 +4,7 @@ import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 import shutil # to remove directories
 
-from tools import display, throw_G2L_warning
+from tools import display, throw_G2L_warning, log_error, log_warn, log_info, log_dbug, log_trace
 from tools import utility, datasaving
 
 # Custom typing
@@ -66,10 +66,10 @@ def get_acquisition_frequency_gcv(acquisition_path:str, unit = None, verbose:int
     meta_info = retrieve_meta(acquisition_path)
     freq_meta = float(meta_info['captureFrequency']) # Hz
 
-    if are_there_missing_frames(acquisition_path):
+    if are_there_missing_frames(acquisition_path, verbose=verbose):
         return freq_meta
 
-    full_stamps = retrieve_stamps(acquisition_path)
+    full_stamps = retrieve_stamps(acquisition_path, verbose=verbose)
     camera_timestamps = get_camera_timestamps(full_stamps, unit='s', verbose=verbose)
 
     freq_camera_timestamps = 1/np.mean(camera_timestamps[1:]-camera_timestamps[:-1])
@@ -123,6 +123,7 @@ def retrieve_meta(acquisition_path: str) -> Meta:
                     print(f'WARNING: Could not parse correctly the {acquisition_path} meta file.')
     except:
         raise(Exception(f'ERROR: Problem with the {acquisition_path} meta file (probably it could not be opened).'))
+
     return meta
 
 ### STAMPS READING
@@ -166,13 +167,28 @@ def get_number_of_available_frames_stamps(acquisition_path: str) -> int:
     n_frames_tot:int = len(full_stamps['framenumber'])
     return n_frames_tot
 
-def are_there_missing_frames(acquisition_path: str) -> bool:
-    if is_this_a_gcv(acquisition_path):
-        full_stamps = retrieve_stamps(acquisition_path)
-        framenumbers = full_stamps['framenumber']
-        if len(np.where((framenumbers[1:] - framenumbers[:-1]) != 1)[0]) > 0:
-            return True
-    return False
+def missing_framenumbers_gcv(acquisition_path: str, verbose:int=1) -> List:
+    """
+    Identifies missing frame in a GCV video using the timestamps.
+
+    :param acquisition_path:
+    :param verbose:
+    :return:
+    """
+    full_stamps = retrieve_stamps(acquisition_path)
+    framenumbers = full_stamps['framenumber']
+    gaps = framenumbers[1:] - framenumbers[:-1] - 1
+    missing_gaps = gaps[np.where(gaps != 0)[0]]
+    first_missing_frames = framenumbers[np.where(gaps != 0)[0]]+1
+    first_missing_frames -= framenumbers[0] # relative numerotation of framenumbers
+    all_missing_chunks = []
+    for i in range(len(missing_gaps)):
+        all_missing_chunks.append([])
+        for j in range(missing_gaps[i]):
+            all_missing_chunks[i].append(first_missing_frames[i] + j)
+    log_trace(f'Missing frames for {acquisition_path}:', verbose=verbose)
+    log_trace(f'{all_missing_chunks}', verbose=verbose)
+    return all_missing_chunks
 
 def identify_missing_framenumbers(framenumbers:np.ndarray, verbose:int = 1) -> np.ndarray:
     """
@@ -1004,7 +1020,7 @@ def get_acquisition_frequency(acquisition_path:str, unit = None, verbose:int = 1
         print('No video file.')
         return -1.
 
-def get_acquisition_duration(acquisition_path:str, framenumbers:np.ndarray, unit = None, verbose:int = 1) -> float:
+def get_acquisition_duration(acquisition_path:str, framenumbers:Optional[np.ndarray], unit = None, verbose:int = 1) -> float:
     framenumbers = format_framenumbers(acquisition_path, framenumbers, verbose=verbose)
     if framenumbers is None:
         # todo ERROR here
@@ -1035,6 +1051,19 @@ def format_framenumbers(acquisition_path:str, framenumbers:Optional[np.ndarray] 
         return None
     return framenumbers
 
+def get_geometry(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, subregion:Subregion = None, verbose:int = 1) -> Optional[Tuple]:
+    formatted_fns = format_framenumbers(acquisition_path, framenumbers, verbose=verbose)
+    if formatted_fns is None: return None
+
+    length = formatted_fns.size
+
+    frame = get_frame(acquisition_path, formatted_fns[0], subregion=subregion, verbose=verbose)
+
+    if frame is None: return None
+
+    height, width = frame.shape
+
+    return length, height, width
 
 def get_frames(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, subregion:Subregion = None, verbose:int = 1) -> Optional[np.ndarray]:
     framenumbers = format_framenumbers(acquisition_path, framenumbers, verbose=verbose)
@@ -1072,7 +1101,7 @@ def get_frames(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, s
 def get_frame(acquisition_path:str, framenumber:int, subregion:Subregion = None, verbose:int = 1) -> Optional[np.ndarray]:
     return get_frames(acquisition_path, np.array([framenumber]), subregion=subregion, verbose=verbose)[0].astype(int)
 
-def get_times(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, unit = None, verbose:int = 1) -> Optional[np.ndarray]:
+def get_times(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, unit = None, verbose:int=1) -> Optional[np.ndarray]:
     framenumbers = format_framenumbers(acquisition_path, framenumbers, verbose=verbose)
     if framenumbers is None:
         # todo ERROR here
@@ -1092,6 +1121,98 @@ def get_times(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, un
 
     return times
 
+def missing_frames(acquisition_path: str, verbose:int=1) -> List:
+    """
+    Identifies missing frame in a video.
+
+    :param acquisition_path:
+    :param verbose:
+    :return:
+    """
+    if is_this_a_gcv(acquisition_path):
+        return missing_framenumbers_gcv(acquisition_path, verbose=verbose)
+    else:
+        log_warn(f'Could not deduce the number of missing frames for video {acquisition_path}', verbose=verbose)
+    return []
+
+def missing_frames_in_framenumbers(acquisition_path: str, framenumbers:Optional[np.ndarray]=None, verbose:int=1) -> List:
+    all_missing_chunks = missing_frames(acquisition_path, verbose=verbose)
+    explicit_framenumbers = format_framenumbers(acquisition_path, framenumbers, verbose=verbose)
+
+    # get the missing frames which are in the requested framenumbers
+    missing_chunks_in_framenumbers = []
+    for chunk in all_missing_chunks:
+        chunk_missing = []
+        for frame in chunk:
+            if frame in explicit_framenumbers:
+                chunk_missing.append(frame)
+        if len(chunk_missing) > 0:
+            missing_chunks_in_framenumbers.append(chunk_missing)
+
+    return missing_chunks_in_framenumbers
+
+def are_there_missing_frames(acquisition_path: str, framenumbers:Optional[np.ndarray]=None, verbose:int=1) -> bool:
+    missing_chunks = missing_frames_in_framenumbers(acquisition_path, framenumbers=framenumbers, verbose=verbose)
+
+    nbr_of_missing_chunks = len(missing_chunks)
+    nbr_of_missing_frames = np.sum([len(chunk) for chunk in missing_chunks])
+
+    if  nbr_of_missing_chunks > 0:
+        log_trace(f'There are {nbr_of_missing_chunks} missing chunks ({nbr_of_missing_frames} frames total)', verbose=verbose)
+        log_trace(f'Missing chunks: {missing_chunks}', verbose=verbose)
+        return True
+
+    log_trace('No missing frames', verbose=verbose)
+    return False
+
+
+def describe(dataset:str, acquisition:str, framenumbers:Optional[np.ndarray]=None, subregion:Subregion=None, verbose:int=1):
+    display(f'Acquisition: "{acquisition}" ({dataset})')
+
+    dataset_path = os.path.join('../', dataset)
+    acquisition_path = os.path.join(dataset_path, acquisition)
+    if not(is_this_a_video(acquisition_path)):
+        log_dbug(f'Videos in {dataset} are {find_available_videos(dataset_path)}', verbose=verbose)
+        log_error(f'No video named {acquisition} in dataset {dataset}', verbose=verbose)
+
+    # genberal
+    frequency = get_acquisition_frequency(acquisition_path, unit="Hz", verbose=verbose)
+
+    log_info(f'Acquisition frequency: {round(frequency, 2)} Hz', verbose=verbose)
+
+    # raw video file
+    maxlength, maxheight, maxwidth = get_geometry(acquisition_path, framenumbers=None, subregion=None)
+    maxsize = maxlength*maxheight*maxwidth
+    maxduration = get_acquisition_duration(acquisition_path, framenumbers=None, unit="s")
+    maxmissing_chunks = missing_frames_in_framenumbers(acquisition_path, framenumbers=None, verbose=verbose)
+    nbr_of_missing_chunks = len(maxmissing_chunks)
+    nbr_of_missing_frames = np.sum([len(chunk) for chunk in maxmissing_chunks])
+
+    log_dbug(f'Acquisition information:', verbose=verbose)
+    log_dbug(f'Frames dimension: {maxheight}x{maxwidth}', verbose=verbose)
+    log_dbug(f'Length: {maxlength} frames ({round(maxduration, 2)} s - {round(maxsize/10**6, 0)} MB)', verbose=verbose)
+    if  nbr_of_missing_chunks > 0:
+        log_dbug(f'There are {nbr_of_missing_chunks} missing chunks ({nbr_of_missing_frames} frames total)', verbose=verbose)
+        log_dbug(f'Missing chunks: {maxmissing_chunks}', verbose=verbose)
+    else:
+        log_dbug('No missing frames for this acquisition', verbose=verbose)
+
+    # chosen data chunk
+    length, height, width = get_geometry(acquisition_path, framenumbers = framenumbers, subregion=subregion)
+    size = length*height*width
+    duration = get_acquisition_duration(acquisition_path, framenumbers=framenumbers, unit="s")
+    missing_chunks = missing_frames_in_framenumbers(acquisition_path, framenumbers=framenumbers, verbose=verbose)
+    nbr_of_missing_chunks = len(missing_chunks)
+    nbr_of_missing_frames = np.sum([len(chunk) for chunk in missing_chunks])
+
+    log_info(f'Chosen data', verbose=verbose)
+    log_info(f'Frames dimension: {height}x{width}', verbose=verbose)
+    log_info(f'Length: {length} frames ({round(duration, 2)} s - {round(size/10**6, 0)} MB)', verbose=verbose)
+    if  nbr_of_missing_chunks > 0:
+        log_info(f'There are {nbr_of_missing_chunks} missing chunks ({nbr_of_missing_frames} frames total)', verbose=verbose)
+        log_info(f'Missing chunks: {missing_chunks}', verbose=verbose)
+    else:
+        log_info('No missing frames in chosen framenumbers', verbose=verbose)
 
 ### FRAMES EDITING
 
@@ -1246,7 +1367,7 @@ def save_acquisition_to_video(acquisition_path:str, do_timestamp:bool = True, fp
                          fps = fps, filetype=filetype, codec=codec, resize_factor=resize_factor)
 
 def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
-    display(f'Saving all the gcv acquisition in the dataset: {datasets}')
+    display(f'Saving all the gcv acquisition in the dataset: {dataset}')
 
     dataset_path = '../' + dataset
 

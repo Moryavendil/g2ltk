@@ -5,7 +5,7 @@ import cv2 # to manipulate images and videos
 from scipy.optimize import curve_fit # to fit functions
 
 from tools import datareading, datasaving, utility
-from tools import display
+from tools import display, log_info, log_dbug
 
 # Custom typing
 Meta = Dict[str, str]
@@ -17,19 +17,25 @@ Subregion = Optional[Tuple[Optional[int], Optional[int], Optional[int], Optional
 """
 Default value for finding functions parameters
  - resize_factor        (int, 1 - 3):       resizing image pour une meilleure precision
+ - remove_median_bckgnd (bool):             Remove the median image for all the frames. only use when the whole rivulet is moving. Should be unnecessary on clean videos
  - white_tolerance      (float, 0 - 255):   Difference between the channel white background and the black borders
- - rivulet_size_factor  (float, 1. - 5.):   How much wider is the rivulet compared to the size occupied by low luminosity points
+ - rivulet_size_factor  (float, 1. - 5.):   How much wider is the rivulet compared to the size occupied by low luminosity extremapoints
  - std_factor           (float, 1. - 5.):   How much of the noise to remove
+ - borders_min_distance (float, 1. - 10.):  The distance, in px / resize_factor, between two consecutive maximums in the function find_extrema used to find the borders
  - max_rivulet_width    (float, 1. - 100.): Maximum authorized rivulet width, in pixels 
  - max_borders_luminosity_difference (float, 0 - 255): Maximum authorized luminosity difference between the rivulet borders
+ - verbose (int, 0 - 5):                    Debug level
 """
 default_kwargs = {
     'resize_factor': 2,
+    'remove_median_bckgnd': False,
     'white_tolerance': 70.,
     'rivulet_size_factor': 2.,
     'std_factor': 3.,
+    'borders_min_distance': 1.,
     'max_rivulet_width': 20.,
-    'max_borders_luminosity_difference': 50.
+    'max_borders_luminosity_difference': 50.,
+    'verbose': 2
 }
 
 
@@ -264,7 +270,7 @@ def cos_videowise(frames:np.ndarray, **kwargs)-> float: # WORK IN PROGRESS
 def bimax_naive(x, y):
     # check that there is float: important for use with find peaks
     # position of the maxs
-    xmax = utility.find_peaks(x, y.astype(float, copy=False), peak_category='max')
+    xmax = utility.find_extrema(x, y.astype(float, copy=False), peak_category='max')
     ymax = np.interp(xmax, x, y)
 
     if len(xmax) == 0:
@@ -312,6 +318,50 @@ def bimax(x, y, do_fit:bool = False, w0:float = 1.):
     if do_fit:
         return bimax_fit(x, y, w0)
     return bimax_naive(x, y)
+
+from scipy.signal import find_peaks
+
+def bimax_by_peakfinder(z, y, distance:float = 1, prominence:float = 1):
+    peaks, _ = find_peaks(y, distance = distance, prominence = prominence)
+
+    # take the 2 bigger maxs
+    sorted = y[peaks].argsort()
+    x1, x2 = z[peaks][sorted][-1], z[peaks][sorted][-2]
+
+    # y of the 2 bigger maxs
+    y1, y2 = y[peaks][sorted][-1], y[peaks][sorted][-2]
+
+    return x1, y1, x2, y2
+
+def bimax_fit_by_peakfinder(z, y, distance:float = 1, prominence:float = 1):
+    x10, y10, x20, y20 = bimax_by_peakfinder(z, y, distance=distance, prominence=prominence)
+
+    w0 = np.abs(x20-x10)/4
+
+    # amplitude of the maxs
+    deltax = x10-x20
+    g = utility.gaussian_unnormalized(deltax, 0, w0)
+    # We have
+    # y1 =   a10 + g a20
+    # y2 = g a10 +   a20
+    # So we invert the matrix
+    a10 = (y10 - g*y20)/(1-g**2)
+    a20 = (y20 - g*y10)/(1-g**2)
+
+    # noise
+    bckgnd_noise0:float = max(0., y.min())
+
+    p0 = (x10, a10, w0, x20, a20, w0, bckgnd_noise0)
+    lbounds = (z.min(), 0., 0., z.min(), 0., 0., 0.)
+    ubounds = (z.max(), 255, z.max()-z.min(), z.max(), 255, z.max()-z.min(), 255)
+    bounds = (lbounds, ubounds)
+
+    popt, pcov = curve_fit(utility.double_gauss, z, y, p0=p0, bounds=bounds)
+
+    x1, x2 = popt[0], popt[3]
+    y1, y2 = utility.double_gauss(x1, *popt), utility.double_gauss(x2, *popt)
+
+    return x1, y1, x2, y2
 
 def borders_linewise(z:np.ndarray, y:np.ndarray, do_fit:bool = False, w0:float = 1., **kwargs):
     for key in default_kwargs.keys():
@@ -402,9 +452,73 @@ def borders(frame:np.ndarray, do_fit:bool = False, w0:float = 1., **kwargs) -> n
 
     return np.array([zinf, zsup])
 
+def borders_via_peakfinder(frame:np.ndarray, prominence:float = 1, do_fit:bool=False, **kwargs) -> np.ndarray:
+    """
+
+    :param frame:
+    :param do_fit:
+    :param w0:
+    :param kwargs: resize_factor (resizing of the frame, 1-4) ; max_rivulet_width (maximum authorized rivulet with, in pixels, 1-100)  ; max_borders_luminosity_difference (maximum authorized luminosity difference between the rivulet borders, 0-255)
+    :return:
+    """
+    for key in default_kwargs.keys():
+        if not key in kwargs.keys():
+            kwargs[key] = default_kwargs[key]
+
+    frame_resized = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
+    height, width = frame_resized.shape
+
+    zz = np.zeros((width, 4), dtype=float)
+
+    z = np.arange(height) / kwargs['resize_factor']
+
+    if do_fit:
+        for l in range(width):
+            zz[l] = bimax_fit_by_peakfinder(z, 255 - frame_resized[:, l], distance = kwargs['borders_min_distance'], prominence = prominence)
+    else:
+        for l in range(width):
+            zz[l] = bimax_by_peakfinder(z, 255 - frame_resized[:, l], distance = kwargs['borders_min_distance'], prominence = prominence)
+
+    z1, y1, z2, y2 = zz[:,0], zz[:,1], zz[:,2], zz[:,3]
+
+    x = np.linspace(0, width / kwargs['resize_factor'], width, endpoint=False)
+
+    x1, x2 = x.copy(), x.copy()
+
+    # remove too spaced away
+    zdiff = np.abs(z1 - z2)
+    space_ok = zdiff < kwargs['max_rivulet_width']
+    log_dbug(f'Too spaced away (> {kwargs["max_rivulet_width"]} resized px): {(1-space_ok).sum()} pts', verbose=kwargs['verbose'])
+
+    # remove too different peaks
+    ydiff = np.abs(y1 - y2)
+    ydiff_ok = ydiff < kwargs['max_borders_luminosity_difference']
+    log_dbug(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1-ydiff_ok).sum()} pts', verbose=kwargs['verbose'])
+
+    # There are 2 peaks
+    deuxmax = space_ok * ydiff_ok
+
+    # si il y a qu'un seul max...
+    unmax = np.bitwise_not(deuxmax)
+    # On garde le plus grand
+    desacord = y1 > y2
+    ndesacord = np.bitwise_not(desacord)
+
+    zsup = np.concatenate((np.maximum(z1[deuxmax], z2[deuxmax]), z1[unmax * desacord], z2[unmax * ndesacord]))
+    x_zsup = np.concatenate((np.maximum(x1[deuxmax], x2[deuxmax]), x1[unmax * desacord], x2[unmax * ndesacord]))
+    suprightorder = x_zsup.argsort()
+    x_zsup, zsup = x_zsup[suprightorder], zsup[suprightorder]
+
+    zinf = np.concatenate((np.minimum(z1[deuxmax], z2[deuxmax]), z1[unmax * desacord], z2[unmax * ndesacord]))
+    x_zinf = np.concatenate((np.minimum(x1[deuxmax], x2[deuxmax]), x1[unmax * desacord], x2[unmax * ndesacord]))
+    infrightorder = x_zinf.argsort()
+    x_zinf, zinf = x_zinf[infrightorder], zinf[infrightorder]
+
+    return np.array([zinf, zsup])
+
 ### GLOBAL METHOD
 
-def find_borders(**parameters):
+def get_acquisition_path_from_parameters(**parameters) -> str:
     # Dataset selection
     dataset = parameters.get('dataset', 'unspecified-dataset')
     dataset_path = '../' + dataset
@@ -417,6 +531,11 @@ def find_borders(**parameters):
     if not(datareading.is_this_a_video(acquisition_path)):
         print(f'WARNING (RVFD): There is no acquisition named {acquisition} for the dataset {dataset}.')
 
+    return acquisition_path
+
+def get_frames_from_parameters(**parameters):
+    acquisition_path = get_acquisition_path_from_parameters(**parameters)
+
     # Parameters getting
     roi = parameters.get('roi', None)
     framenumbers = parameters.get('framenumbers', None)
@@ -425,25 +544,36 @@ def find_borders(**parameters):
     frames = datareading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
     length, height, width = frames.shape
 
+    frames = frames.astype(float, copy=False)
+
+    if parameters['remove_median_bckgnd']:
+        frames = frames - np.median(frames, axis=0, keepdims=True)
+        frames -= frames.min()
+
+    return frames
+
+
+def find_borders(**parameters):
+    # Get the frames
+    frames = get_frames_from_parameters(**parameters)
+    length, height, width = frames.shape
+
     for key in default_kwargs.keys():
         if not key in parameters.keys():
             parameters[key] = default_kwargs[key]
 
-    do_fit = parameters.get('do_fit', False)
-    w0 = parameters.get('w0', 1.0)
-
     brds = np.zeros((length, 2, width * parameters['resize_factor']), float)
-
-    frames = frames.astype(float, copy=False)
 
     np.seterr(all='raise')
     for framenumber in range(length):
         try:
-            brds[framenumber] = borders(frames[framenumber], do_fit = do_fit, w0=w0, **parameters)
+            brds[framenumber] = borders_via_peakfinder(frames[framenumber], **parameters)
         except:
             print(f'Error frame {framenumber}')
         if framenumber%10 == 0:
             display(f'Borders finding ({round(100*(framenumber+1)/length, 2)} %)', end = '\r')
+    display(f'', end = '\r')
+    log_dbug(f'Borders found', verbose=parameters['verbose'])
 
     return brds
 
@@ -468,6 +598,9 @@ def find_cos(**parameters):
     # Data fetching
     frames = datareading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
     length, height, width = frames.shape
+
+    if parameters['remove_median_bckgnd']:
+        frames = frames - np.median(frames, axis=0, keepdims=True)
 
     for key in default_kwargs.keys():
         if not key in parameters.keys():
@@ -617,7 +750,7 @@ def bol_framewise(frame:np.ndarray, borders_for_this_frame = None, **kwargs)-> n
             kwargs[key] = default_kwargs[key]
 
     if borders_for_this_frame is None:
-        borders_for_this_frame: np.ndarray = borders(frame, **kwargs)
+        borders_for_this_frame: np.ndarray = borders_via_peakfinder(frame, **kwargs)
 
 
     frame = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
@@ -643,7 +776,7 @@ def bol_framewise_opti(frame:np.ndarray, borders_for_this_frame = None, **kwargs
             kwargs[key] = default_kwargs[key]
 
     if borders_for_this_frame is None:
-        borders_for_this_frame: np.ndarray = borders(frame, **kwargs)
+        borders_for_this_frame: np.ndarray = borders_via_peakfinder(frame, **kwargs)
 
     height, width = frame.shape
 
@@ -688,33 +821,13 @@ def bol_framewise_opti(frame:np.ndarray, borders_for_this_frame = None, **kwargs
 
     return rivulet
 
-def find_bol(**parameters):
-    ### Getting to parameters right
-    # Dataset selection
-    dataset = parameters.get('dataset', 'unspecified-dataset')
-    dataset_path = '../' + dataset
-    if not(os.path.isdir(dataset_path)):
-        print(f'WARNING (RVFD): There is no dataset named {dataset}.')
+def find_bol(verbose:int = 1, **parameters):
+    # First we need the borders
+    borders_for_this_video = datasaving.fetch_or_generate_data_from_parameters('borders', parameters, verbose=verbose)
 
-    # Acquisition selection
-    acquisition = parameters.get('acquisition', 'unspecified-acquisition')
-    acquisition_path = os.path.join(dataset_path, acquisition)
-    if not(datareading.is_this_a_video(acquisition_path)):
-        print(f'WARNING (RVFD): There is no acquisition named {acquisition} for the dataset {dataset}.')
-
-    # Parameters getting
-    roi = parameters.get('roi', None)
-    framenumbers = parameters.get('framenumbers', None)
-
-    ### Data fetching
-
-    # first we have to get the frames
-    frames = datareading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
+    # Then the frames
+    frames = get_frames_from_parameters(**parameters)
     length, height, width = frames.shape
-
-    # then get the borders
-    borders_for_this_video = datasaving.fetch_or_generate_data_from_parameters('borders', parameters)
-
 
     for key in default_kwargs.keys():
         if not key in parameters.keys():
@@ -724,13 +837,14 @@ def find_bol(**parameters):
 
     np.seterr(all='raise')
     for framenumber in range(length):
-        if framenumber%50 == 0:
-            display(f'\r framenumber {framenumber+1} / {length} ({round(100*(framenumber+1)/length,2)} %)', end='')
         try:
             rivs[framenumber] = bol_framewise_opti(frames[framenumber], borders_for_this_frame=borders_for_this_video[framenumber], **parameters)
         except:
             print(f'Error frame {framenumber}')
-    display('\r')
+        if framenumber%10 == 0:
+            display(f'BOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
+    display(f'', end = '\r')
+    log_dbug(f'BOL computed', verbose=parameters['verbose'])
 
     return rivs
 
@@ -809,7 +923,7 @@ def bbs_framewise(frame:np.ndarray, **kwargs)-> np.ndarray:
         if not key in kwargs.keys():
             kwargs[key] = default_kwargs[key]
 
-    all_borders: np.ndarray = borders(frame, **kwargs)
+    all_borders: np.ndarray = borders_via_peakfinder(frame, **kwargs)
 
     frame = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
 
