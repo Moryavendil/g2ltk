@@ -206,6 +206,9 @@ def ft2d(z:np.ndarray, window:str='hann') -> np.ndarray:
     z_hat = np.fft.rfft2(z_treated, norm='backward')
     return np.concatenate((z_hat[(Nt+1)//2:,:], z_hat[:(Nt+1)//2,:])) # reorder bcz of the FT
 
+############# RIVULET
+def w_form_borders(borders:np.ndarray) -> np.ndarray:
+    return borders[:,1,:] - borders[:,0,:] # for some historical reason the borders are weirdly arranged lol
 
 ########## SAVE GRAPHE
 import os
