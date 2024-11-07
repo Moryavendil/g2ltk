@@ -618,7 +618,7 @@ def find_cos(**parameters):
     return rivs
 
 # BOL
-#TODO DELETE ME IN VERSION 0.9
+#TODO DELETE ME IN VERSION 0.12
 def com_naive_linewise(z:np.ndarray, y:np.ndarray, **kwargs)-> float:
     """
     This function locates the rivulet by computing the center of mass of the light part of the rivulet.
@@ -658,7 +658,7 @@ def com_naive_linewise(z:np.ndarray, y:np.ndarray, **kwargs)-> float:
 
     return position
 
-#TODO DELETE ME IN VERSION 0.9
+#TODO DELETE ME IN VERSION 0.12
 def com_linewise(z:np.ndarray, y:np.ndarray, **kwargs)-> float:
     """
     This function locates the rivulet by computing the center of mass of the light part of the rivulet.

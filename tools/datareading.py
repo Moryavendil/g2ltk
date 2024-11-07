@@ -779,7 +779,7 @@ def capture_mp4(acquisition_path:str) -> Optional[Any]:
 
     if not os.path.isfile(video_path):
         #Todo: ERROR here
-        print('ERROR: No MP4 video')
+        # print('ERROR: No MP4 video')
         return None
 
     # Open video
@@ -984,7 +984,6 @@ def is_this_a_video(acquisition_path:str) -> bool:
         return True
     else:
         throw_G2L_warning(f'There is no video at the acquisition {acquisition_path}')
-        # print(f'There is no video at the acquisition path: {acquisition_path}')
         return False
 
 def find_available_videos(dataset_path: str) ->List[str]:
@@ -1206,7 +1205,7 @@ def describe(dataset:str, acquisition:str, framenumbers:Optional[np.ndarray]=Non
     nbr_of_missing_frames = np.sum([len(chunk) for chunk in missing_chunks])
 
     log_info(f'Chosen data', verbose=verbose)
-    log_info(f'Frames dimension: {height}x{width}', verbose=verbose)
+    log_info(f'Frames dimension: {height}x{width} ({round(size/10**3, 0)} kB each)', verbose=verbose)
     log_info(f'Length: {length} frames ({round(duration, 2)} s - {round(size/10**6, 0)} MB)', verbose=verbose)
     if  nbr_of_missing_chunks > 0:
         log_info(f'There are {nbr_of_missing_chunks} missing chunks ({nbr_of_missing_frames} frames total)', verbose=verbose)

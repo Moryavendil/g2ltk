@@ -32,8 +32,8 @@ def save_graphe(graph_name, imageonly=False, **kwargs):
 VIOLET = '#4f0e51'
 JAUNE = '#eaac3f'
 
-VERSION = '0.9.4'
-__version__ = '0.9.4'
+__version__ = '0.9.5'
+VERSION = __version__
 display('tools version '+__version__)
 
 import warnings
@@ -44,17 +44,17 @@ class G2LWarning(UserWarning):
 
 import sys
 def throw_G2L_warning(text:str):
-    warnings.warn(Fore.RED + 'WARNING: ' + text + Fore.RESET, category=G2LWarning, stacklevel=3)
-    # warnings.warn(Fore.RED + text + Fore.RESET, category=G2LWarning, stacklevel=3,
-    #               skip_file_prefixes=_warn_skips) # THIS ONLY WORKS FOR PYTHON >= 3.12
-    sys.stderr.flush()
-    display('')
+    warnings.warn(Fore.LIGHTYELLOW_EX + 'WARNING: ' + text + Fore.RESET, category=G2LWarning, stacklevel=3
+                  # skip_file_prefixes=_warn_skips # THIS ONLY WORKS FOR PYTHON >= 3.12
+                  )
+    sys.stderr.flush() ; display('') # force to display warning at runtime
+
 
 
 def log_criticalFailure(text:str, verbose:int): # verbose 0
     if verbose >= 0:
         display('=!=!=!=!=!=!=!=!= CRITICAL FAILURES ARE NOT CODED YET =!=!=!=!=!=!=!=!=')
-        display(Fore.LIGHTRED_EX + 'CRITICAL: ' + text + Fore.RESET)
+        display(Fore.LIGHTMAGENTA_EX + 'CRITICAL: ' + text + Fore.RESET)
 
 def log_error(text:str, verbose:int): # verbose 1
     if verbose >= 1:
@@ -67,12 +67,12 @@ def log_warn(text:str, verbose:int): # verbose 2
 
 def log_info(text:str, verbose:int): # verbose 3
     if verbose >= 3:
-        display(Fore.LIGHTCYAN_EX + 'INFO: ' + text + Fore.RESET)
+        display(Fore.LIGHTGREEN_EX + 'INFO: ' + text + Fore.RESET)
 
 def log_dbug(text:str, verbose:int): # verbose 4
     if verbose >= 4:
-        display(Fore.LIGHTYELLOW_EX + 'DBUG:\t' + text + Fore.RESET)
+        display(Fore.LIGHTCYAN_EX + 'DEBUG:\t' + text + Fore.RESET)
 
 def log_trace(text:str, verbose:int): # verbose 5
     if verbose >= 5:
-        display(Fore.GREEN + 'TRACE:\t\t' + text + Fore.RESET)
+        display(Fore.LIGHTBLUE_EX + 'TRACE:\t\t' + text + Fore.RESET)
