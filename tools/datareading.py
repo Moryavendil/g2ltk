@@ -49,8 +49,7 @@ def get_number_of_available_frames_gcv(acquisition_path:str) -> int:
     n_frames_rawvideo = get_number_of_available_frames_rawvideo(acquisition_path)
 
     if n_frames_stamps != n_frames_rawvideo:
-        # todo warning here
-        print(f'WARNING: The stamps file mentions {n_frames_stamps} frames while there are {n_frames_rawvideo} frames availables in the raw video file.')
+        throw_G2L_warning(f'The stamps file mentions {n_frames_stamps} frames while there are {n_frames_rawvideo} frames availables in the raw video file.')
     return n_frames_rawvideo
 
 def get_acquisition_frequency_gcv(acquisition_path:str, unit = None, verbose:int = 1) -> float:
@@ -61,7 +60,7 @@ def get_acquisition_frequency_gcv(acquisition_path:str, unit = None, verbose:int
     if unit == 'Hz':
         factor  = 1
     else:
-        print(f'Unrecognized frequency unit : {unit}')
+        log_warn(f'Unrecognized frequency unit : {unit}')
 
     meta_info = retrieve_meta(acquisition_path)
     freq_meta = float(meta_info['captureFrequency']) # Hz
@@ -113,14 +112,12 @@ def retrieve_meta(acquisition_path: str) -> Meta:
             for line in meta_file.readlines():
                 if '=' in line:
                     if line.count('=') > 1:
-                        #Todo: add a real warning here
-                        print(f'WARNING: Ambiguity when parsing the {acquisition_path} meta file: is there a rogue "=" somewhere in it?.')
+                        throw_G2L_warning(f'Ambiguity when parsing the {acquisition_path} meta file: is there a rogue "=" somewhere in it?.')
                     variable = line[:-1].split('=')[0]
                     value = '='.join( line[:-1].split('=')[1:] )
                     meta[variable] = value
                 else:
-                    #Todo: add a real warning here
-                    print(f'WARNING: Could not parse correctly the {acquisition_path} meta file.')
+                    throw_G2L_warning(f'Could not parse correctly the {acquisition_path} meta file.')
     except:
         raise(Exception(f'ERROR: Problem with the {acquisition_path} meta file (probably it could not be opened).'))
 
@@ -152,8 +149,7 @@ def retrieve_stamps(acquisition_path:str, verbose:int = 1) -> Stamps:
                     camera_time.append(line[:-1].split('\t')[1])     # The time given by the camera, in ns (int)
                     computer_time.append(line[:-1].split('\t')[2])   # The time given by the computer, in ms (int)
                 else:
-                    #Todo: add a real warning here
-                    print(f'WARNING: Could not parse correctly the {acquisition_path} stamps file.')
+                    throw_G2L_warning(f'Could not parse correctly the {acquisition_path} stamps file.')
     except:
         raise(Exception(f'ERROR: Problem with the {acquisition_path} stamps file (probably it could not be opened).'))
     #Todo: check if a typecasting error can happen here ?
@@ -276,12 +272,10 @@ def get_monotonic_timebound(acquisition_path:str, framenumbers:Optional[np.ndarr
         framenumbers = np.arange(get_number_of_available_frames(acquisition_path))
     #Check that the demand is reasonable
     if framenumbers.min() < 0:
-        #Todo: ERROR here
-        print('Asked for negative framenumber ??')
+        log_error('Asked for negative framenumber ??', verbose=verbose)
         return None
     if framenumbers.max() >= get_number_of_available_frames_stamps(acquisition_path):
-        #Todo: WARNING here
-        print(f'Requested framenumber {framenumbers.max()} while there are only {get_number_of_available_frames(acquisition_path)} frames for this dataset.')
+        throw_G2L_warning(f'Requested framenumber {framenumbers.max()} while there are only {get_number_of_available_frames(acquisition_path)} frames for this dataset.')
         framenumbers = framenumbers[framenumbers < get_number_of_available_frames_stamps(acquisition_path)]
 
     # Retrieve the frames
@@ -323,23 +317,21 @@ def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, e
         print('End frame < 0')
         return None
     if end_framenumber > last_framenumber:
-        #Todo: WARNING here
-        print(f'The requested end frame ({end_framenumber}) is after the last recorded frame ({last_framenumber}).')
-        print(f'Changing the end frame to {last_framenumber}. You might get less frames than expected.')
+        log_warn(f'The requested end frame ({end_framenumber}) is after the last recorded frame ({last_framenumber}).', verbose=verbose)
+        log_warn(f'Changing the end frame to {last_framenumber}. You might get less frames than expected.', verbose=verbose)
         end_framenumber = last_framenumber
 
     ### Check for missing frames
     missing_framenumbers = identify_missing_framenumbers(all_framenumbers, verbose=verbose)
     if not len(missing_framenumbers) == 0:
-        print(f'There are missing frames ! Frames {list(missing_framenumbers)} are missing.')
+        log_warn(f'There are missing frames ! Frames {list(missing_framenumbers)} are missing.', verbose=verbose)
     # here MF means missing frame (abbreviated for code lisibility)
     MFs_after_start = missing_framenumbers >= start_framenumber
     MFs_before_end = missing_framenumbers <= end_framenumber
     MFs_in_requested_interval = MFs_after_start * MFs_before_end
     there_are_MFs_in_the_request_interval:bool = 1 in MFs_in_requested_interval
     if there_are_MFs_in_the_request_interval:
-        #Todo: WARNING here
-        print(f'There are missing frames in the requested interval. The returned frames will not be evenly spaced.')
+        log_warn(f'There are missing frames in the requested interval. The returned frames will not be evenly spaced.', verbose=verbose)
 
     frames_correctly_spaced = (all_framenumbers - start_framenumber) % interval == 0
     frames_after_start = all_framenumbers >= start_framenumber
@@ -360,7 +352,7 @@ def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, e
         # This happens either if
         # (a) there were missing frames (should be a warning before telling that from the index function) or
         # (b) something elsed foired in this function, a supplementary check should not hurt !
-        print('WARNING, STAMPS ARE NOT COHERENT WITH VIDEO')
+        log_warn('STAMPS ARE NOT COHERENT WITH VIDEO', verbose=verbose)
 
     return stamps_wanted
 
@@ -381,8 +373,7 @@ def get_number_of_available_frames_rawvideo(acquisition_path: str) -> int:
     img_s:int = img_w * img_h
     n_frames_tot:int = file_size // img_s
     if img_s == 0 or file_size % img_s != 0:
-        #Todo: WARNING here
-        print('WARNING bad formatting')
+        throw_G2L_warning('Bad formatting of rawvideo file')
     return n_frames_tot
 
 def get_frames_rawvideo(acquisition_path:str, framenumbers:np.ndarray, verbose:int = 1) -> Optional[np.ndarray]:
@@ -965,7 +956,7 @@ def get_chronos_acquisition_frequency_from_mp4_video(**parameters) -> Optional[f
 def alert_me_if_there_is_no_video(acquisition_path: str) -> None:
     if not(is_this_a_video(acquisition_path)):
         for i in range(10):
-            print(f'WARNING No video named {acquisition_path} exists !')
+            log_warn(f'No video named {acquisition_path} exists !')
 
 def is_this_a_video(acquisition_path:str) -> bool:
     """
@@ -983,7 +974,7 @@ def is_this_a_video(acquisition_path:str) -> bool:
     elif is_this_a_mp4(acquisition_path):
         return True
     else:
-        throw_G2L_warning(f'There is no video at the acquisition {acquisition_path}')
+        log_warn(f'There is no video at the acquisition {acquisition_path}')
         return False
 
 def find_available_videos(dataset_path: str) ->List[str]:
@@ -1284,8 +1275,7 @@ def save_frames_to_video(video_rawpath:str, frames:np.ndarray, fps:float = 25., 
         elif filetype == 'mp4':
             codec = 'mp4v'
         else:
-            #Todo:Warning here
-            print(f'Warning: did not find appropriate codec for filetype {filetype}.')
+            throw_G2L_warning(f'Did not find appropriate codec for filetype {filetype}.')
             codec = 'XVID'
 
     frames = frames.astype(np.uint8, copy=False)
@@ -1313,7 +1303,7 @@ def save_frames_to_video(video_rawpath:str, frames:np.ndarray, fps:float = 25., 
 def save_acquisition_to_video(acquisition_path:str, do_timestamp:bool = True, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
     if not(is_this_a_gcv(acquisition_path)) and not(is_this_a_t16(acquisition_path)):
         # todo error ERROR here
-        print(f'WAW')
+        log_error(f'WAW')
         return
 
     frames = get_frames(acquisition_path, framenumbers = None, subregion=None)

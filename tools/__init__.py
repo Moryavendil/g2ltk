@@ -44,7 +44,7 @@ class G2LWarning(UserWarning):
 
 import sys
 def throw_G2L_warning(text:str):
-    warnings.warn(Fore.LIGHTYELLOW_EX + 'WARNING: ' + text + Fore.RESET, category=G2LWarning, stacklevel=3
+    warnings.warn(Fore.LIGHTYELLOW_EX + 'Warning: ' + text + Fore.RESET, category=G2LWarning, stacklevel=3
                   # skip_file_prefixes=_warn_skips # THIS ONLY WORKS FOR PYTHON >= 3.12
                   )
     sys.stderr.flush() ; display('') # force to display warning at runtime
@@ -63,7 +63,7 @@ def log_error(text:str, verbose:int): # verbose 1
 
 def log_warn(text:str, verbose:int): # verbose 2
     if verbose >= 2:
-        throw_G2L_warning(text)
+        display(Fore.LIGHTYELLOW_EX + 'WARN: ' + text + Fore.RESET)
 
 def log_info(text:str, verbose:int): # verbose 3
     if verbose >= 3:
