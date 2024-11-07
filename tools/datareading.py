@@ -1,4 +1,4 @@
-from typing import Optional, Any, Tuple, Dict, List
+from typing import Optional, Any, Tuple, Dict, List, Union
 import numpy as np
 import cv2 # to manipulate images and videos
 import os # to navigate in the directories
@@ -10,10 +10,8 @@ from tools import utility, datasaving
 # Custom typing
 Meta = Dict[str, str]
 Stamps = Dict[str, np.ndarray]
+Framenumbers = Optional[Union[np.ndarray, List[int]]]
 Subregion = Optional[Tuple[Optional[int], Optional[int], Optional[int], Optional[int]]]#  start_x, start_y, end_x, end_y
-
-### path routines
-
 
 ###### GEVCAPTURE VIDEO (gcv) READING
 
@@ -1026,22 +1024,20 @@ def get_acquisition_duration(acquisition_path:str, framenumbers:Optional[np.ndar
         print('ERROR: Couldnt get acquisition duration.')
         return -1.
 
-def format_framenumbers(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, verbose:int = 1) -> Optional[np.ndarray]:
+def format_framenumbers(acquisition_path:str, framenumbers:Optional[Union[np.ndarray, List[int]]] = None, verbose:int = 1) -> Optional[np.ndarray]:
     if framenumbers is None: # Default value for framenumbers
         framenumbers = np.arange(get_number_of_available_frames(acquisition_path))
-    framenumbers = np.array(framenumbers)
+    framenumbers = np.array(framenumbers) # handle the array_like case
     #Check that the demand is reasonable
     if framenumbers.min() < 0:
-        #Todo: ERROR here
-        print('Asked for negative framenumber ??')
+        log_error('Asked for negative framenumber ??')
         return None
     if framenumbers.max() >= get_number_of_available_frames(acquisition_path):
-        #Todo: ERROR here
-        print(f'Requested framenumber {framenumbers.max()} while there are only {get_number_of_available_frames(acquisition_path)} frames for this dataset.')
+        log_error(f'Requested framenumber {framenumbers.max()} while there are only {get_number_of_available_frames(acquisition_path)} frames for this dataset.')
         return None
     return framenumbers
 
-def get_geometry(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, subregion:Subregion = None, verbose:int = 1) -> Optional[Tuple]:
+def get_geometry(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, verbose:int = 1) -> Optional[Tuple]:
     formatted_fns = format_framenumbers(acquisition_path, framenumbers, verbose=verbose)
     if formatted_fns is None: return None
 
@@ -1094,8 +1090,7 @@ def get_frame(acquisition_path:str, framenumber:int, subregion:Subregion = None,
 def get_times(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, unit = None, verbose:int=1) -> Optional[np.ndarray]:
     framenumbers = format_framenumbers(acquisition_path, framenumbers, verbose=verbose)
     if framenumbers is None:
-        # todo ERROR here
-        print("ERROR Wrong framenumber, couldnt format it")
+        log_error("ERROR Wrong framenumber, couldnt format it", verbose=verbose)
         return None
 
     # Retrieve the frames
@@ -1105,8 +1100,7 @@ def get_times(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, un
     elif is_this_a_t16(acquisition_path):
         times = (np.arange(framenumbers.max()+1) / get_acquisition_frequency_t16(acquisition_path))[framenumbers]
     else:
-        #Todo: ERROR HERE
-        print('No video for this dataset.')
+        log_error('No video for this dataset.', verbose=verbose)
         return None
 
     return times
@@ -1370,3 +1364,25 @@ def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., 
             save_acquisition_to_video(acquisition_path, do_timestamp=do_timestamp, fps=fps, filetype=filetype, codec=codec, resize_factor=resize_factor)
         else:
             throw_G2L_warning(f'GCV acquisition {acquisition} is found but does not exist ?')
+
+### Get useful info
+
+def get_t_frames(acquisition_path:str, framenumbers:Framenumbers = None, verbose:int = 1) -> Optional[np.ndarray]:
+    return format_framenumbers(acquisition_path, framenumbers = framenumbers, verbose = verbose)
+
+def get_t_s(acquisition_path:str, framenumbers:Framenumbers = None, verbose:int = 1) -> Optional[np.ndarray]:
+    return get_times(acquisition_path, framenumbers=framenumbers, unit='s', verbose = verbose)
+
+def get_t_ms(acquisition_path:str, framenumbers:Framenumbers = None, verbose:int = 1) -> Optional[np.ndarray]:
+    return get_times(acquisition_path, framenumbers=framenumbers, unit='ms', verbose = verbose)
+
+def get_x_px(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, resize_factor:int = 1, verbose:int = 1) -> Optional[np.ndarray]:
+    length, height, width = get_geometry(acquisition_path, framenumbers=framenumbers, subregion=subregion, verbose = verbose)
+    return np.arange(width * resize_factor) / resize_factor
+
+def get_x_mm(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, resize_factor:int = 1, px_per_mm:float = 1., verbose:int = 1) -> Optional[np.ndarray]:
+    return get_x_px(acquisition_path, framenumbers, subregion, resize_factor, verbose) / px_per_mm
+
+def get_x_m(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, resize_factor:int = 1, px_per_mm:float = 1., verbose:int = 1) -> Optional[np.ndarray]:
+    return get_x_mm(acquisition_path, framenumbers, subregion, resize_factor, px_per_mm, verbose) / 1e3
+

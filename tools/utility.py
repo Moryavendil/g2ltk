@@ -178,9 +178,34 @@ def normalize(y: Any):
     y_normalized /= np.max(np.abs(y_normalized))
     return y_normalized
 
+### FFT AND ARRAYS
 
-def convert_time(time:Any, origin_unit:str, target_unit:str):
-    pass
+def step(arr:np.ndarray) -> float:
+    return (arr[1:] - arr[:-1]).mean()
+
+def correct_limits(arr:np.ndarray) -> Tuple[float, float]:
+    return arr.min() - step(arr) / 2, arr.max() + step(arr) / 2
+def correct_extent(arr_x:np.ndarray, arr_y:np.ndarray) -> Tuple[float, float, float, float]:
+    xlim = correct_limits(arr_x)
+    ylim = correct_limits(arr_y)
+    return xlim[0], xlim[1], ylim[1], ylim[0]
+
+def dual(arr:np.ndarray) -> np.ndarray:
+    return np.fft.fftfreq(len(arr), step(arr))
+
+def rdual(arr:np.ndarray) -> np.ndarray:
+    return np.fft.rfftfreq(len(arr), step(arr))
+
+from scipy.signal.windows import get_window # FFT windowing
+
+def ft2d(z:np.ndarray, window:str='hann') -> np.ndarray:
+    Nt, Nx = z.shape
+    z_treated = z * np.expand_dims(get_window(window, Nt), axis=1) * np.expand_dims(get_window(window, Nx), axis=0)
+    z_treated -= np.mean(z_treated) * (1-1e-6)
+
+    z_hat = np.fft.rfft2(z_treated, norm='backward')
+    return np.concatenate((z_hat[(Nt+1)//2:,:], z_hat[:(Nt+1)//2,:])) # reorder bcz of the FT
+
 
 ########## SAVE GRAPHE
 import os
@@ -204,6 +229,8 @@ def save_graphe(graph_name, imageonly=False, **kwargs):
         plt.savefig(raw_path + '.svg', **kwargs)
 
 ########### DISPLAYS THE TIME
+def convert_time(time:Any, origin_unit:str, target_unit:str):
+    pass
 def disptime(t: float) -> str:
     if np.abs(t) < 1:return str(round(t, 2))+' s'
     if np.abs(t) < 5:return str(round(t, 1))+' s'

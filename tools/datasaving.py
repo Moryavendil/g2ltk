@@ -83,10 +83,10 @@ def get_items(parameters: dict, total_match:bool = False, verbose: int = 1) -> L
             parameters_match = candidate_parameters.keys() == parameters.keys()
         else:
             for key in parameters.keys():
-                if (key != 'framenumbers') and (key not in candidate_parameters.keys()):
+                if (key not in ['framenumbers', 'verbose']) and (key not in candidate_parameters.keys()):
                     parameters_match = False
         if parameters_match:
-            same_parameters_values = [np.prod(candidate_parameters[key] == parameters[key]) for key in parameters.keys() if key != 'framenumbers']
+            same_parameters_values = [np.prod(candidate_parameters[key] == parameters[key]) for key in parameters.keys() if (key not in ['framenumbers', 'verbose'])]
             while np.array(same_parameters_values).shape != ():
                 same_parameters_values = np.prod(np.array(same_parameters_values))
             if same_parameters_values: # here the file is the one we search

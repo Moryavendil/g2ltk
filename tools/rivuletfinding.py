@@ -22,7 +22,7 @@ Default value for finding functions parameters
  - rivulet_size_factor  (float, 1. - 5.):   How much wider is the rivulet compared to the size occupied by low luminosity extremapoints
  - std_factor           (float, 1. - 5.):   How much of the noise to remove
  - borders_min_distance (float, 1. - 10.):  The distance, in px / resize_factor, between two consecutive maximums in the function find_extrema used to find the borders
- - max_rivulet_width    (float, 1. - 100.): Maximum authorized rivulet width, in pixels 
+ - max_rivulet_width    (float, 1. - 1000.): Maximum authorized rivulet width, in pixels 
  - max_borders_luminosity_difference (float, 0 - 255): Maximum authorized luminosity difference between the rivulet borders
  - verbose (int, 0 - 5):                    Debug level
 """
@@ -546,7 +546,7 @@ def get_frames_from_parameters(**parameters):
 
     frames = frames.astype(float, copy=False)
 
-    if parameters['remove_median_bckgnd']:
+    if parameters.get('remove_median_bckgnd', default_kwargs['remove_median_bckgnd']):
         frames = frames - np.median(frames, axis=0, keepdims=True)
         frames -= frames.min()
 
