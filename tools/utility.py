@@ -4,6 +4,7 @@ import numpy as np
 
 ###### MATHS
 
+import math
 from scipy.signal import savgol_filter # for smoothing
 from scipy.interpolate import CubicSpline # for cubic interpolation
 
@@ -181,30 +182,183 @@ def normalize(y: Any):
 ### FFT AND ARRAYS
 
 def step(arr:np.ndarray) -> float:
+    if arr is None:
+        return 1
+    # return arr[1] - arr[0]
     return (arr[1:] - arr[:-1]).mean()
+
+def span(arr:np.ndarray) -> float:
+    return (len(arr)-1)*step(arr)
 
 def correct_limits(arr:np.ndarray) -> Tuple[float, float]:
     return arr.min() - step(arr) / 2, arr.max() + step(arr) / 2
-def correct_extent(arr_x:np.ndarray, arr_y:np.ndarray) -> Tuple[float, float, float, float]:
+def correct_extent_spatio(arr_x:np.ndarray, arr_y:np.ndarray) -> Tuple[float, float, float, float]:
     xlim = correct_limits(arr_x)
     ylim = correct_limits(arr_y)
     return xlim[0], xlim[1], ylim[1], ylim[0]
+def correct_extent_fft(arr_x:np.ndarray, arr_y:np.ndarray) -> Tuple[float, float, float, float]:
+    xlim = correct_limits(arr_x)
+    ylim = correct_limits(arr_y)
+    return xlim[0], xlim[1], ylim[0], ylim[1]
 
 def dual(arr:np.ndarray) -> np.ndarray:
-    return np.fft.fftfreq(len(arr), step(arr))
+    return np.fft.fftshift(np.fft.fftfreq(len(arr), step(arr)))
 
 def rdual(arr:np.ndarray) -> np.ndarray:
     return np.fft.rfftfreq(len(arr), step(arr))
 
 from scipy.signal.windows import get_window # FFT windowing
 
-def ft2d(z:np.ndarray, window:str='hann') -> np.ndarray:
-    Nt, Nx = z.shape
-    z_treated = z * np.expand_dims(get_window(window, Nt), axis=1) * np.expand_dims(get_window(window, Nx), axis=0)
-    z_treated -= np.mean(z_treated) * (1-1e-6)
+def ft1d(arr:np.ndarray, window:str= 'hann', norm=None) -> np.ndarray:
+    """
 
-    z_hat = np.fft.rfft2(z_treated, norm='backward')
-    return np.concatenate((z_hat[(Nt+1)//2:,:], z_hat[:(Nt+1)//2,:])) # reorder bcz of the FT
+    Parameters
+    ----------
+    arr
+    window
+    norm
+
+    Returns
+    -------
+
+    """
+    N = len(arr)
+    z_treated = arr * get_window(window, N)
+    # z_treated -= np.mean(z_treated) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
+    z_treated -= np.mean(z_treated)
+
+    z_hat = np.fft.rfft(z_treated, norm=norm)
+    return z_hat
+
+def ft2d(arr:np.ndarray, window:str='hann', norm=None) -> np.ndarray:
+    Nt, Nx = arr.shape
+    z_treated = arr * np.expand_dims(get_window(window, Nt), axis=1) * np.expand_dims(get_window(window, Nx), axis=0)
+    # z_treated -= np.mean(z_treated) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
+    z_treated -= np.mean(z_treated)
+
+    z_hat = np.fft.rfft2(z_treated, norm=norm)
+    return np.fft.fftshift(z_hat, axes=0)
+    # return np.concatenate((z_hat[(Nt+1)//2:,:], z_hat[:(Nt+1)//2,:])) # reorder bcz of the FT
+
+def window_factor(window:str):
+    """
+    Returns the factor by which the energy is multiplied when the signal is windowed
+
+    Parameters
+    ----------
+    window
+
+    Returns
+    -------
+
+    """
+    if window is None:
+        return 1.
+    elif window == 'boxcar':
+        return 1.
+    elif window == 'hann':
+        return 8/3
+    else:
+        return 1/((get_window(window, 1000)**2).sum()/1000)
+
+def psd1d(y, x1, window:str= 'hann') -> np.ndarray:
+    z_ft = ft1d(y, window=window, norm="backward") * step(x1) # x dt for units
+    # energy spectral density: energy of the signal at this frequency
+    # useful for time-limited signals (impulsions)
+    esd = np.abs(z_ft)**2 * window_factor(window) * 2 # x 2 because of rfft which truncates the spectrum
+    esd[1:] *= 2 # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
+    # psd = esd / T
+    return esd / span(x1)
+
+def psd2d(y, x1, x2, window:str='hann') -> np.ndarray:
+    y_ft = ft2d(y, window=window, norm="backward") * step(x1) * step(x2) # x dt for units
+    # energy spectral density: energy of the signal at this frequency
+    # useful for time-limited signals (impulsions)
+    esd = np.abs(y_ft)**2 * window_factor(window)**2
+    esd[:, 1:] *= 2 # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
+    # psd = esd / (T X)
+    return esd / span(x1) / span(x2)
+
+# find the edges of the peak
+def attenuate_power(value, attenuation_factor_dB):
+    return value / math.pow(10, attenuation_factor_dB / 20)
+def peak_contour1d(peak_x1, z, peak_depth_dB, x1=None):
+    if x1 is None:
+        x1 = np.arange(z.shape[0])
+    peak_index = np.argmin((x1-peak_x1)**2)
+    zintercept = attenuate_power(z[peak_index], peak_depth_dB)
+    x1_intercept = find_roots(x1, z - zintercept)
+    x1_before = x1[x1_intercept < peak_x1].max()
+    x1_after = x1[x1_intercept > peak_x1].min()
+    return x1_before, x1_after
+def peak_vicinity1d(peak_x1, z, peak_depth_dB, x1=None):
+    if x1 is None:
+        x1 = np.arange(z.shape[0])
+    x1_before, x1_after = peak_contour1d(peak_x1=peak_x1, z=z, peak_depth_dB=peak_depth_dB, x1=x1)
+    # return np.where((x1 >= x1_before)*(x1 <= x1_after))[0]
+    return ((x1 >= x1_before)*(x1 <= x1_after)).astype(bool)
+
+def power_near_peak1d(peak_x1, z, peak_depth_dB, x1=None):
+    # powerlog_intercmor_incertitude = zmeanx_psd.max()/(10**(peak_depth_dB/10))
+    # freq_for_intercept = utility.find_roots(freqs, zmeanx_psd - powerlog_intercmor_incertitude)
+    # freqpre = freq_for_intercept[freq_for_intercept < freq_guess].max()
+    # freqpost = freq_for_intercept[freq_for_intercept > freq_guess].min()
+    # integrate the PSD along the peak
+    # ### (abandoned) do a trapezoid integration
+    # x_f = np.concatenate(([freqpre], freqs[(freqpre < freqs)*(freqs < freqpost)], [freqpost]))
+    # y_f = np.concatenate(([np.interp(freqpre, freqs, zmeanx_psd)], zmeanx_psd[(freqpre < freqs)*(freqs < freqpost)], [np.interp(freqpost, freqs, zmeanx_psd)]))
+    # p_ft_peak = trapezoid(y_f, x_f)
+    ### Go bourrin (we are in log we do not care) : rectangular integration
+    # p_ft_peak = np.sum(zmeanx_psd[(freqpre < freqs)*(freqs < freqpost)]) * utility.step(freqs)
+    return np.sum(z[peak_vicinity1d(peak_x1=peak_x1, z=z, peak_depth_dB=peak_depth_dB, x1=x1)]) * step(x1)
+
+from contourpy import contour_generator, ZInterp
+from skimage.measure import points_in_poly, grid_points_in_poly
+
+def peak_contour2d(peak_x1, peak_x2, z, peak_depth_dB, x1=None, x2=None):
+    if x1 is None:
+        x1 = np.arange(z.shape[1])
+    if x2 is None:
+        x2 = np.arange(z.shape[0])
+
+    # to find the contour, we use contourpy which is fast, efficient and has the log-interpolation option that is relevant for us
+    cg = contour_generator(x=x1, y=x2, z=z, z_interp=ZInterp.Log)
+    zpeak = z[np.argmin((x2-peak_x2)**2)][np.argmin((x1-peak_x1)**2)]
+    zintercept = attenuate_power(zpeak, peak_depth_dB)
+    contours = cg.lines(zintercept)
+
+    interestpoints = [[peak_x1, peak_x2]]
+    if np.isclose(peak_x1, 0):
+        interestpoints.append([peak_x1, -peak_x2])
+
+    # find the contour that contains the point
+    pointincontour = np.array([np.sum(points_in_poly(interestpoints, contour)) for contour in contours]).astype(bool)
+    maincontours = [contours[index] for index in np.where(pointincontour == True)[0]]
+
+    return maincontours
+
+def peak_vicinity2d(peak_x1, peak_x2, z, peak_depth_dB, x1=None, x2=None):
+    maincontours = peak_contour2d(peak_x1=peak_x1, peak_x2=peak_x2, z=z, peak_depth_dB=peak_depth_dB, x1=x1, x2=x2)
+
+    # make a mask with the points inside the contourS
+    mask = np.zeros_like(z).astype(bool)
+    for contour in maincontours:
+        # we want to use skimage's grid_points_in_poly but it works with integer coordinates
+        # so we have to translate
+        contour_gridcoord = contour.copy()
+        if x1 is not None:
+            contour_gridcoord[:,0] -= x1.min()
+            contour_gridcoord[:,0] /= step(x1)
+        if x2 is not None:
+            contour_gridcoord[:,1] -= x2.min()
+            contour_gridcoord[:,1] /= step(x2)
+        # not sure why we do the transpose thingamabob but it works
+        contour_mask = grid_points_in_poly(z.transpose().shape, contour_gridcoord).transpose()
+        mask = np.bitwise_or(mask, contour_mask)
+
+    return mask
+def power_near_peak2d(peak_x1, peak_x2, z, peak_depth_dB, x1=None, x2=None):
+    return np.sum(z[peak_vicinity2d(peak_x1=peak_x1, peak_x2=peak_x2, z=z, peak_depth_dB=peak_depth_dB, x1=x1, x2=x2)]) * step(x1) * step(x2)
 
 ############# RIVULET
 def w_form_borders(borders:np.ndarray) -> np.ndarray:

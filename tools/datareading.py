@@ -1183,15 +1183,18 @@ def describe(dataset:str, acquisition:str, framenumbers:Optional[np.ndarray]=Non
 
     # chosen data chunk
     length, height, width = get_geometry(acquisition_path, framenumbers = framenumbers, subregion=subregion)
-    size = length*height*width
+    framesize = height*width
+    framesize_kB = int(np.rint(framesize/10**3))
+    framessize = length*framesize
+    framessize_MB = int(np.rint(framessize/10**6))
     duration = get_acquisition_duration(acquisition_path, framenumbers=framenumbers, unit="s")
     missing_chunks = missing_frames_in_framenumbers(acquisition_path, framenumbers=framenumbers, verbose=verbose)
     nbr_of_missing_chunks = len(missing_chunks)
     nbr_of_missing_frames = np.sum([len(chunk) for chunk in missing_chunks])
 
     log_info(f'Chosen data', verbose=verbose)
-    log_info(f'Frames dimension: {height}x{width} ({round(height*width/10**3, 0)} kB each)', verbose=verbose)
-    log_info(f'Length: {length} frames ({round(duration, 2)} s - {round(size/10**6, 0)} MB)', verbose=verbose)
+    log_info(f'Frames dimension: {height}x{width} ({framesize_kB} kB each)', verbose=verbose)
+    log_info(f'Length: {length} frames ({round(duration, 2)} s - {f"{framessize_MB} MB" if framessize_MB < 1000 else f"{round(framessize_MB/1000, 3)} GB"})', verbose=verbose)
     if  nbr_of_missing_chunks > 0:
         log_info(f'There are {nbr_of_missing_chunks} missing chunks ({nbr_of_missing_frames} frames total)', verbose=verbose)
         log_info(f'Missing chunks: {missing_chunks}', verbose=verbose)
