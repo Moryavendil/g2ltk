@@ -49,27 +49,46 @@ def throw_G2L_warning(text:str):
                   )
     sys.stderr.flush() ; display('') # force to display warning at runtime
 
+global_verbose = 4
 
+def set_verbose(verbose:int):
+    global global_verbose
+    global_verbose = verbose
 
-def log_criticalFailure(text:str, verbose:int): # verbose 0
+def log_criticalFailure(text:str, verbose:int=None): # verbose 0
+    if verbose is None:
+        global global_verbose
+        verbose=global_verbose
     if verbose >= 0:
         display('=!=!=!=!=!=!=!=!= CRITICAL FAILURES ARE NOT CODED YET =!=!=!=!=!=!=!=!=')
         display(Fore.LIGHTMAGENTA_EX + 'CRITICAL: ' + text + Fore.RESET)
 
-def log_error(text:str, verbose:int): # verbose 1
+def log_error(text:str, verbose:int=None): # verbose 1
+    if verbose is None:
+        global global_verbose
+        verbose=global_verbose
     if verbose >= 1:
         display('=!=!=!=!=!=!=!=!= ERRORS ARE NOT CODED YET =!=!=!=!=!=!=!=!=')
         display(Fore.LIGHTRED_EX + 'ERROR: ' + text + Fore.RESET)
 
-def log_warn(text:str, verbose:int): # verbose 2
+def log_warn(text:str, verbose:int=None): # verbose 2
+    if verbose is None:
+        global global_verbose
+        verbose=global_verbose
     if verbose >= 2:
         display(Fore.LIGHTYELLOW_EX + 'WARN: ' + text + Fore.RESET)
 
-def log_info(text:str, verbose:int): # verbose 3
+def log_info(text:str, verbose:int=None): # verbose 3
+    if verbose is None:
+        global global_verbose
+        verbose=global_verbose
     if verbose >= 3:
         display(Fore.LIGHTGREEN_EX + 'INFO: ' + text + Fore.RESET)
 
-def log_dbug(text:str, verbose:int): # verbose 4
+def log_dbug(text:str, verbose:int=None): # verbose 4
+    if verbose is None:
+        global global_verbose
+        verbose=global_verbose
     if verbose >= 4:
         display(Fore.LIGHTCYAN_EX + 'DEBUG:\t' + text + Fore.RESET)
 

@@ -8,6 +8,8 @@ import math
 from scipy.signal import savgol_filter # for smoothing
 from scipy.interpolate import CubicSpline # for cubic interpolation
 
+from tools import display, log_info, log_dbug
+
 # misc
 def lin(x: Any, a: float, b: float) -> Any:
     return a * x + b
@@ -72,7 +74,7 @@ def find_extrema(x: np.ndarray, y: np.ndarray, peak_category: str = 'all', smoot
 
     ### FIRST DERIVATIVE
     #Todo: determine if it is better to use der1 or der2 here.
-    # der1 is noisier ?
+    # der1 is noisier ? der2 should be better
 
     # dx, dy = der1(x, y)
     dx, dy = der2(x, y)
@@ -261,44 +263,48 @@ def window_factor(window:str):
     else:
         return 1/((get_window(window, 1000)**2).sum()/1000)
 
-def psd1d(y, x1, window:str= 'hann') -> np.ndarray:
-    z_ft = ft1d(y, window=window, norm="backward") * step(x1) # x dt for units
+def psd1d(z, x, window:str= 'hann') -> np.ndarray:
+    z_ft = ft1d(z, window=window, norm="backward") * step(x) # x dt for units
     # energy spectral density: energy of the signal at this frequency
     # useful for time-limited signals (impulsions)
-    esd = np.abs(z_ft)**2 * window_factor(window) * 2 # x 2 because of rfft which truncates the spectrum
+    esd = np.abs(z_ft)**2 * window_factor(window)
     esd[1:] *= 2 # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
     # psd = esd / T
-    return esd / span(x1)
+    return esd / span(x)
 
-def psd2d(y, x1, x2, window:str='hann') -> np.ndarray:
-    y_ft = ft2d(y, window=window, norm="backward") * step(x1) * step(x2) # x dt for units
+def psd2d(z, x, y, window:str= 'hann') -> np.ndarray:
+    y_ft = ft2d(z, window=window, norm="backward") * step(x) * step(y) # x dt for units
     # energy spectral density: energy of the signal at this frequency
     # useful for time-limited signals (impulsions)
     esd = np.abs(y_ft)**2 * window_factor(window)**2
     esd[:, 1:] *= 2 # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
     # psd = esd / (T X)
-    return esd / span(x1) / span(x2)
+    return esd / span(x) / span(y)
 
 # find the edges of the peak
 def attenuate_power(value, attenuation_factor_dB):
     return value / math.pow(10, attenuation_factor_dB / 20)
-def peak_contour1d(peak_x1, z, peak_depth_dB, x1=None):
-    if x1 is None:
-        x1 = np.arange(z.shape[0])
-    peak_index = np.argmin((x1-peak_x1)**2)
+def peak_contour1d(peak_x, z, peak_depth_dB, x=None):
+    if x is None:
+        x = np.arange(z.shape[0])
+    peak_index = np.argmin((x - peak_x) ** 2)
     zintercept = attenuate_power(z[peak_index], peak_depth_dB)
-    x1_intercept = find_roots(x1, z - zintercept)
-    x1_before = x1[x1_intercept < peak_x1].max()
-    x1_after = x1[x1_intercept > peak_x1].min()
+    x1_intercept = find_roots(x, z - zintercept)
+    x1_before = peak_x
+    x1_after = peak_x
+    if len(x1_intercept[x1_intercept < peak_x] > 0):
+        x1_before = x1_intercept[x1_intercept < peak_x].max()
+    if len(x1_intercept[x1_intercept > peak_x] > 0):
+        x1_after = x1_intercept[x1_intercept > peak_x].min()
     return x1_before, x1_after
-def peak_vicinity1d(peak_x1, z, peak_depth_dB, x1=None):
-    if x1 is None:
-        x1 = np.arange(z.shape[0])
-    x1_before, x1_after = peak_contour1d(peak_x1=peak_x1, z=z, peak_depth_dB=peak_depth_dB, x1=x1)
+def peak_vicinity1d(peak_x, z, peak_depth_dB, x=None):
+    if x is None:
+        x = np.arange(z.shape[0])
+    x1_before, x1_after = peak_contour1d(peak_x=peak_x, z=z, peak_depth_dB=peak_depth_dB, x=x)
     # return np.where((x1 >= x1_before)*(x1 <= x1_after))[0]
-    return ((x1 >= x1_before)*(x1 <= x1_after)).astype(bool)
+    return ((x >= x1_before) * (x <= x1_after)).astype(bool)
 
-def power_near_peak1d(peak_x1, z, peak_depth_dB, x1=None):
+def power_near_peak1d(peak_x, z, peak_depth_dB, x=None):
     # powerlog_intercmor_incertitude = zmeanx_psd.max()/(10**(peak_depth_dB/10))
     # freq_for_intercept = utility.find_roots(freqs, zmeanx_psd - powerlog_intercmor_incertitude)
     # freqpre = freq_for_intercept[freq_for_intercept < freq_guess].max()
@@ -310,55 +316,82 @@ def power_near_peak1d(peak_x1, z, peak_depth_dB, x1=None):
     # p_ft_peak = trapezoid(y_f, x_f)
     ### Go bourrin (we are in log we do not care) : rectangular integration
     # p_ft_peak = np.sum(zmeanx_psd[(freqpre < freqs)*(freqs < freqpost)]) * utility.step(freqs)
-    return np.sum(z[peak_vicinity1d(peak_x1=peak_x1, z=z, peak_depth_dB=peak_depth_dB, x1=x1)]) * step(x1)
+    return np.sum(z[peak_vicinity1d(peak_x=peak_x, z=z, peak_depth_dB=peak_depth_dB, x=x)]) * step(x)
 
 from contourpy import contour_generator, ZInterp
+
 from skimage.measure import points_in_poly, grid_points_in_poly
 
-def peak_contour2d(peak_x1, peak_x2, z, peak_depth_dB, x1=None, x2=None):
-    if x1 is None:
-        x1 = np.arange(z.shape[1])
-    if x2 is None:
-        x2 = np.arange(z.shape[0])
+def peak_contour2d(peak_x, peak_y, z, peak_depth_dB, x=None, y=None):
+    if x is None:
+        x = np.arange(z.shape[1])
+    if y is None:
+        y = np.arange(z.shape[0])
+
+    interestpoints = [[peak_x, peak_y]]
+    if np.isclose(peak_x, 0):
+        interestpoints.append([peak_x, -peak_y])
+    zpeak = z[np.argmin((y - peak_y) ** 2)][np.argmin((x - peak_x) ** 2)]
 
     # to find the contour, we use contourpy which is fast, efficient and has the log-interpolation option that is relevant for us
-    cg = contour_generator(x=x1, y=x2, z=z, z_interp=ZInterp.Log)
-    zpeak = z[np.argmin((x2-peak_x2)**2)][np.argmin((x1-peak_x1)**2)]
+    cg = contour_generator(x=x, y=y, z=z, z_interp=ZInterp.Log)
+
+    min_peak_depth_dB = 25
+
+    while peak_depth_dB > min_peak_depth_dB:
+        zintercept = attenuate_power(zpeak, peak_depth_dB)
+        contours = cg.lines(zintercept)
+        # contours = cg.filled(zintercept, np.inf)
+        # polygons = [([contours[0][i]], [contours[1][i]]) for i in range(len(contours[0]))]
+
+        # find the contour that contains the point
+        pointincontour = np.array([np.sum(points_in_poly(interestpoints, contour)) for contour in contours]).astype(bool)
+        if pointincontour.any():
+            maincontours = [contours[index] for index in np.where(pointincontour == True)[0]]
+            log_dbug(f"Contour found with peak_depth={peak_depth_dB} dB")
+            return maincontours
+        else:
+            peak_depth_dB -= 5
+            log_dbug(f"Couldn't find contour: Trying peak_depth={peak_depth_dB} dB")
+    peak_depth_dB = min_peak_depth_dB
+    log_dbug(f"Couldn't find contour: Trying peak_depth={peak_depth_dB} dB")
     zintercept = attenuate_power(zpeak, peak_depth_dB)
     contours = cg.lines(zintercept)
 
-    interestpoints = [[peak_x1, peak_x2]]
-    if np.isclose(peak_x1, 0):
-        interestpoints.append([peak_x1, -peak_x2])
-
     # find the contour that contains the point
     pointincontour = np.array([np.sum(points_in_poly(interestpoints, contour)) for contour in contours]).astype(bool)
-    maincontours = [contours[index] for index in np.where(pointincontour == True)[0]]
 
+    maincontours = [contours[index] for index in np.where(pointincontour == True)[0]]
     return maincontours
 
-def peak_vicinity2d(peak_x1, peak_x2, z, peak_depth_dB, x1=None, x2=None):
-    maincontours = peak_contour2d(peak_x1=peak_x1, peak_x2=peak_x2, z=z, peak_depth_dB=peak_depth_dB, x1=x1, x2=x2)
+
+
+
+def peak_vicinity2d(peak_x, peak_y, z, peak_depth_dB, x=None, y=None):
+    maincontours = peak_contour2d(peak_x=peak_x, peak_y=peak_y, z=z, peak_depth_dB=peak_depth_dB, x=x, y=y)
 
     # make a mask with the points inside the contourS
     mask = np.zeros_like(z).astype(bool)
+    # take at least the interest point
+    mask[np.argmin((y - peak_y) ** 2)][np.argmin((x - peak_x) ** 2)] = True
     for contour in maincontours:
         # we want to use skimage's grid_points_in_poly but it works with integer coordinates
         # so we have to translate
         contour_gridcoord = contour.copy()
-        if x1 is not None:
-            contour_gridcoord[:,0] -= x1.min()
-            contour_gridcoord[:,0] /= step(x1)
-        if x2 is not None:
-            contour_gridcoord[:,1] -= x2.min()
-            contour_gridcoord[:,1] /= step(x2)
+        if x is not None:
+            contour_gridcoord[:,0] -= x.min()
+            contour_gridcoord[:,0] /= step(x)
+        if y is not None:
+            contour_gridcoord[:,1] -= y.min()
+            contour_gridcoord[:,1] /= step(y)
         # not sure why we do the transpose thingamabob but it works
         contour_mask = grid_points_in_poly(z.transpose().shape, contour_gridcoord).transpose()
+
         mask = np.bitwise_or(mask, contour_mask)
 
     return mask
-def power_near_peak2d(peak_x1, peak_x2, z, peak_depth_dB, x1=None, x2=None):
-    return np.sum(z[peak_vicinity2d(peak_x1=peak_x1, peak_x2=peak_x2, z=z, peak_depth_dB=peak_depth_dB, x1=x1, x2=x2)]) * step(x1) * step(x2)
+def power_near_peak2d(peak_x, peak_y, z, peak_depth_dB, x=None, y=None):
+    return np.sum(z[peak_vicinity2d(peak_x=peak_x, peak_y=peak_y, z=z, peak_depth_dB=peak_depth_dB, x=x, y=y)]) * step(x) * step(y)
 
 ############# RIVULET
 def w_form_borders(borders:np.ndarray) -> np.ndarray:
