@@ -4,7 +4,7 @@ import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 import shutil # to remove directories
 
-from tools import display, log_trace, log_dbug, log_info, log_warn, log_error, VERSION
+from tools import display, log_trace, log_debug, log_info, log_warn, log_error, VERSION
 from tools import rivuletfinding, datareading
 
 
@@ -53,10 +53,10 @@ def clean_index(index:Dict[str, Any], verbose: int = 1):
     for item in [i for i in bad_items if (i in index)]:  # run across the items that are indeed in the index
         log_info(f'Removing item {item} from index since it no longer exists (did you delete it manually?)', verbose)
         index.pop(item)
-        log_dbug(f'Removed item {item} from index', verbose)
+        log_debug(f'Removed item {item} from index', verbose)
         file_path = os.path.join(save_directory, item)
         if os.path.isfile(file_path): os.remove(file_path)
-        log_dbug(f'Deleted file {file_path}', verbose)
+        log_debug(f'Deleted file {file_path}', verbose)
     set_index(index)
 
 ### OBTAIN THE INDEX OF SAID CATEGORY
@@ -91,12 +91,12 @@ def get_items(parameters: dict, total_match:bool = False, verbose: int = 1) -> L
                 same_parameters_values = np.prod(np.array(same_parameters_values))
             if same_parameters_values: # here the file is the one we search
                 items.append(candidate_file_name)
-    log_dbug(f'Found {len(items)} item(s) with {"totally" if total_match else "partially"} matching parameter.', verbose)
+    log_debug(f'Found {len(items)} item(s) with {"totally" if total_match else "partially"} matching parameter.', verbose)
     log_trace(f'Items: {items}', verbose)
     return items
 
 def framenumbers_available(parameters: dict, verbose: int = 1) -> Optional[np.ndarray]:
-    log_dbug(f'Searching for saved framenumbers for {parameters["acquisition"]} ({parameters["dataset"]})', verbose)
+    log_debug(f'Searching for saved framenumbers for {parameters["acquisition"]} ({parameters["dataset"]})', verbose)
     # get the items
     items = get_items(parameters, total_match=False, verbose=verbose)
 
@@ -118,7 +118,7 @@ def framenumbers_available(parameters: dict, verbose: int = 1) -> Optional[np.nd
 
 ### GETS THE DATA OF SAID CATEGORY CORRESPONDING TO SAID CONDITION
 def fetch_saved_data(parameters: dict, verbose: int = 1) -> Any:
-    log_dbug(f'Fetching {parameters.get("datatype", "data")} for {parameters.get("acquisition", "???")} ({parameters.get("dataset", "???")})', verbose)
+    log_debug(f'Fetching {parameters.get("datatype", "data")} for {parameters.get("acquisition", "???")} ({parameters.get("dataset", "???")})', verbose)
 
     # get the items
     items = get_items(parameters, total_match=False, verbose=verbose)
@@ -202,7 +202,7 @@ def save_data(data: Any, parameters: dict, verbose:int = 1) -> None:
 ### TO GENERATE DATA
 def data_generating_fn(parameters:Dict[str, Any], verbose:int=1):
     datatype = parameters.get('datatype', None)
-    log_dbug(f'Generating data: {datatype}', verbose)
+    log_debug(f'Generating data: {datatype}', verbose)
     if datatype is None:
         log_error('datatype is None ?!', verbose)
         return None
@@ -222,7 +222,7 @@ def fetch_or_generate_data(datatype:str, dataset:str, acquisition:str, verbose:i
     return fetch_or_generate_data_from_parameters(datatype, parameters, verbose=verbose)
 
 def fetch_or_generate_data_from_parameters(datatype:str, parameters:dict, verbose:int = 1):
-    log_dbug(f'Fetching or generating data: {datatype}', verbose)
+    log_debug(f'Fetching or generating data: {datatype}', verbose)
     log_trace(f'Parameters: {parameters}', verbose)
 
     parameters['datatype'] = datatype
@@ -237,7 +237,7 @@ def fetch_or_generate_data_from_parameters(datatype:str, parameters:dict, verbos
     log_trace(f'Wanted framenumbers "{wanted_fns}"', verbose)
     log_trace(f'Available framenumbers "{available_fns}"', verbose)
     if available_fns is None: # si tout est dispo
-        log_dbug(f'All framenumbers available', verbose)
+        log_debug(f'All framenumbers available', verbose)
         data = fetch_saved_data(parameters, verbose=verbose) # prendre tout
         if wanted_fns is None: # si on demande tout
             return data # donner tout
@@ -247,29 +247,29 @@ def fetch_or_generate_data_from_parameters(datatype:str, parameters:dict, verbos
     else: # Si tout n'est pas dispo
         if wanted_fns is not None: # si on demande pas tout
             if np.sum(np.isin(available_fns, wanted_fns, assume_unique=True)) == len(wanted_fns): # si cette partie est incluse dans la partie disponible
-                log_dbug(f'\r{len(available_fns)} framenumbers available, {len(wanted_fns)} wanted. No need to generate data.', verbose)
+                log_debug(f'\r{len(available_fns)} framenumbers available, {len(wanted_fns)} wanted. No need to generate data.', verbose)
                 data = fetch_saved_data(parameters, verbose=verbose) # prendre tout
                 return data[np.isin(available_fns, wanted_fns, assume_unique=True)] # donner une partie
             else: # si on a des trucs mais la partie demandée on l'a pas
-                log_dbug(f'\r{len(available_fns)} framenumbers available, {len(wanted_fns)} wanted.', verbose)
+                log_debug(f'\r{len(available_fns)} framenumbers available, {len(wanted_fns)} wanted.', verbose)
                 total_fns = np.sort( np.unique( np.concatenate((wanted_fns, available_fns)) ) ) # on prend l'union des deux
         else: # si on demande tout
-            log_dbug('All framenumbers wanted', verbose)
+            log_debug('All framenumbers wanted', verbose)
             total_fns = None
 
         # Ici on va devoir générer total_fns.
-        log_dbug('We need to generate data', verbose)
+        log_debug('We need to generate data', verbose)
         total_fns_explicit = total_fns
         if total_fns is None:
             acquisition_path = rivuletfinding.get_acquisition_path_from_parameters(**parameters)
             total_fns_explicit = np.arange(datareading.get_number_of_available_frames(acquisition_path))
-        log_dbug(f'Data to generate: {len(total_fns_explicit)} frames', verbose)
+        log_debug(f'Data to generate: {len(total_fns_explicit)} frames', verbose)
 
         chunk_size:int = 500
 
         # on y va chunk_size par chunk_size
         number_of_chunks:int = len(total_fns_explicit)//chunk_size+(len(total_fns_explicit)%chunk_size != 0)
-        log_dbug(f'Splitting data into {number_of_chunks} chunks of {chunk_size} frames', verbose)
+        log_debug(f'Splitting data into {number_of_chunks} chunks of {chunk_size} frames', verbose)
         # les chunk_size premiers
         parameters['framenumbers'] = total_fns_explicit[:chunk_size]
         log_info(f'Generating {datatype} (chunk 1/{number_of_chunks})', verbose)

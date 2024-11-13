@@ -49,7 +49,7 @@ def throw_G2L_warning(text:str):
                   )
     sys.stderr.flush() ; display('') # force to display warning at runtime
 
-global_verbose = 4
+global_verbose = 3
 
 def set_verbose(verbose:int):
     global global_verbose
@@ -85,13 +85,23 @@ def log_info(text:str, verbose:int=None): # verbose 3
     if verbose >= 3:
         display(Fore.LIGHTGREEN_EX + 'INFO: ' + text + Fore.RESET)
 
-def log_dbug(text:str, verbose:int=None): # verbose 4
+def log_debug(text:str, verbose:int=None): # verbose 4
     if verbose is None:
         global global_verbose
         verbose=global_verbose
     if verbose >= 4:
         display(Fore.LIGHTCYAN_EX + 'DEBUG:\t' + text + Fore.RESET)
 
-def log_trace(text:str, verbose:int): # verbose 5
+def log_trace(text:str, verbose:int=None): # verbose 5
+    if verbose is None:
+        global global_verbose
+        verbose=global_verbose
     if verbose >= 5:
         display(Fore.LIGHTBLUE_EX + 'TRACE:\t\t' + text + Fore.RESET)
+
+def log_retrace(text:str, verbose:int=None): # verbose 6
+    if verbose is None:
+        global global_verbose
+        verbose=global_verbose
+    if verbose >= 6:
+        display(Fore.LIGHTMAGENTA_EX + 'RETRACE:\t\t\t' + text + Fore.RESET)

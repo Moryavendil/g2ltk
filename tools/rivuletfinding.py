@@ -5,7 +5,7 @@ import cv2 # to manipulate images and videos
 from scipy.optimize import curve_fit # to fit functions
 
 from tools import datareading, datasaving, utility
-from tools import display, log_info, log_dbug
+from tools import display, log_info, log_debug
 
 # Custom typing
 Meta = Dict[str, str]
@@ -488,12 +488,12 @@ def borders_via_peakfinder(frame:np.ndarray, prominence:float = 1, do_fit:bool=F
     # remove too spaced away
     zdiff = np.abs(z1 - z2)
     space_ok = zdiff < kwargs['max_rivulet_width']
-    log_dbug(f'Too spaced away (> {kwargs["max_rivulet_width"]} resized px): {(1-space_ok).sum()} pts', verbose=kwargs['verbose'])
+    log_debug(f'Too spaced away (> {kwargs["max_rivulet_width"]} resized px): {(1 - space_ok).sum()} pts', verbose=kwargs['verbose'])
 
     # remove too different peaks
     ydiff = np.abs(y1 - y2)
     ydiff_ok = ydiff < kwargs['max_borders_luminosity_difference']
-    log_dbug(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1-ydiff_ok).sum()} pts', verbose=kwargs['verbose'])
+    log_debug(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1 - ydiff_ok).sum()} pts', verbose=kwargs['verbose'])
 
     # There are 2 peaks
     deuxmax = space_ok * ydiff_ok
@@ -573,7 +573,7 @@ def find_borders(**parameters):
         if framenumber%10 == 0:
             display(f'Borders finding ({round(100*(framenumber+1)/length, 2)} %)', end = '\r')
     display(f'', end = '\r')
-    log_dbug(f'Borders found', verbose=parameters['verbose'])
+    log_debug(f'Borders found', verbose=parameters['verbose'])
 
     return brds
 
@@ -844,7 +844,7 @@ def find_bol(verbose:int = 1, **parameters):
         if framenumber%10 == 0:
             display(f'BOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
     display(f'', end = '\r')
-    log_dbug(f'BOL computed', verbose=parameters['verbose'])
+    log_debug(f'BOL computed', verbose=parameters['verbose'])
 
     return rivs
 

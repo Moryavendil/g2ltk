@@ -4,7 +4,7 @@ import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 import shutil # to remove directories
 
-from tools import display, throw_G2L_warning, log_error, log_warn, log_info, log_dbug, log_trace
+from tools import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace
 from tools import utility, datasaving
 
 # Custom typing
@@ -1156,7 +1156,7 @@ def describe(dataset:str, acquisition:str, framenumbers:Optional[np.ndarray]=Non
     dataset_path = os.path.join('../', dataset)
     acquisition_path = os.path.join(dataset_path, acquisition)
     if not(is_this_a_video(acquisition_path)):
-        log_dbug(f'Videos in {dataset} are {find_available_videos(dataset_path)}', verbose=verbose)
+        log_debug(f'Videos in {dataset} are {find_available_videos(dataset_path)}', verbose=verbose)
         log_error(f'No video named {acquisition} in dataset {dataset}', verbose=verbose)
 
     # genberal
@@ -1172,14 +1172,14 @@ def describe(dataset:str, acquisition:str, framenumbers:Optional[np.ndarray]=Non
     nbr_of_missing_chunks = len(maxmissing_chunks)
     nbr_of_missing_frames = np.sum([len(chunk) for chunk in maxmissing_chunks])
 
-    log_dbug(f'Acquisition information:', verbose=verbose)
-    log_dbug(f'Frames dimension: {maxheight}x{maxwidth}', verbose=verbose)
-    log_dbug(f'Length: {maxlength} frames ({round(maxduration, 2)} s - {round(maxsize/10**6, 0)} MB)', verbose=verbose)
+    log_debug(f'Acquisition information:', verbose=verbose)
+    log_debug(f'Frames dimension: {maxheight}x{maxwidth}', verbose=verbose)
+    log_debug(f'Length: {maxlength} frames ({round(maxduration, 2)} s - {round(maxsize / 10 ** 6, 0)} MB)', verbose=verbose)
     if  nbr_of_missing_chunks > 0:
-        log_dbug(f'There are {nbr_of_missing_chunks} missing chunks ({nbr_of_missing_frames} frames total)', verbose=verbose)
-        log_dbug(f'Missing chunks: {maxmissing_chunks}', verbose=verbose)
+        log_debug(f'There are {nbr_of_missing_chunks} missing chunks ({nbr_of_missing_frames} frames total)', verbose=verbose)
+        log_debug(f'Missing chunks: {maxmissing_chunks}', verbose=verbose)
     else:
-        log_dbug('No missing frames for this acquisition', verbose=verbose)
+        log_debug('No missing frames for this acquisition', verbose=verbose)
 
     # chosen data chunk
     length, height, width = get_geometry(acquisition_path, framenumbers = framenumbers, subregion=subregion)
@@ -1371,7 +1371,7 @@ def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., 
 ### Get useful info
 
 def get_t_frames(acquisition_path:str, framenumbers:Framenumbers = None, verbose:int = 1) -> Optional[np.ndarray]:
-    return format_framenumbers(acquisition_path, framenumbers = framenumbers, verbose = verbose)
+    return format_framenumbers(acquisition_path, framenumbers = framenumbers, verbose = verbose).astype(float)
 
 def get_t_s(acquisition_path:str, framenumbers:Framenumbers = None, verbose:int = 1) -> Optional[np.ndarray]:
     return get_times(acquisition_path, framenumbers=framenumbers, unit='s', verbose = verbose)
