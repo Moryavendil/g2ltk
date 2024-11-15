@@ -2,3 +2,4 @@ tools/__pycache__/
 analysis_files
 *.ipynb
 .idea/
+figures/

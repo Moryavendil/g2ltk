@@ -6,6 +6,13 @@ matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 
 plt.rcParams["figure.figsize"] = (12, 8)
+plt.rcParams["figure.max_open_warning"] = 50
+
+plt.rcParams['pgf.texsystem'] = 'pdflatex'
+plt.rcParams.update({'font.family': 'serif', 'font.size': 12,
+                     'figure.titlesize' : 12,
+                     'axes.labelsize': 12,'axes.titlesize': 12,
+                     'legend.fontsize': 12})
 
 from matplotlib.colors import Normalize # colormaps
 
