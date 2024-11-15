@@ -50,7 +50,7 @@ def get_number_of_available_frames_gcv(acquisition_path:str) -> int:
         throw_G2L_warning(f'The stamps file mentions {n_frames_stamps} frames while there are {n_frames_rawvideo} frames availables in the raw video file.')
     return n_frames_rawvideo
 
-def get_acquisition_frequency_gcv(acquisition_path:str, unit = None, verbose:int = 1) -> float:
+def get_acquisition_frequency_gcv(acquisition_path:str, unit = None, verbose:Optional[int]=None) -> float:
     if unit is None: # default unit
         unit = 'Hz'
     factor:np.int64 = 1 # Multiplication factor for the time unit
@@ -78,7 +78,7 @@ def get_acquisition_frequency_gcv(acquisition_path:str, unit = None, verbose:int
 
     return freq_camera_timestamps
 
-def get_acquisition_duration_gcv(acquisition_path:str, framenumbers:np.ndarray, unit = None, verbose:int = 1) -> float:
+def get_acquisition_duration_gcv(acquisition_path:str, framenumbers:np.ndarray, unit = None, verbose:Optional[int]=None) -> float:
     full_stamps = retrieve_stamps(acquisition_path)
     camera_timestamps = get_camera_timestamps(full_stamps, unit=unit, verbose=verbose)
 
@@ -86,7 +86,7 @@ def get_acquisition_duration_gcv(acquisition_path:str, framenumbers:np.ndarray, 
 
     return np.max(camera_timestamps) - np.min(camera_timestamps)
 
-def get_times_gcv(acquisition_path:str, framenumbers:np.ndarray, unit=None, verbose:int = 1) -> Optional[np.ndarray]:
+def get_times_gcv(acquisition_path:str, framenumbers:np.ndarray, unit=None, verbose:Optional[int]=None) -> Optional[np.ndarray]:
     full_stamps = retrieve_stamps(acquisition_path)
     camera_timestamps = get_camera_timestamps(full_stamps, unit=unit)
 
@@ -94,7 +94,7 @@ def get_times_gcv(acquisition_path:str, framenumbers:np.ndarray, unit=None, verb
 
     return times
 
-def get_frames_gcv(acquisition_path:str, framenumbers:np.ndarray, verbose:int = 1) -> Optional[np.ndarray]:
+def get_frames_gcv(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
     return get_frames_rawvideo(acquisition_path, framenumbers=framenumbers, verbose=verbose)
 
 ### META READING
@@ -123,7 +123,7 @@ def retrieve_meta(acquisition_path: str) -> Meta:
 
 ### STAMPS READING
 
-def retrieve_stamps(acquisition_path:str, verbose:int = 1) -> Stamps:
+def retrieve_stamps(acquisition_path:str, verbose:Optional[int]=None) -> Stamps:
     """
     Gets all the stamps of a video
 
@@ -161,7 +161,7 @@ def get_number_of_available_frames_stamps(acquisition_path: str) -> int:
     n_frames_tot:int = len(full_stamps['framenumber'])
     return n_frames_tot
 
-def missing_framenumbers_gcv(acquisition_path: str, verbose:int=1) -> List:
+def missing_framenumbers_gcv(acquisition_path: str, verbose:Optional[int]=None) -> List:
     """
     Identifies missing frame in a GCV video using the timestamps.
 
@@ -184,7 +184,7 @@ def missing_framenumbers_gcv(acquisition_path: str, verbose:int=1) -> List:
     log_trace(f'{all_missing_chunks}', verbose=verbose)
     return all_missing_chunks
 
-def identify_missing_framenumbers(framenumbers:np.ndarray, verbose:int = 1) -> np.ndarray:
+def identify_missing_framenumbers(framenumbers:np.ndarray, verbose:Optional[int]=None) -> np.ndarray:
     """
     Identifies missing frame using the timestamps.
 
@@ -221,7 +221,7 @@ def identify_missing_framenumbers(framenumbers:np.ndarray, verbose:int = 1) -> n
 
     return MF
 
-def get_camera_timestamps(stamps:Stamps, unit:str = None, verbose:int = 1) -> np.ndarray:
+def get_camera_timestamps(stamps:Stamps, unit:str = None, verbose:Optional[int]=None) -> np.ndarray:
     if unit is None: # default unit
         unit = 's'
     factor:np.int64 = 1 # Multiplication factor for the time unit
@@ -244,7 +244,7 @@ def get_camera_timestamps(stamps:Stamps, unit:str = None, verbose:int = 1) -> np
 
     return camera_timestamps / factor
 
-def get_computer_timestamps(stamps:Stamps, unit:str = 's', verbose:int = 1) -> np.ndarray:
+def get_computer_timestamps(stamps:Stamps, unit:str = 's', verbose:Optional[int]=None) -> np.ndarray:
     # Multiplication factor for the time unit
     factor:np.int64 = 1
     # raw unit is ns
@@ -265,7 +265,7 @@ def get_computer_timestamps(stamps:Stamps, unit:str = 's', verbose:int = 1) -> n
 
     return computer_timestamps / factor
 
-def get_monotonic_timebound(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, unit = None, verbose:int = 1) -> Tuple[float, float]:
+def get_monotonic_timebound(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, unit = None, verbose:Optional[int]=None) -> Tuple[float, float]:
     if framenumbers is None: # Default value for framenumbers
         framenumbers = np.arange(get_number_of_available_frames(acquisition_path))
     #Check that the demand is reasonable
@@ -283,7 +283,7 @@ def get_monotonic_timebound(acquisition_path:str, framenumbers:Optional[np.ndarr
 
     return good_times[0], good_times[-1]
 
-def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, end_framenumber:int = -1, interval:int  = 1, verbose:int = 1) -> Optional[Stamps]:
+def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, end_framenumber:int = -1, interval:int  = 1, verbose:Optional[int]=None) -> Optional[Stamps]:
     """
     This functions gives a selection of stamps that the user wants, from all the stamps available according to the stamps file.
 
@@ -374,7 +374,7 @@ def get_number_of_available_frames_rawvideo(acquisition_path: str) -> int:
         throw_G2L_warning('Bad formatting of rawvideo file')
     return n_frames_tot
 
-def get_frames_rawvideo(acquisition_path:str, framenumbers:np.ndarray, verbose:int = 1) -> Optional[np.ndarray]:
+def get_frames_rawvideo(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
     meta = retrieve_meta(acquisition_path)
 
     width:int = int(meta.get('subRegionWidth', '0'))
@@ -487,7 +487,7 @@ def get_number_of_available_frames_t8(acquisition_path: str) -> int:
     else:
         return 0
 
-def get_frames_t16(acquisition_path:str, framenumbers:np.ndarray, verbose:int = 1) -> Optional[np.ndarray]:
+def get_frames_t16(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
 
     all_images = os.listdir(acquisition_path)
     all_images.sort()
@@ -523,7 +523,7 @@ def get_frames_t16(acquisition_path:str, framenumbers:np.ndarray, verbose:int = 
 
     return frames
 
-def get_frames_t16_conservequality(acquisition_path:str, framenumbers:np.ndarray, verbose:int = 1) -> Optional[np.ndarray]:
+def get_frames_t16_conservequality(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
 
     all_images = os.listdir(acquisition_path)
     all_images.sort()
@@ -555,7 +555,7 @@ def get_frames_t16_conservequality(acquisition_path:str, framenumbers:np.ndarray
     return frames
 
 
-def get_frames_t8(acquisition_path:str, framenumbers:np.ndarray, verbose:int = 1) -> Optional[np.ndarray]:
+def get_frames_t8(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
 
     all_images = os.listdir(acquisition_path)
     all_images.sort()
@@ -586,7 +586,7 @@ def get_frames_t8(acquisition_path:str, framenumbers:np.ndarray, verbose:int = 1
 
     return frames
 
-def get_acquisition_frequency_t16(acquisition_path: str, unit = None, verbose:int = 1) -> float:
+def get_acquisition_frequency_t16(acquisition_path: str, unit = None, verbose:Optional[int]=None) -> float:
     if '20230309_chronos_b' in acquisition_path:
         if 'f30tiff' in acquisition_path:
             return 1200
@@ -641,7 +641,7 @@ def get_acquisition_frequency_t16(acquisition_path: str, unit = None, verbose:in
             return 3000
     return 1.
 
-def get_acquisition_duration_t16(acquisition_path: str, framenumbers:np.ndarray, unit = None, verbose:int = 1) -> float:
+def get_acquisition_duration_t16(acquisition_path: str, framenumbers:np.ndarray, unit = None, verbose:Optional[int]=None) -> float:
     acqu_freq: float = get_acquisition_frequency_t16(acquisition_path, unit =  'Hz', verbose = verbose)
     acqu_frames: float = len(framenumbers)
 
@@ -705,7 +705,7 @@ def get_number_of_available_frames_lcv(acquisition_path: str) -> Optional[int]:
     lcv.release()
     return n_framenumbers_tot
 
-def get_frames_lcv(acquisition_path:str, framenumbers:np.ndarray, verbose:int = 1) -> Optional[np.ndarray]:
+def get_frames_lcv(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
 
     # Capture the video
     lcv = capture_lcv(acquisition_path)
@@ -797,7 +797,7 @@ def get_number_of_available_frames_mp4(acquisition_path: str) -> Optional[int]:
     lcv.release()
     return n_framenumbers_tot
 
-def get_frames_mp4(acquisition_path:str, framenumbers:np.ndarray, verbose:int = 1) -> Optional[np.ndarray]:
+def get_frames_mp4(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
 
     # Capture the video
     mp4video = capture_mp4(acquisition_path)
@@ -975,14 +975,44 @@ def is_this_a_video(acquisition_path:str) -> bool:
         log_warn(f'There is no video at the acquisition {acquisition_path}')
         return False
 
-def find_available_videos(dataset_path: str) ->List[str]:
-    available_acquisitions = []
-    available_acquisitions += find_available_gcv(dataset_path)
-    available_acquisitions += find_available_t16(dataset_path)
-    available_acquisitions += find_available_flv(dataset_path)
-    available_acquisitions += find_available_mp4(dataset_path)
+def find_available_videos(dataset_path: str, type:Optional[str]=None) ->List[str]:
+
+    if type is None or type=='all':
+        all_types = ['gcv', 't16', 'flv', 'mp4']
+        available_acquisitions = []
+        for subtype in all_types:
+            available_acquisitions += find_available_videos(dataset_path, type=subtype)
+    elif type=='gcv':
+        available_acquisitions = find_available_gcv(dataset_path)
+    elif type=='t16':
+        available_acquisitions = find_available_t16(dataset_path)
+    elif type=='flv':
+        available_acquisitions = find_available_flv(dataset_path)
+    elif type=='mp4':
+        available_acquisitions = find_available_mp4(dataset_path)
+    else:
+        log_error(f'Unsupported data type: {type}')
+        return []
     available_acquisitions.sort()
     return available_acquisitions
+
+
+def describe_dataset(dataset_path: str, type:Optional[str]=None, makeitshort=False) -> None:
+    available_acquisitions = find_available_videos(dataset_path, type=type)
+    if len(available_acquisitions) == 0:
+        log_warn(f'No videos {"" if type is None else f"of type {type} "}found in dataset {dataset_path}!')
+        return
+    if makeitshort:
+        display(f'Available acquisitions: {available_acquisitions}')
+    else:
+        display('Available acquisitions:')
+        for acquisition in available_acquisitions:
+            display(f"- '{acquisition}' (TODO type(s))")
+
+def find_available_datasets(root_path: str) ->List[str]:
+    available_datasets = [d for d in os.listdir(root_path) if len(find_available_videos(os.path.join(root_path, d))) > 0]
+    return available_datasets
+
 
 def get_number_of_available_frames(acquisition_path: str) -> Optional[int]:
     if is_this_a_gcv(acquisition_path):
@@ -994,21 +1024,19 @@ def get_number_of_available_frames(acquisition_path: str) -> Optional[int]:
     elif is_this_a_mp4(acquisition_path):
         return get_number_of_available_frames_mp4(acquisition_path)
     else:
-        #Todo: ERROR HERE
-        print('No video file.')
+        log_error(f'Cannot get number of available frames: there is no video at {acquisition_path}')
     return None
 
-def get_acquisition_frequency(acquisition_path:str, unit = None, verbose:int = 1) -> float:
+def get_acquisition_frequency(acquisition_path:str, unit = None, verbose:Optional[int]=None) -> float:
     if is_this_a_gcv(acquisition_path):
         return get_acquisition_frequency_gcv(acquisition_path, unit=unit, verbose=verbose)
     if is_this_a_t16(acquisition_path):
         return get_acquisition_frequency_t16(acquisition_path, unit=unit, verbose=verbose)
     else:
-        #Todo: ERROR HERE
-        print('No video file.')
+        log_error(f'Cannot get acquisition frequency: there is no video at {acquisition_path}')
         return -1.
 
-def get_acquisition_duration(acquisition_path:str, framenumbers:Optional[np.ndarray], unit = None, verbose:int = 1) -> float:
+def get_acquisition_duration(acquisition_path:str, framenumbers:Optional[np.ndarray], unit = None, verbose:Optional[int]=None) -> float:
     framenumbers = format_framenumbers(acquisition_path, framenumbers, verbose=verbose)
     if framenumbers is None:
         # todo ERROR here
@@ -1024,9 +1052,12 @@ def get_acquisition_duration(acquisition_path:str, framenumbers:Optional[np.ndar
         print('ERROR: Couldnt get acquisition duration.')
         return -1.
 
-def format_framenumbers(acquisition_path:str, framenumbers:Optional[Union[np.ndarray, List[int]]] = None, verbose:int = 1) -> Optional[np.ndarray]:
+def format_framenumbers(acquisition_path:str, framenumbers:Optional[Union[np.ndarray, List[int]]] = None, verbose:Optional[int]=None) -> Optional[np.ndarray]:
     if framenumbers is None: # Default value for framenumbers
-        framenumbers = np.arange(get_number_of_available_frames(acquisition_path))
+        number_of_available_frames = get_number_of_available_frames(acquisition_path)
+        if number_of_available_frames is None: # there is no video ?
+            return None
+        framenumbers = np.arange(number_of_available_frames)
     framenumbers = np.array(framenumbers) # handle the array_like case
     #Check that the demand is reasonable
     if framenumbers.min() < 0:
@@ -1037,7 +1068,7 @@ def format_framenumbers(acquisition_path:str, framenumbers:Optional[Union[np.nda
         return None
     return framenumbers
 
-def get_geometry(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, verbose:int = 1) -> Optional[Tuple]:
+def get_geometry(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, verbose:Optional[int]=None) -> Optional[Tuple]:
     formatted_fns = format_framenumbers(acquisition_path, framenumbers, verbose=verbose)
     if formatted_fns is None: return None
 
@@ -1051,7 +1082,7 @@ def get_geometry(acquisition_path:str, framenumbers:Framenumbers = None, subregi
 
     return length, height, width
 
-def get_frames(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, subregion:Subregion = None, verbose:int = 1) -> Optional[np.ndarray]:
+def get_frames(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, subregion:Subregion = None, verbose:Optional[int]=None) -> Optional[np.ndarray]:
     framenumbers = format_framenumbers(acquisition_path, framenumbers, verbose=verbose)
     if framenumbers is None:
         # todo ERROR here
@@ -1069,8 +1100,7 @@ def get_frames(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, s
     elif is_this_a_mp4(acquisition_path):
         frames = get_frames_mp4(acquisition_path, framenumbers, verbose=verbose)
     else:
-        #Todo: ERROR HERE
-        print('No video file.')
+        log_error(f'Cannot get frames: there is no video at {acquisition_path}')
         return None
 
     # crop the subregion
@@ -1084,10 +1114,10 @@ def get_frames(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, s
 
     return frames
 
-def get_frame(acquisition_path:str, framenumber:int, subregion:Subregion = None, verbose:int = 1) -> Optional[np.ndarray]:
+def get_frame(acquisition_path:str, framenumber:int, subregion:Subregion = None, verbose:Optional[int]=None) -> Optional[np.ndarray]:
     return get_frames(acquisition_path, np.array([framenumber]), subregion=subregion, verbose=verbose)[0].astype(int)
 
-def get_times(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, unit = None, verbose:int=1) -> Optional[np.ndarray]:
+def get_times(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, unit = None, verbose:Optional[int]=None) -> Optional[np.ndarray]:
     framenumbers = format_framenumbers(acquisition_path, framenumbers, verbose=verbose)
     if framenumbers is None:
         log_error("ERROR Wrong framenumber, couldnt format it", verbose=verbose)
@@ -1105,7 +1135,7 @@ def get_times(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, un
 
     return times
 
-def missing_frames(acquisition_path: str, verbose:int=1) -> List:
+def missing_frames(acquisition_path: str, verbose:Optional[int]=None) -> List:
     """
     Identifies missing frame in a video.
 
@@ -1119,7 +1149,7 @@ def missing_frames(acquisition_path: str, verbose:int=1) -> List:
         log_warn(f'Could not deduce the number of missing frames for video {acquisition_path}', verbose=verbose)
     return []
 
-def missing_frames_in_framenumbers(acquisition_path: str, framenumbers:Optional[np.ndarray]=None, verbose:int=1) -> List:
+def missing_frames_in_framenumbers(acquisition_path: str, framenumbers:Optional[np.ndarray]=None, verbose:Optional[int]=None) -> List:
     all_missing_chunks = missing_frames(acquisition_path, verbose=verbose)
     explicit_framenumbers = format_framenumbers(acquisition_path, framenumbers, verbose=verbose)
 
@@ -1135,7 +1165,7 @@ def missing_frames_in_framenumbers(acquisition_path: str, framenumbers:Optional[
 
     return missing_chunks_in_framenumbers
 
-def are_there_missing_frames(acquisition_path: str, framenumbers:Optional[np.ndarray]=None, verbose:int=1) -> bool:
+def are_there_missing_frames(acquisition_path: str, framenumbers:Optional[np.ndarray]=None, verbose:Optional[int]=None) -> bool:
     missing_chunks = missing_frames_in_framenumbers(acquisition_path, framenumbers=framenumbers, verbose=verbose)
 
     nbr_of_missing_chunks = len(missing_chunks)
@@ -1150,7 +1180,7 @@ def are_there_missing_frames(acquisition_path: str, framenumbers:Optional[np.nda
     return False
 
 
-def describe(dataset:str, acquisition:str, framenumbers:Optional[np.ndarray]=None, subregion:Subregion=None, verbose:int=1):
+def describe(dataset:str, acquisition:str, framenumbers:Optional[np.ndarray]=None, subregion:Subregion=None, verbose:Optional[int]=None):
     display(f'Acquisition: "{acquisition}" ({dataset})')
 
     dataset_path = os.path.join('../', dataset)
@@ -1158,6 +1188,7 @@ def describe(dataset:str, acquisition:str, framenumbers:Optional[np.ndarray]=Non
     if not(is_this_a_video(acquisition_path)):
         log_debug(f'Videos in {dataset} are {find_available_videos(dataset_path)}', verbose=verbose)
         log_error(f'No video named {acquisition} in dataset {dataset}', verbose=verbose)
+        return
 
     # genberal
     frequency = get_acquisition_frequency(acquisition_path, unit="Hz", verbose=verbose)
@@ -1192,7 +1223,6 @@ def describe(dataset:str, acquisition:str, framenumbers:Optional[np.ndarray]=Non
     nbr_of_missing_chunks = len(missing_chunks)
     nbr_of_missing_frames = np.sum([len(chunk) for chunk in missing_chunks])
 
-    log_info(f'Chosen data', verbose=verbose)
     log_info(f'Frames dimension: {height}x{width} ({framesize_kB} kB each)', verbose=verbose)
     log_info(f'Length: {length} frames ({round(duration, 2)} s - {f"{framessize_MB} MB" if framessize_MB < 1000 else f"{round(framessize_MB/1000, 3)} GB"})', verbose=verbose)
     if  nbr_of_missing_chunks > 0:
@@ -1370,22 +1400,22 @@ def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., 
 
 ### Get useful info
 
-def get_t_frames(acquisition_path:str, framenumbers:Framenumbers = None, verbose:int = 1) -> Optional[np.ndarray]:
+def get_t_frames(acquisition_path:str, framenumbers:Framenumbers = None, verbose:Optional[int]=None) -> Optional[np.ndarray]:
     return format_framenumbers(acquisition_path, framenumbers = framenumbers, verbose = verbose).astype(float)
 
-def get_t_s(acquisition_path:str, framenumbers:Framenumbers = None, verbose:int = 1) -> Optional[np.ndarray]:
+def get_t_s(acquisition_path:str, framenumbers:Framenumbers = None, verbose:Optional[int]=None) -> Optional[np.ndarray]:
     return get_times(acquisition_path, framenumbers=framenumbers, unit='s', verbose = verbose)
 
-def get_t_ms(acquisition_path:str, framenumbers:Framenumbers = None, verbose:int = 1) -> Optional[np.ndarray]:
+def get_t_ms(acquisition_path:str, framenumbers:Framenumbers = None, verbose:Optional[int]=None) -> Optional[np.ndarray]:
     return get_times(acquisition_path, framenumbers=framenumbers, unit='ms', verbose = verbose)
 
-def get_x_px(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, resize_factor:int = 1, verbose:int = 1) -> Optional[np.ndarray]:
+def get_x_px(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, resize_factor:int = 1, verbose:Optional[int]=None) -> Optional[np.ndarray]:
     length, height, width = get_geometry(acquisition_path, framenumbers=framenumbers, subregion=subregion, verbose = verbose)
     return np.arange(width * resize_factor) / resize_factor
 
-def get_x_mm(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, resize_factor:int = 1, px_per_mm:float = 1., verbose:int = 1) -> Optional[np.ndarray]:
+def get_x_mm(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, resize_factor:int = 1, px_per_mm:float = 1., verbose:Optional[int]=None) -> Optional[np.ndarray]:
     return get_x_px(acquisition_path, framenumbers, subregion, resize_factor, verbose) / px_per_mm
 
-def get_x_m(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, resize_factor:int = 1, px_per_mm:float = 1., verbose:int = 1) -> Optional[np.ndarray]:
+def get_x_m(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, resize_factor:int = 1, px_per_mm:float = 1., verbose:Optional[int]=None) -> Optional[np.ndarray]:
     return get_x_mm(acquisition_path, framenumbers, subregion, resize_factor, px_per_mm, verbose) / 1e3
 

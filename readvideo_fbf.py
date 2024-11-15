@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os
 import cv2
 import numpy as np
@@ -18,17 +19,24 @@ from matplotlib.colors import Normalize # colormaps
 
 from tools import datareading
 #%%
-# Dataset selection
-dataset = '20241104'
-dataset_path = '../' + dataset
-print('Available acquisitions:', datareading.find_available_videos(dataset_path))
+# Datasets display
+root_path = '../'
+datasets = datareading.find_available_datasets(root_path)
+print('Available datasets:', datareading.find_available_datasets(root_path))
+#%%
+# Dataset selection & acquisitions display
+dataset = '-'
+if len(datasets) == 1:
+    dataset = datasets[0]
+    datareading.log_info(f'Auto-selected dataset {dataset}')
+dataset_path = os.path.join(root_path, dataset)
+datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
 #%%
 # Acquisition selection
-acquisition = '100seuil_gcv'
+acquisition = '10Hz_decal'
 acquisition_path = os.path.join(dataset_path, acquisition)
 datareading.is_this_a_video(acquisition_path)
 #%%
-# see the frame
 relative_colorscale:bool = False
 remove_median_bckgnd = True #remove the mediab img, practical for dirt on plate
 median_correc = False # remove the median value over each z line. helps with the heterogenous lighting.
@@ -37,26 +45,20 @@ remove_bright_spots = False # removes bright spots by accepting cmap saturation 
 normalize_each_image = False
 #%%
 # Parameters definition
-framenumbers = np.arange(datareading.get_number_of_available_frames(acquisition_path))
+framenumbers = np.arange(datareading.get_number_of_available_frames(acquisition_path) or 1)
 roi = None, None, None, None  #start_x, start_y, end_x, end_y
 if acquisition=='drainagelent':
     roi = 800, 600, 1400, 900  #start_x, start_y, end_x, end_y
+if (dataset, acquisition)==('Nalight_cleanplate_20240708', '10Hz_decal'):
+    framenumbers = np.arange(1400, 1600)
 #%%
 # Data fetching
+datareading.describe(dataset, acquisition, framenumbers=framenumbers, subregion=roi)
 frames = datareading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
 length, height, width = frames.shape
 
 acquisition_frequency = datareading.get_acquisition_frequency(acquisition_path, unit="Hz")
 t = datareading.get_times(acquisition_path, framenumbers=framenumbers, unit='s')
-
-print(f'Dataset: "{dataset}", acquisition: "{acquisition}"')
-print(f'Frames dimension: {height}x{width}')
-print(f'Length: {length} frames ({round(datareading.get_acquisition_duration(acquisition_path, framenumbers=framenumbers, unit="s"), 2)} s)')
-print(f'Acquisition frequency: {round(datareading.get_acquisition_frequency(acquisition_path, unit="Hz"), 2)} Hz')
-if (not(datareading.are_there_missing_frames(acquisition_path))):
-    print(f'No dropped frames :)')
-else:
-    print(f'Dropped frames...')
 #%%
 # luminosity corrections
 if remove_median_bckgnd:
