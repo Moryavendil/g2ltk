@@ -32,9 +32,8 @@ def save_graphe(graph_name, imageonly=False, **kwargs):
 VIOLET = '#4f0e51'
 JAUNE = '#eaac3f'
 
-__version__ = '0.9.5'
+__version__ = '0.9.6'
 VERSION = __version__
-display('tools version '+__version__)
 
 import warnings
 _warn_skips = (os.path.dirname(__file__),)
@@ -105,3 +104,6 @@ def log_retrace(text:str, verbose:int=None): # verbose 6
         verbose=global_verbose
     if verbose >= 6:
         display(Fore.LIGHTMAGENTA_EX + 'RETRACE:\t\t\t' + text + Fore.RESET)
+        
+
+log_info('Loading tools version '+__version__)
