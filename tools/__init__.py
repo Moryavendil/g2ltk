@@ -32,7 +32,7 @@ def save_graphe(graph_name, imageonly=False, **kwargs):
 VIOLET = '#4f0e51'
 JAUNE = '#eaac3f'
 
-__version__ = '0.9.6'
+__version__ = '0.9.7'
 VERSION = __version__
 
 import warnings
@@ -67,7 +67,7 @@ def log_error(text:str, verbose:int=None): # verbose 1
         global global_verbose
         verbose=global_verbose
     if verbose >= 1:
-        display('=!=!=!=!=!=!=!=!= ERRORS ARE NOT CODED YET =!=!=!=!=!=!=!=!=')
+        # display('=!=!=!=!=!=!=!=!= ERRORS ARE NOT CODED YET =!=!=!=!=!=!=!=!=')
         display(Fore.LIGHTRED_EX + 'ERROR: ' + text + Fore.RESET)
 
 def log_warn(text:str, verbose:int=None): # verbose 2

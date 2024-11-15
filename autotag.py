@@ -14,8 +14,11 @@ class bcolors:
 
 import subprocess
 
-cmd_getgittag = "git tag --sort=committerdate | grep -E '[0-9]' | tail -1 | cut -b 2-7"
-gitversion = subprocess.check_output(cmd_getgittag, shell=True, text=True)[:-1]
+cmd_getlatesttag = "git tag --sort=committerdate | grep -E '[0-9]' | tail -1 | cut -b 2-7"
+cmd_rmcurrentags = "git tag -l | xargs git tag -d"
+
+
+gitversion = subprocess.check_output(cmd_getlatesttag, shell=True, text=True)[:-1]
 
 print(f"Current tagged version: '{gitversion or '[None]'}'")
 
@@ -33,8 +36,9 @@ else:
     versiontext = f"v{toolsversion}"
 
     subprocess.run(f"git tag {versiontext}", shell=True)
+
+    subprocess.run(f"git push", shell=True)
+
+    subprocess.run(f"git push origin tag {versiontext}", shell=True)
     
-### COMMAND TO REMOVE TAGS: "git tag -l | xargs git tag -d"
-# import os
-# tag the current version
-# os.system(f"git tag {versiontext}")  
+   
