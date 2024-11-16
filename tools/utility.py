@@ -570,8 +570,25 @@ def save_graphe(graph_name, imageonly=False, **kwargs):
 ########### DISPLAYS THE TIME
 def convert_time(time:Any, origin_unit:str, target_unit:str):
     pass
-def disptime(t: float) -> str:
-    if np.abs(t) < 1:return str(round(t, 2))+' s'
+
+def format_videotime(t_s:float, finaltime_s:Optional[float]=None) -> str:
+    if finaltime_s is None:
+        finaltime_s = t_s
+    s:float = t_s
+    ms:float = s*1000
+    us:float = (ms - np.floor(ms))*1000
+    seconds:int = np.floor(s).astype(int)
+    milliseconds:int = np.floor(ms).astype(int) - 1000*seconds
+    microseconds:int = np.floor(us).astype(int) - 1000*(milliseconds + 1000*seconds)
+    if finaltime_s > 5:
+        return f'{s:.3f} s'
+    else:
+        return f'{ms:.3f} ms'
+
+
+def disptime(t:float) -> str:
+    """Formats the time, adapted for waiting times"""
+    if np.abs(t) < 1:return str(round(t, 3))+' s'
     if np.abs(t) < 5:return str(round(t, 1))+' s'
     s = int(t)
     if np.abs(s) < 60:return str(s)+' s'

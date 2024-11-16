@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os
 import cv2
 import numpy as np
@@ -6,37 +7,46 @@ matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 
 plt.rcParams["figure.figsize"] = (12, 8)
+plt.rcParams["figure.max_open_warning"] = 50
+
+plt.rcParams['pgf.texsystem'] = 'pdflatex'
+plt.rcParams.update({'font.family': 'serif', 'font.size': 12,
+                     'figure.titlesize' : 12,
+                     'axes.labelsize': 12,'axes.titlesize': 12,
+                     'legend.fontsize': 12})
 
 from matplotlib.colors import Normalize # colormaps
 
-from tools import datareading
+from tools import datareading, utility
 #%%
-# Dataset selection
-dataset = '20241104'
-dataset_path = '../' + dataset
-print('Available acquisitions:', datareading.find_available_videos(dataset_path))
+# Datasets display
+root_path = '../'
+datasets = datareading.find_available_datasets(root_path)
+print('Available datasets:', datareading.find_available_datasets(root_path))
+#%%
+# Dataset selection & acquisitions display
+dataset = '-'
+if len(datasets) == 1:
+    dataset = datasets[0]
+    datareading.log_info(f'Auto-selected dataset {dataset}')
+dataset_path = os.path.join(root_path, dataset)
+datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
 #%%
 # Acquisition selection
-acquisition = '100seuil_gcv'
+acquisition = '10Hz_decal'
 acquisition_path = os.path.join(dataset_path, acquisition)
-datareading.is_this_a_video(acquisition_path)
 #%%
 # see the frame
 relative_colorscale:bool = False
 #%%
 # Parameters definition
-framenumbers = np.arange(datareading.get_number_of_available_frames(acquisition_path))
+framenumbers = datareading.format_framenumbers(acquisition_path, None)
 roi = None, None, None, None  #start_x, start_y, end_x, end_y
-if acquisition=='drainagelent':
-    roi = 800, 600, 1400, 900  #start_x, start_y, end_x, end_y
 
-nframes = datareading.get_number_of_available_frames(acquisition_path)
-# nframes = min(nframes, 500)
-framenumbers = np.arange(nframes)
 #%%
 # Data fetching
 frametest = datareading.get_frame(acquisition_path, 0, subregion=roi)
-height, width = frametest.shape
+length, height, width = datareading.get_geometry(acquisition_path, framenumbers=framenumbers, subregion=roi)
 
 acquisition_frequency = datareading.get_acquisition_frequency(acquisition_path, unit="Hz")
 t = datareading.get_times(acquisition_path, framenumbers=framenumbers, unit='s')
@@ -87,9 +97,7 @@ def update_display():
     global i, fig
     global t, length
     i = i % length
-    s = t[i]%60
-    m = t[i]//60
-    ax.set_title(f't = {f"{m} m " if np.max(t[-1])//60 > 0 else ""}{s:.2f} s - frame {framenumbers[i]} ({i+1}/{length})')
+    ax.set_title(f't = {utility.format_videotime(t[i], finaltime_s=t[-1])} - frame {framenumbers[i]} ({i+1}/{length})')
 
     frame = datareading.get_frame(acquisition_path, i, subregion=roi)
     if dataset == 'illustrations' and acquisition == '1200_s_break_gcv':
