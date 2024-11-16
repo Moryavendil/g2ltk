@@ -3,3 +3,8 @@ analysis_files
 *.ipynb
 .idea/
 figures/
+# temporary files
+deleteme_*
+tmp_*
+# personal files
+perso_*

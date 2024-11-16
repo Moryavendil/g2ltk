@@ -21,7 +21,7 @@ cmd_getgitstatus_machinereadable = "git status --porcelain"
 cmd_getgitstatus = "git status"
 
 gitstatus = subprocess.check_output(cmd_getgitstatus, shell=True, text=True)[:-1]
-if gitstatus != "":
+if gitstatus != " ":
     print(bcolors.FAIL + f"Cannot autotag: git status is unclean" + bcolors.ENDC)
     subprocess.run(cmd_getgitstatus, shell=True)
     sys.exit(100)
