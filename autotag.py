@@ -20,19 +20,19 @@ cmd_rmcurrentags = "git tag -l | xargs git tag -d"
 
 gitversion = subprocess.check_output(cmd_getlatesttag, shell=True, text=True)[:-1]
 
-print(f"Current tagged version: '{gitversion or '[None]'}'")
+print(bcolors.HEADER + f"Current tagged version: '{gitversion or '[None]'}'" + bcolors.ENDC)
 
 import tools
 
 toolsversion = tools.__version__
-print(f"Current tools version: '{toolsversion}'")
-
+print(bcolors.HEADER + f"Current tools version: '{toolsversion}'" + bcolors.ENDC)
 
 if toolsversion == gitversion:
-    print(bcolors.WARNING + 'BOTH HAVE SAME VERSION !!' +bcolors.ENDC)
+    print(bcolors.WARNING + 'BOTH HAVE SAME VERSION !!' + bcolors.ENDC)
+    print(bcolors.WARNING + 'ABORTING !!!' +bcolors.ENDC)
 else:
-    print(bcolors.OKGREEN + 'Tagging the current version.' +bcolors.ENDC)
-    
+    print(bcolors.HEADER + 'Tagging the current version.' + bcolors.ENDC)
+
     versiontext = f"v{toolsversion}"
 
     subprocess.run(f"git tag {versiontext}", shell=True)
@@ -40,5 +40,22 @@ else:
     subprocess.run(f"git push", shell=True)
 
     subprocess.run(f"git push origin tag {versiontext}", shell=True)
+
+    print(bcolors.HEADER + 'Incrementing __version__.' + bcolors.ENDC)
+
+    toolsversion_compo = toolsversion.split('.')
+    if len(toolsversion_compo) > 2:
+        toolsversion_compo[2] = str(int(toolsversion_compo[2]) + 1)
+    toolsversion_new = '.'.join(toolsversion_compo)
+
+    with open('tools/__init__.py', 'r') as f:
+        txt = f.read()
+
+    txt = txt.replace(f"__version__ = '{toolsversion}'", f"__version__ = '{toolsversion_new}'")
+
+    with open('tools/__init__.py', 'w') as f:
+        f.write(txt)
+
+    print(bcolors.HEADER + 'Incrementing __version__.' + bcolors.ENDC)
     
    
