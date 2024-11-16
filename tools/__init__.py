@@ -1,7 +1,5 @@
-from typing import Optional, Any, Tuple, Dict, List
 import os
-import numpy as np
-import matplotlib.pyplot as plt
+import sys
 from colorama import Fore # change display text color
 
 DISPLAYSIZE:int = 80
@@ -10,24 +8,6 @@ def display(text:str, flush:bool=True, end:str='\n', padding:bool=True, displayt
     text = str(text)
     text = '\r' + text + max(DISPLAYSIZE-len(text),0) * ' ' * padding
     print(text, flush=flush, end=end)
-
-def save_graphe(graph_name, imageonly=False, **kwargs):
-    figures_directory = 'figures'
-    if not os.path.isdir(figures_directory):
-        os.mkdir(figures_directory)
-    raw_path = os.path.join(figures_directory, graph_name)
-    if 'bbox_inches' not in kwargs:
-        kwargs['bbox_inches'] = 'tight'
-    if 'pad_inches' not in kwargs:
-        kwargs['pad_inches'] = 0
-    if imageonly:
-        plt.savefig(raw_path + '.jpg', **kwargs)
-    else:
-        if 'dpi' not in kwargs:
-            kwargs['dpi'] = 600
-        plt.savefig(raw_path + '.png', **kwargs)
-        plt.savefig(raw_path + '.pdf', **kwargs)
-        plt.savefig(raw_path + '.svg', **kwargs)
 
 VIOLET = '#4f0e51'
 JAUNE = '#eaac3f'
@@ -41,7 +21,6 @@ _warn_skips = (os.path.dirname(__file__),)
 class G2LWarning(UserWarning):
     pass
 
-import sys
 def throw_G2L_warning(text:str):
     warnings.warn(Fore.LIGHTYELLOW_EX + 'Warning: ' + text + Fore.RESET, category=G2LWarning, stacklevel=3
                   # skip_file_prefixes=_warn_skips # THIS ONLY WORKS FOR PYTHON >= 3.12

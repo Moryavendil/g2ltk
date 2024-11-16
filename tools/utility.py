@@ -585,7 +585,6 @@ def format_videotime(t_s:float, finaltime_s:Optional[float]=None) -> str:
     else:
         return f'{ms:.3f} ms'
 
-
 def disptime(t:float) -> str:
     """Formats the time, adapted for waiting times"""
     if np.abs(t) < 1:return str(round(t, 3))+' s'
@@ -612,6 +611,4 @@ def disptime(t:float) -> str:
     m = m % 12
     if np.abs(y) < 3:return str(y)+' y '+str(m)+' m'
     return str(y)+' years'
-
-
 
