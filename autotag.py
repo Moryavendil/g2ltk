@@ -18,12 +18,12 @@ import sys
 cmd_getlatesttag = "git tag --sort=committerdate | grep -E '[0-9]' | tail -1 | cut -b 2-7"
 cmd_rmcurrentags = "git tag -l | xargs git tag -d"
 cmd_getgitstatus_machinereadable = "git status --porcelain"
-cmd_getgitstatus = "git status"
+cmd_getgitstatus_humanreadable = "git status"
 
-gitstatus = subprocess.check_output(cmd_getgitstatus, shell=True, text=True)[:-1]
-if gitstatus != " ":
+gitstatus = subprocess.check_output(cmd_getgitstatus_machinereadable, shell=True, text=True)[:-1]
+if gitstatus != "":
     print(bcolors.FAIL + f"Cannot autotag: git status is unclean" + bcolors.ENDC)
-    subprocess.run(cmd_getgitstatus, shell=True)
+    subprocess.run(cmd_getgitstatus_humanreadable, shell=True)
     sys.exit(100)
 
 gitversion = subprocess.check_output(cmd_getlatesttag, shell=True, text=True)[:-1]
