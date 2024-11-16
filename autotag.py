@@ -13,10 +13,18 @@ class bcolors:
 
 
 import subprocess
+import sys
 
 cmd_getlatesttag = "git tag --sort=committerdate | grep -E '[0-9]' | tail -1 | cut -b 2-7"
 cmd_rmcurrentags = "git tag -l | xargs git tag -d"
+cmd_getgitstatus_machinereadable = "git status --porcelain"
+cmd_getgitstatus = "git status"
 
+gitstatus = subprocess.check_output(cmd_getgitstatus, shell=True, text=True)[:-1]
+if gitstatus != "":
+    print(bcolors.FAIL + f"Cannot autotag: git status is unclean" + bcolors.ENDC)
+    subprocess.run(cmd_getgitstatus, shell=True)
+    sys.exit(100)
 
 gitversion = subprocess.check_output(cmd_getlatesttag, shell=True, text=True)[:-1]
 
@@ -30,32 +38,31 @@ print(bcolors.HEADER + f"Current tools version: '{toolsversion}'" + bcolors.ENDC
 if toolsversion == gitversion:
     print(bcolors.WARNING + 'BOTH HAVE SAME VERSION !!' + bcolors.ENDC)
     print(bcolors.WARNING + 'ABORTING !!!' +bcolors.ENDC)
-else:
-    print(bcolors.HEADER + 'Tagging the current version.' + bcolors.ENDC)
+    sys.exit(200)
 
-    versiontext = f"v{toolsversion}"
+print(bcolors.HEADER + 'Tagging the current version.' + bcolors.ENDC)
 
-    subprocess.run(f"git tag {versiontext}", shell=True)
+versiontext = f"v{toolsversion}"
 
-    subprocess.run(f"git push", shell=True)
+subprocess.run(f"git tag {versiontext}", shell=True)
 
-    subprocess.run(f"git push origin tag {versiontext}", shell=True)
+subprocess.run(f"git push", shell=True)
 
-    print(bcolors.HEADER + 'Incrementing __version__.' + bcolors.ENDC)
+subprocess.run(f"git push origin tag {versiontext}", shell=True)
 
-    toolsversion_compo = toolsversion.split('.')
-    if len(toolsversion_compo) > 2:
-        toolsversion_compo[2] = str(int(toolsversion_compo[2]) + 1)
-    toolsversion_new = '.'.join(toolsversion_compo)
+print(bcolors.HEADER + 'Incrementing __version__.' + bcolors.ENDC)
 
-    with open('tools/__init__.py', 'r') as f:
-        txt = f.read()
+toolsversion_compo = toolsversion.split('.')
+if len(toolsversion_compo) > 2:
+    toolsversion_compo[2] = str(int(toolsversion_compo[2]) + 1)
+toolsversion_new = '.'.join(toolsversion_compo)
 
-    txt = txt.replace(f"__version__ = '{toolsversion}'", f"__version__ = '{toolsversion_new}'")
+with open('tools/__init__.py', 'r') as f:
+    txt = f.read()
 
-    with open('tools/__init__.py', 'w') as f:
-        f.write(txt)
+txt = txt.replace(f"__version__ = '{toolsversion}'", f"__version__ = '{toolsversion_new}'")
 
-    print(bcolors.HEADER + 'Incrementing __version__.' + bcolors.ENDC)
-    
-   
+with open('tools/__init__.py', 'w') as f:
+    f.write(txt)
+
+print(bcolors.HEADER + 'Incrementing __version__.' + bcolors.ENDC)
