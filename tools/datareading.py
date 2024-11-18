@@ -1205,7 +1205,7 @@ def are_there_missing_frames(acquisition_path: str, framenumbers:Optional[np.nda
     return False
 
 
-def describe(dataset:str, acquisition:str, framenumbers:Optional[np.ndarray]=None, subregion:Subregion=None, verbose:Optional[int]=None):
+def describe_acquisition(dataset:str, acquisition:str, framenumbers:Optional[np.ndarray]=None, subregion:Subregion=None, verbose:Optional[int]=None):
     display(f'Acquisition: "{acquisition}" ({dataset})')
 
     dataset_path = os.path.join('../', dataset)

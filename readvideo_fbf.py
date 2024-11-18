@@ -53,7 +53,7 @@ if (dataset, acquisition)==('Nalight_cleanplate_20240708', '10Hz_decal'):
     framenumbers = np.arange(1400, 1600)
 #%%
 # Data fetching
-datareading.describe(dataset, acquisition, framenumbers=framenumbers, subregion=roi)
+datareading.describe_acquisition(dataset, acquisition, framenumbers=framenumbers, subregion=roi)
 frames = datareading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
 length, height, width = frames.shape
 

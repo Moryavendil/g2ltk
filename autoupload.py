@@ -26,6 +26,9 @@ if gitstatus != "":
     subprocess.run(cmd_getgitstatus_humanreadable, shell=True)
     sys.exit(100)
 
+
+subprocess.run(f"git pull", shell=True)
+
 gitversion = subprocess.check_output(cmd_getlatesttag, shell=True, text=True)[:-1]
 
 print(bcolors.HEADER + f"Current tagged version: '{gitversion or '[None]'}'" + bcolors.ENDC)
@@ -64,5 +67,3 @@ txt = txt.replace(f"__version__ = '{toolsversion}'", f"__version__ = '{toolsvers
 
 with open('tools/__init__.py', 'w') as f:
     f.write(txt)
-
-print(bcolors.HEADER + 'Incrementing __version__.' + bcolors.ENDC)
