@@ -67,3 +67,7 @@ txt = txt.replace(f"__version__ = '{toolsversion}'", f"__version__ = '{toolsvers
 
 with open('tools/__init__.py', 'w') as f:
     f.write(txt)
+
+
+subprocess.run(f"git add tools/__init__.py", shell=True)
+subprocess.run(f'git commit -m "Increment version number to {toolsversion_new}"', shell=True)
