@@ -196,10 +196,13 @@ def span(arr:np.ndarray) -> float:
 
 def correct_limits(arr:np.ndarray) -> Tuple[float, float]:
     return arr.min() - step(arr) / 2, arr.max() + step(arr) / 2
-def correct_extent_spatio(arr_x:np.ndarray, arr_y:np.ndarray) -> Tuple[float, float, float, float]:
+def correct_extent_spatio(arr_x:np.ndarray, arr_y:np.ndarray, origin='upper') -> Tuple[float, float, float, float]:
     xlim = correct_limits(arr_x)
     ylim = correct_limits(arr_y)
-    return xlim[0], xlim[1], ylim[1], ylim[0]
+    if origin=='upper':
+        return xlim[0], xlim[1], ylim[1], ylim[0]
+    elif origin=='lower':
+        return xlim[0], xlim[1], ylim[0], ylim[1]
 def correct_extent_fft(arr_x:np.ndarray, arr_y:np.ndarray) -> Tuple[float, float, float, float]:
     xlim = correct_limits(arr_x)
     ylim = correct_limits(arr_y)

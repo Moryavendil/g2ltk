@@ -33,7 +33,7 @@ dataset_path = os.path.join(root_path, dataset)
 datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
 #%%
 # Acquisition selection
-acquisition = '10Hz_decal'
+acquisition = '2400mHz_stop'
 acquisition_path = os.path.join(dataset_path, acquisition)
 #%%
 # see the frame
