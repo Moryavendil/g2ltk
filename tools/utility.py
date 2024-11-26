@@ -9,7 +9,7 @@ import math
 from scipy.signal import savgol_filter # for smoothing
 from scipy.interpolate import CubicSpline # for cubic interpolation
 
-from tools import display, log_warn, log_info, log_debug, log_trace, log_retrace
+from tools import display, log_error, log_warn, log_info, log_debug, log_trace, log_retrace
 
 
 # misc
@@ -287,6 +287,15 @@ def psd2d(z, x, y, window:str= 'hann') -> np.ndarray:
     esd[:, 1:] *= 2 # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
     # psd = esd / (T X)
     return esd / span(x) / span(y)
+
+#
+def estimatesignalfrequency(z, x=None, window:str= 'hann') -> float:
+    if x is None:
+        x = np.arange(len(z))
+    fx:np.ndarray = rdual(x)
+    pw:np.ndarray = psd1d(z, x, window=window)
+    return find_global_max(fx, pw)
+
 
 # find the edges of the peak (1D, everything is easy)
 def attenuate_power(value, attenuation_factor_dB):
