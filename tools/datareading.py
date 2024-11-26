@@ -1010,7 +1010,8 @@ def describe_dataset(dataset_path: str, type:Optional[str]=None, makeitshort=Fal
             display(f"- '{acquisition}' (TODO type(s))")
 
 def find_available_datasets(root_path: str) ->List[str]:
-    available_datasets = [d for d in os.listdir(root_path) if len(find_available_videos(os.path.join(root_path, d))) > 0]
+    log_debug(f'Possible datasets in {root_path}: {os.listdir(root_path)}')
+    available_datasets = [d for d in os.listdir(root_path) if os.path.isdir(os.path.join(root_path, d)) and len(find_available_videos(os.path.join(root_path, d))) > 0]
     return available_datasets
 
 
