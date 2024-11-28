@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import os
-import cv2
 import numpy as np
 import matplotlib
 matplotlib.use('Qt5Agg')
@@ -22,7 +21,7 @@ from tools import datareading, utility
 # Datasets display
 root_path = '../'
 datasets = datareading.find_available_datasets(root_path)
-print('Available datasets:', datareading.find_available_datasets(root_path))
+print('Available datasets:', datasets)
 #%%
 # Dataset selection & acquisitions display
 dataset = '-'
@@ -30,38 +29,26 @@ if len(datasets) == 1:
     dataset = datasets[0]
     datareading.log_info(f'Auto-selected dataset {dataset}')
 dataset_path = os.path.join(root_path, dataset)
-datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
+datareading.describe_dataset(dataset_path, type='all', makeitshort=True)
 #%%
 # Acquisition selection
-acquisition = '2400mHz_stop'
+acquisition = 'DSC_6054'
 acquisition_path = os.path.join(dataset_path, acquisition)
-#%%
-# see the frame
-relative_colorscale:bool = False
+datareading.is_this_a_video(acquisition_path)
 #%%
 # Parameters definition
 framenumbers = datareading.format_framenumbers(acquisition_path, None)
 roi = None, None, None, None  #start_x, start_y, end_x, end_y
-
 #%%
 # Data fetching
-frametest = datareading.get_frame(acquisition_path, 0, subregion=roi)
+datareading.describe_acquisition(dataset, acquisition, framenumbers = framenumbers, subregion=roi)
 length, height, width = datareading.get_geometry(acquisition_path, framenumbers=framenumbers, subregion=roi)
-
 acquisition_frequency = datareading.get_acquisition_frequency(acquisition_path, unit="Hz")
 t = datareading.get_times(acquisition_path, framenumbers=framenumbers, unit='s')
-length = len(t)
-
-
-print(f'Dataset: "{dataset}", acquisition: "{acquisition}"')
-print(f'Frames dimension: {height}x{width}')
-print(f'Length: {length} frames ({round(datareading.get_acquisition_duration(acquisition_path, framenumbers=framenumbers, unit="s"), 2)} s)')
-print(f'Acquisition frequency: {round(datareading.get_acquisition_frequency(acquisition_path, unit="Hz"), 2)} Hz')
-if (not(datareading.are_there_missing_frames(acquisition_path))):
-    print(f'No dropped frames :)')
-else:
-    print(f'Dropped frames...')
 #%%
+# Colorscale option
+relative_colorscale:bool = False
+
 vmin_absolutecmap = 0
 vmax_absolutecmap = 255
 if dataset == 'illustrations' and acquisition == '1200_s_break_gcv':
@@ -122,8 +109,8 @@ def update_display():
 ### Display
 fig, ax = plt.subplots(1, 1)  # initialise la figure
 fig.suptitle(f'{acquisition} ({dataset})')
-ax.set_xlim(0, width)
-ax.set_ylim(0, height)
+ax.set_xlim(-.5, width + .5)
+ax.set_ylim(-.5, height + .5)
 plt.tight_layout()
 
 see_image:bool = True
@@ -132,7 +119,7 @@ i = 0 # time
 ### ANIMATED ELEMENTS
 
 # frame
-img = ax.imshow(np.zeros((height, width)), origin='lower', vmin = vmin_absolutecmap, vmax = vmax_absolutecmap
+img = ax.imshow(datareading.get_frame(acquisition_path, i, subregion=roi), origin='lower', vmin = vmin_absolutecmap, vmax = vmax_absolutecmap
                 # , aspect='auto'
                 )
 if not see_image:
