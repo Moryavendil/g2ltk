@@ -287,6 +287,26 @@ def bimax_naive(x, y):
 
     return x1, y1, x2, y2
 
+def bimax_supernaive(x, y, **kwargs):
+    # check that there is float: important for use with find peaks
+    # position of the maxs
+    xmax = x[find_peaks(y.astype(float, copy=False), distance=kwargs.get('distance', None))[0]]
+    ymax = np.interp(xmax, x, y)
+
+    if len(xmax) == 0:
+        return 0, 0, 0, 0
+    elif len(xmax) == 1:
+        return xmax[0], ymax[0], xmax[0], ymax[0]
+
+    # take the 2 bigger maxs
+    sorted = ymax.argsort()
+    x1, x2 = xmax[sorted][-1], xmax[sorted][-2]
+
+    # y of the 2 bigger maxs
+    y1, y2 = ymax[sorted][-1], ymax[sorted][-2]
+
+    return x1, y1, x2, y2
+
 def bimax_fit(x, y, w0:float = 1.):
     # INITIAL guess
     # position and y of the maxs
@@ -314,9 +334,10 @@ def bimax_fit(x, y, w0:float = 1.):
 
     return popt
 
-def bimax(x, y, do_fit:bool = False, w0:float = 1.):
+def bimax(x, y, do_fit:bool = False, w0:float = 1., **kwargs):
     if do_fit:
         return bimax_fit(x, y, w0)
+    return bimax_supernaive(x, y, **kwargs)
     return bimax_naive(x, y)
 
 from scipy.signal import find_peaks
@@ -415,7 +436,7 @@ def borders(frame:np.ndarray, do_fit:bool = False, w0:float = 1., **kwargs) -> n
 
         y = 255 - frame_resized[:, l].astype(float)
 
-        zz[l] = bimax(z, y, do_fit=do_fit, w0=w0)
+        zz[l] = bimax(z, y, do_fit=do_fit, w0=w0, **kwargs)
 
     z1, y1, z2, y2 = zz[:,0], zz[:,1], zz[:,2], zz[:,3]
 
