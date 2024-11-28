@@ -12,7 +12,7 @@ def display(text:str, flush:bool=True, end:str='\n', padding:bool=True, displayt
 VIOLET = '#4f0e51'
 JAUNE = '#eaac3f'
 
-__version__ = '0.10.3.dev3'
+__version__ = '0.10.3.dev4'
 VERSION = __version__
 
 import warnings
