@@ -60,7 +60,7 @@ toolsversion_compo = toolsversion.split('.')
 if len(toolsversion_compo) > 3 and 'dev' in toolsversion_compo[3]:
     try:
         devnbr = int(toolsversion_compo[3].split('dev')[1])
-        toolsversion_compo[3] = str(devnbr + 1)
+        toolsversion_compo[3] = 'dev' + str(devnbr + 1)
     except:
         print(bcolors.OKCYAN + f'Version number is {toolsversion} = {toolsversion_compo}' + bcolors.ENDC)
         print(bcolors.OKCYAN + f"And {toolsversion_compo[3]} = {toolsversion_compo[3].split('dev')}" + bcolors.ENDC)
