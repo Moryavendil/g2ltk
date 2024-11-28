@@ -9,7 +9,7 @@ import math
 from scipy.signal import savgol_filter # for smoothing
 from scipy.interpolate import CubicSpline # for cubic interpolation
 
-from tools import display, log_error, log_warn, log_info, log_debug, log_trace, log_retrace
+from tools import display, log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
 
 
 # misc
@@ -386,13 +386,13 @@ def contours_perimeters(contours, scale_factor_x, scale_factor_y, condition:Opti
     perimeters = np.ones(len(contours), dtype=float)
     for i, contour in enumerate(contours):
         if condition[i]:
-            log_retrace(f'contour {i}: type: {contour.geom_type}')
-            log_retrace(f'contour {i}: contained geometries: {len(contour.geoms)}')
+            log_subtrace(f'contour {i}: type: {contour.geom_type}')
+            log_subtrace(f'contour {i}: contained geometries: {len(contour.geoms)}')
             hull = contour.geoms[0]
-            log_retrace(f'contour {i}: hull is : {hull.geom_type}')
-            log_retrace(f'contour {i}: hull boundary is : {hull.boundary.geom_type}')
-            log_retrace(f'contour {i}: hull exterior is : {hull.exterior.geom_type}')
-            log_retrace(f'contour {i}: hull interior contains {len(hull.interiors)} rings')
+            log_subtrace(f'contour {i}: hull is : {hull.geom_type}')
+            log_subtrace(f'contour {i}: hull boundary is : {hull.boundary.geom_type}')
+            log_subtrace(f'contour {i}: hull exterior is : {hull.exterior.geom_type}')
+            log_subtrace(f'contour {i}: hull interior contains {len(hull.interiors)} rings')
             all_boundaries = [hull.exterior] + [interior for interior in hull.interiors]
             p = 0
             for boundary in all_boundaries:
@@ -404,10 +404,10 @@ def contours_perimeters(contours, scale_factor_x, scale_factor_y, condition:Opti
     return perimeters
 def draw_multipolygon_edge(ax, multipolygon, xmin=None, **kwargs):
     for geom in multipolygon.geoms:
-        log_retrace(f'geom is : {geom.geom_type}')
-        log_retrace(f'geom boundary is : {geom.boundary.geom_type}')
-        log_retrace(f'geom exterior is : {geom.exterior.geom_type}')
-        log_retrace(f'geom interior contains {len(geom.interiors)} rings')
+        log_subtrace(f'geom is : {geom.geom_type}')
+        log_subtrace(f'geom boundary is : {geom.boundary.geom_type}')
+        log_subtrace(f'geom exterior is : {geom.exterior.geom_type}')
+        log_subtrace(f'geom interior contains {len(geom.interiors)} rings')
         all_boundaries = [geom.exterior] + [interior for interior in geom.interiors]
         for boundary in all_boundaries:
             line = np.array(boundary.coords)
@@ -481,10 +481,10 @@ def peak_contour2d(peak_x:float, peak_y:float, z:np.ndarray, peak_depth_dB:float
 
         for i in range(len(multipolygons)):
             if containspeak[i] or not fastmode:
-                log_retrace(f'multipoligon {i}: centroid: {multipolygons[i].centroid}')
-                log_retrace(f'multipoligon {i}: area: {round(areas[i], 1)} px^2, limit is {peak_max_area}')
-                log_retrace(f'multipoligon {i}: perimeter: {round(perimeters[i], 1)} px')
-                log_retrace(f'multipoligon {i}: circularity: {round(circularities[i], 3)} [0-1], limit is {peak_min_circularity}')
+                log_subtrace(f'multipoligon {i}: centroid: {multipolygons[i].centroid}')
+                log_subtrace(f'multipoligon {i}: area: {round(areas[i], 1)} px^2, limit is {peak_max_area}')
+                log_subtrace(f'multipoligon {i}: perimeter: {round(perimeters[i], 1)} px')
+                log_subtrace(f'multipoligon {i}: circularity: {round(circularities[i], 3)} [0-1], limit is {peak_min_circularity}')
 
         isnottoobig = areas < peak_max_area
         iscircularenough = circularities > peak_min_circularity
