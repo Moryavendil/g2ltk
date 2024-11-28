@@ -8,7 +8,7 @@ from .. import utility, datasaving
 
 ###### LOSSLESSLY COMPRESSED VIDEO (lcv) READING
 
-def find_available_fcv(dataset_path: str) ->List[str]:
+def find_available_lcv(dataset_path: str) ->List[str]:
     available_acquisitions = [f[:-4] for f in os.listdir(dataset_path) if os.path.isfile(os.path.join(dataset_path, f)) and f.endswith('.mkv')]
     available_acquisitions.sort()
     return available_acquisitions

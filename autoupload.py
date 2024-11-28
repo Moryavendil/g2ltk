@@ -39,8 +39,7 @@ toolsversion = tools.__version__
 print(bcolors.HEADER + f"Current tools version: '{toolsversion}'" + bcolors.ENDC)
 
 if toolsversion == gitversion:
-    print(bcolors.WARNING + 'BOTH HAVE SAME VERSION !!' + bcolors.ENDC)
-    print(bcolors.WARNING + 'ABORTING !!!' +bcolors.ENDC)
+    print(bcolors.FAIL + "Cannot autotag: Current version is git's last version" + bcolors.ENDC)
     sys.exit(200)
 
 print(bcolors.HEADER + 'Tagging the current version.' + bcolors.ENDC)
@@ -55,10 +54,29 @@ subprocess.run(f"git push origin tag {versiontext}", shell=True)
 
 print(bcolors.HEADER + 'Incrementing __version__.' + bcolors.ENDC)
 
+toolsversion_new = toolsversion
+
 toolsversion_compo = toolsversion.split('.')
-if len(toolsversion_compo) > 2:
-    toolsversion_compo[2] = str(int(toolsversion_compo[2]) + 1)
+if len(toolsversion_compo) > 3 and 'dev' in toolsversion_compo[3]:
+    try:
+        devnbr = int(toolsversion_compo[3].split('dev')[1])
+        toolsversion_compo[3] = str(devnbr + 1)
+    except:
+        print(bcolors.OKCYAN + f'Version number is {toolsversion} = {toolsversion_compo}' + bcolors.ENDC)
+        print(bcolors.OKCYAN + f"And {toolsversion_compo[3]} = {toolsversion_compo[3].split('dev')}" + bcolors.ENDC)
+        print(bcolors.OKCYAN + f"But {toolsversion_compo[3].split('dev')[1]} does not seem to be a number ?" + bcolors.ENDC)
+elif len(toolsversion_compo) > 2:
+    try:
+        subvnbr = int(toolsversion_compo[2])
+        toolsversion_compo[2] = str(subvnbr + 1)
+    except:
+        print(bcolors.OKCYAN + f'Version number is {toolsversion} = {toolsversion_compo}' + bcolors.ENDC)
+        print(bcolors.OKCYAN + f'But {toolsversion_compo[2]} does not seem to be a number ?' + bcolors.ENDC)
+
 toolsversion_new = '.'.join(toolsversion_compo)
+if toolsversion_new == toolsversion:
+    print(bcolors.OKGREEN + 'COULD NOT UPDATE VERSION NUMBER' + bcolors.ENDC)
+    sys.exit(300)
 
 with open('tools/__init__.py', 'r') as f:
     txt = f.read()
@@ -71,3 +89,4 @@ with open('tools/__init__.py', 'w') as f:
 
 subprocess.run(f"git add tools/__init__.py", shell=True)
 subprocess.run(f'git commit -m "Increment version number to {toolsversion_new}"', shell=True)
+subprocess.run(f"git push", shell=True)
