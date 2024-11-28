@@ -77,7 +77,7 @@ def log_trace(text:str, verbose:int=None): # verbose 5
     if verbose >= 5:
         display(Fore.LIGHTBLUE_EX + 'TRACE:\t\t' + text + Fore.RESET)
 
-def log_retrace(text:str, verbose:int=None): # verbose 6
+def log_subtrace(text:str, verbose:int=None): # verbose 6
     if verbose is None:
         global global_verbose
         verbose=global_verbose
