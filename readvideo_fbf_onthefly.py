@@ -32,9 +32,8 @@ dataset_path = os.path.join(root_path, dataset)
 datareading.describe_dataset(dataset_path, type='all', makeitshort=True)
 #%%
 # Acquisition selection
-acquisition = 'DSC_6054'
+acquisition = '10Hz_decal'
 acquisition_path = os.path.join(dataset_path, acquisition)
-datareading.is_this_a_video(acquisition_path)
 #%%
 # Parameters definition
 framenumbers = datareading.format_framenumbers(acquisition_path, None)
