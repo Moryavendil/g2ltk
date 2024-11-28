@@ -81,7 +81,6 @@ def find_available_datasets(root_path: str) ->List[str]:
     available_datasets = [d for d in os.listdir(root_path) if os.path.isdir(os.path.join(root_path, d)) and len(find_available_videos(os.path.join(root_path, d))) > 0]
     return available_datasets
 
-
 def get_number_of_available_frames(acquisition_path: str) -> Optional[int]:
     if not is_this_a_video(acquisition_path):
         log_error(f"There is no video at {acquisition_path}. Could not get number of available frames.")
@@ -291,7 +290,6 @@ def are_there_missing_frames(acquisition_path: str, framenumbers:Optional[np.nda
     log_trace('No missing frames', verbose=verbose)
     return False
 
-
 def describe_acquisition(dataset:str, acquisition:str, framenumbers:Optional[np.ndarray]=None, subregion:Subregion=None, verbose:Optional[int]=None):
     display(f'Acquisition: "{acquisition}" ({dataset})')
 
@@ -343,27 +341,29 @@ def describe_acquisition(dataset:str, acquisition:str, framenumbers:Optional[np.
     else:
         log_info('No missing frames in chosen framenumbers', verbose=verbose)
 
+###### SPECIFIC VIDEO READING
+
 ### GCV VIDEO READING
 
 from .reading_gcv import *
 
-###### TIFF 16-BITS VIDEO (t16) READING
+### TIFF 16-BITS VIDEO (t16) READING
 
 from .reading_tiffs import *
 
-###### LOSSLESSLY COMPRESSED VIDEO (lcv) READING
+### LOSSLESSLY COMPRESSED VIDEO (lcv) READING
 
 from .reading_lcv import *
 
-###### LOSSY COMPRESSED VIDEO (mp4) READING
+### LOSSY COMPRESSED VIDEO (mp4) READING
 
 from .reading_mp4 import *
 
-###### LOSSY COMPRESSED VIDEO (mov) READING
+### LOSSY COMPRESSED VIDEO (mov) READING
 
 from .reading_mov import *
 
-### FRAMES EDITING
+###### FRAMES EDITING
 
 # Remove a background
 def remove_bckgnd_from_frames(frames:np.ndarray, bckgnd:np.ndarray=None):
@@ -379,6 +379,7 @@ def remove_bckgnd_from_frame(frame, bckgnd:np.ndarray=None):
     return remove_bckgnd_from_frames(np.array([frame]), bckgnd=bckgnd)[0]
 
 # Crop to a subregion
+
 def crop_frames(frames, subregion:Subregion = None):
     if frames is None: return None
     if subregion is not None:
@@ -418,120 +419,11 @@ def resize_frames(frames:np.ndarray, resize_factor:int = 1):
 def resize_frame(frame, resize_factor:int = 1):
     return resize_frames(np.array([frame]), resize_factor=resize_factor)[0]
 
+###### VIDEO SAVING
 
-# save videos for easyvisualisation
+from .saving_videos import *
 
-def save_frames_to_video(video_rawpath:str, frames:np.ndarray, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
-    # codec ok : DIVX, XVID (trow error with mp4)
-    # couple ok : codec mp4v, filetype mp4
-    # couple ok : codec H264, filetype avi
-    # couple ok : codec FFV1, filetype mkv (LOSSLESS)
-    if codec is None:
-        if filetype == 'mkv':
-            codec = 'FFV1'
-        elif filetype == 'avi':
-            codec = 'H264'
-        elif filetype == 'mp4':
-            codec = 'mp4v'
-        else:
-            throw_G2L_warning(f'Did not find appropriate codec for filetype {filetype}.')
-            codec = 'XVID'
-
-    frames = frames.astype(np.uint8, copy=False)
-    frames = resize_frames(frames, resize_factor=resize_factor)
-
-    # frames doit être 3-dimensionnel [length, height, width]
-    length, height, width = frames.shape
-
-    video_path = video_rawpath + '.' + filetype
-
-    # THE NEW WAY
-
-    display(f'Saving video {video_path}...', end='\r')
-
-    fourcc = cv2.VideoWriter_fourcc(*codec)
-    writer= cv2.VideoWriter(video_path, fourcc, fps, (width, height))
-
-    for framenumber in range(length):
-        writer.write( np.repeat(frames[framenumber], 3).reshape((height, width, 3)).astype(np.uint8, copy=False) )
-
-    writer.release()
-
-    display(f'Video {video_path} saved')
-
-def save_acquisition_to_video(acquisition_path:str, do_timestamp:bool = True, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
-    if not(is_this_a_gcv(acquisition_path)) and not(is_this_a_t16(acquisition_path)):
-        # todo error ERROR here
-        log_error(f'WAW')
-        return
-
-    frames = get_frames(acquisition_path, framenumbers = None, subregion=None)
-    length, height, width = frames.shape
-
-    if do_timestamp and not(are_there_missing_frames(acquisition_path)):
-        t = get_times(acquisition_path, framenumbers = None, unit='s')
-
-        do_white_bckgnd = True
-
-        text_offset = 10 if height >= 45 else 1
-
-        thickness = 1 if height < 35 else 2
-
-        antialiasing = height >= 20
-
-        scale = 0.15 # this value can be from 0 to 1 (0,1] to change the size of the text relative to the image
-        fontScale = max(min(width,height)/(25/scale), 0.8)
-
-        for i_frame in range(length):
-            text = f't = {"{:05.3f}".format(t[i_frame])} s'
-
-            testSize = cv2.getTextSize(text,
-                                       fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                                       fontScale=fontScale,
-                                       thickness=thickness)[0][0]
-
-            if do_white_bckgnd:
-                cv2.putText(frames[i_frame], text,
-                            (width - 1 - text_offset-testSize, height-1 - text_offset),
-                            cv2.FONT_HERSHEY_SIMPLEX, # font
-                            fontScale, # font scale
-                            255, # color
-                            thickness*3, # writing thickness
-                            cv2.LINE_AA if antialiasing else cv2.FILLED,
-                            False # Use the bottom left as origin (invert image)
-                            )
-
-            cv2.putText(frames[i_frame], text,
-                        (width - 1 - text_offset - testSize, height-1 - text_offset),
-                        cv2.FONT_HERSHEY_SIMPLEX, # font
-                        fontScale, # font scale
-                        0, # color
-                        thickness, # writing thickness
-                        cv2.LINE_AA if antialiasing else cv2.FILLED,
-                        False # Use the bottom left as origin (invert image)
-                        )
-
-    save_frames_to_video(acquisition_path, frames,
-                         fps = fps, filetype=filetype, codec=codec, resize_factor=resize_factor)
-
-def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
-    display(f'Saving all the gcv acquisition in the dataset: {dataset}')
-
-    dataset_path = '../' + dataset
-
-    available_acquisitions =  find_available_gcv(dataset_path)
-    display(f'The following acquisition will be saved: {available_acquisitions}')
-
-    for acquisition in available_acquisitions:
-        acquisition_path = os.path.join(dataset_path, acquisition)
-
-        if is_this_a_gcv(acquisition_path):
-            save_acquisition_to_video(acquisition_path, do_timestamp=do_timestamp, fps=fps, filetype=filetype, codec=codec, resize_factor=resize_factor)
-        else:
-            throw_G2L_warning(f'GCV acquisition {acquisition} is found but does not exist ?')
-
-### Get useful info
-
+###### GET INFO
 def get_t_frames(acquisition_path:str, framenumbers:Framenumbers = None, verbose:Optional[int]=None) -> Optional[np.ndarray]:
     return format_framenumbers(acquisition_path, framenumbers = framenumbers, verbose = verbose).astype(float)
 
