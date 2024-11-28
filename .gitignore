@@ -16,3 +16,8 @@ perso_*
 
 # intellij
 .idea/
+
+# all images
+*.jpg
+*.png
+*.svg
