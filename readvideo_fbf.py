@@ -40,7 +40,7 @@ datareading.is_this_a_video(acquisition_path)
 relative_colorscale:bool = False
 remove_median_bckgnd = True #remove the mediab img, practical for dirt on plate
 median_correc = False # remove the median value over each z line. helps with the heterogenous lighting.
-remove_bright_spots = False # removes bright spots by accepting cmap saturation (1%)
+saturate_a_bit = False # removes bright spots by accepting cmap saturation (1%)
 
 normalize_each_image = False
 #%%
@@ -83,7 +83,7 @@ if normalize_each_image:
 
 vmin_absolutecmap = frames.min()
 vmax_absolutecmap = frames.max()
-if remove_bright_spots:
+if saturate_a_bit:
     vmin_absolutecmap = np.percentile(frames.flatten(), 1)
     vmax_absolutecmap = np.percentile(frames.flatten(), 99)
 #%%
@@ -117,7 +117,7 @@ def update_display():
 
     frame = frames[i]
 
-    global see_image, median_correc, remove_bright_spots
+    global see_image, median_correc, saturate_a_bit
     global img
     if see_image:
         image = frame.astype(float)

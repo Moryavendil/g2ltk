@@ -46,7 +46,8 @@ acquisition_frequency = datareading.get_acquisition_frequency(acquisition_path, 
 t = datareading.get_times(acquisition_path, framenumbers=framenumbers, unit='s')
 #%%
 # Colorscale option
-relative_colorscale:bool = False
+relative_colorscale:bool = True
+saturate_a_bit:bool = True
 
 vmin_absolutecmap = 0
 vmax_absolutecmap = 255
@@ -89,7 +90,7 @@ def update_display():
     if dataset == 'illustrations' and acquisition == '1200_s_break_gcv':
         frame[11, :] = frame[10, :]
 
-    global see_image, median_correc, remove_bright_spots
+    global see_image, median_correc, saturate_a_bit
     global img
     if see_image:
         image = frame.astype(float)
@@ -97,7 +98,7 @@ def update_display():
         if relative_colorscale:
             vmin_relativecmap = image.min()
             vmax_relativecmap = image.max()
-            if remove_bright_spots:
+            if saturate_a_bit:
                 vmin_relativecmap = np.percentile(image.flatten(), 1)
                 vmax_relativecmap = np.percentile(image.flatten(), 99)
             relative_norm = Normalize(vmin=vmin_relativecmap, vmax=vmax_relativecmap)
