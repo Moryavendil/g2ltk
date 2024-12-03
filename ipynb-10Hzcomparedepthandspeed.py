@@ -50,8 +50,8 @@ datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
 # <codecell>
 
 # Acquisition selection
-# acquisition = '10Hz_decal'
-acquisition = '1Hz_start'
+acquisition = '10Hz_decal'
+# acquisition = '1Hz_start'
 acquisition_path = os.path.join(dataset_path, acquisition)
 datareading.is_this_a_video(acquisition_path)
 
@@ -177,6 +177,8 @@ if dataset=='Nalight_cleanplate_20240708':
     if acquisition=='10Hz_decal':
         if n_frame_ref == 1673:
             ymax, ymin = 540, None
+
+probecolors = plt.cm.rainbow(np.linspace(0, 1, len(interesting_probes)))[::-1]
         
 img = frame_ref[ymin:ymax,:]
 
@@ -447,11 +449,6 @@ for x_probe in interesting_probes:
 
 # <codecell>
 
-probecolors = plt.cm.rainbow(np.linspace(0, 1, len(interesting_probes)))
-
-
-# <codecell>
-
 fig, ax = plt.subplots(1,1)
 
 for i_probe, x_probe in enumerate(interesting_probes):
@@ -615,11 +612,6 @@ for i_probe, x_probe in enumerate(interesting_probes):
 
 # <codecell>
 
-probecolors = plt.cm.rainbow(np.linspace(0, 1, len(interesting_probes)))
-
-
-# <codecell>
-
 def Speed_0padded(Z, Zc, Vc):
     spd_val = np.abs(np.interp(Z, Zc, Vc))
     if Zc[-1] < Zc[0]:
@@ -759,12 +751,16 @@ for x_probe in interesting_probes:
 
         x0 = np.array([hmin_guess])
         res = minimize(dist, x0, args=(rivwidth_samemax))
-        hmin_fit = np.rint(res.x[0]/h0)*h0
+        p = np.rint(res.x[0]/h0)
+        
+        p = 50
+        
+        hmin_fit = p*h0
         
     # data[x_probe]['rivwidth_fit'] = rivwidth_fit
     data[x_probe]['hmin_fit'] = hmin_fit
     # print(f'\tRivwidth fit: {rivwidth_fit}')
-    print(f'\thmin fit: {hmin_fit}')
+    print(f'\thmin fit: {hmin_fit} = {hmin_fit/h0} h0')
 
 
     # Z_Ca = data[x_probe]['Z_Ca']
@@ -957,7 +953,6 @@ ax.axhline(h0/bsur2, c='gray', ls=':', label='minimum height we can see')
 if SAVEPLOT: utility.save_graphe(f'llscaling_log_{acquisition}')
 
 
-
 # <codecell>
 
 fig, ax = plt.subplots(1,1, figsize = (130*mm_per_in/2, 90*mm_per_in/2) if SAVEPLOT else None)
@@ -1013,6 +1008,16 @@ ax.axhline(h0/bsur2, c='gray', ls=':', label='minimum height we can see')
 # axV.legend(loc='lower center')
 
 if SAVEPLOT: utility.save_graphe(f'llscaling_lin_{acquisition}')
+
+
+
+# <codecell>
+
+
+
+
+# <codecell>
+
 
 
 
