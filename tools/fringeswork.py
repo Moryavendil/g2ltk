@@ -129,16 +129,22 @@ def find_riv_pos_raw(slice, z = None, problem_threshold = None):
     return pos_raw
 
 ### 2D PHASE PICTURES
-def findminmaxs(signal, x=None, prominence=5, distance=100, forcedmins=None, forcedmaxs=None, width=None):
-    if x is not None:
-        distance = distance / utility.step(x)
-    if distance < 1:
-        distance=None
-    maxs = find_peaks( signal, prominence = prominence, distance=distance, width=width)[0]
-    mins = find_peaks(-signal, prominence = prominence, distance=distance, width=width)[0]
+def findminmaxs(signal, x=None, forcedmins=None, forcedmaxs=None,
+                **find_peaks_kwargs):
+    distance = find_peaks_kwargs.get('distance', None)
+    if x is not None and distance is not None:
+        distance /= utility.step(x)
+    if distance is not None and distance < 1:
+        distance = None
+    maxs = find_peaks( signal, **find_peaks_kwargs)[0]
+    mins = find_peaks(-signal, **find_peaks_kwargs)[0]
     if forcedmins is not None:
+        if x is not None:
+            forcedmins = [np.argmin((x - forcedmin)**2) for forcedmin in forcedmins]
         mins = np.concatenate((mins, forcedmins))
     if forcedmaxs is not None:
+        if x is not None:
+            forcedmaxs = [np.argmin((x - forcedmax)**2) for forcedmax in forcedmaxs]
         maxs = np.concatenate((maxs, forcedmaxs))
     # We sort the mins and maxs so they are in order
     mins.sort()
@@ -169,8 +175,8 @@ def findminmaxs(signal, x=None, prominence=5, distance=100, forcedmins=None, for
     maxs = np.delete(maxs, maxstoremove)
     return mins, maxs
 
-def find_cminmax(signal, x=None, prominence=5, distance=100, forcedmins=None, forcedmaxs=None):
-    mins, maxs = findminmaxs(signal, x=x, prominence=prominence, distance=distance, forcedmins=forcedmins, forcedmaxs=forcedmaxs)
+def find_cminmax(signal, x=None, forcedmins=None, forcedmaxs=None, **find_peaks_kwargs):
+    mins, maxs = findminmaxs(signal, x=x, forcedmins=forcedmins, forcedmaxs=forcedmaxs, **find_peaks_kwargs)
     if x is None:
         x = np.arange(len(signal))
 
@@ -182,8 +188,8 @@ def find_cminmax(signal, x=None, prominence=5, distance=100, forcedmins=None, fo
         l_mins_cs = make_smoothing_spline(x[mins], signal[mins], lam=None)
     return l_mins_cs, l_maxs_cs
 
-def normalize_for_hilbert(signal, x=None, prominence=5, distance=100, forcedmins=None, forcedmaxs=None):
-    l_mins_cs, l_maxs_cs = find_cminmax(signal, x=x, prominence=prominence, distance=distance, forcedmins=forcedmins, forcedmaxs=forcedmaxs)
+def normalize_for_hilbert(signal, x=None, forcedmins=None, forcedmaxs=None, **find_peaks_kwargs):
+    l_mins_cs, l_maxs_cs = find_cminmax(signal, x=x, forcedmins=forcedmins, forcedmaxs=forcedmaxs, **find_peaks_kwargs)
     if x is None:
         x = np.arange(len(signal))
 
