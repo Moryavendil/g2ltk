@@ -1,6 +1,7 @@
 import os
 import sys
 from colorama import Fore # change display text color
+from typing import Union
 
 DISPLAYSIZE:int = 80
 
@@ -29,8 +30,26 @@ def throw_G2L_warning(text:str):
 
 global_verbose = 3
 
-def set_verbose(verbose:int):
+def set_verbose(verbose:Union[int, str]):
     global global_verbose
+    if isinstance(verbose, str):
+        if verbose == 'critical':
+            verbose = 0
+        elif verbose == 'error':
+            verbose = 1
+        elif verbose == 'warning':
+            verbose = 2
+        elif verbose == 'info':
+            verbose = 3
+        elif verbose == 'debug':
+            verbose = 4
+        elif verbose == 'trace':
+            verbose = 5
+        elif verbose == 'subtrace':
+            verbose = 6
+        else:
+            throw_G2L_warning(f'Could not recognize verbose {verbose}, using 3 (info).')
+            verbose = 3
     global_verbose = verbose
 
 def log_criticalFailure(text:str, verbose:int=None): # verbose 0
