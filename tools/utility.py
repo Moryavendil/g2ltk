@@ -561,6 +561,44 @@ def w_from_borders(borders:np.ndarray) -> np.ndarray:
 ########## SAVE GRAPHE
 import os
 import matplotlib.pyplot as plt
+
+def activate_saveplot():
+    global in_per_mm
+    plt.rcParams['text.usetex'] = True
+    in_per_mm = 1 / 25.4
+    figwidth = 86*in_per_mm
+    figheight = figwidth / 1.618 # golden ratio
+    plt.rcParams["figure.figsize"] = (figwidth, figheight)
+    plt.rcParams['pgf.texsystem'] = 'pdflatex'
+    plt.rcParams.update({'font.family': 'serif', 'font.size': 10,
+                         'legend.fontsize': 10, 'legend.handlelength': 2,
+                         'axes.labelsize': 10, 'axes.titlesize': 10,
+                         'figure.labelsize': 10,
+                         'savefig.bbox': 'tight', 'savefig.pad_inches': 0., 'savefig.transparent': True,
+                         # # tight layout
+                         # 'figure.subplot.hspace': 0., 'figure.subplot.wspace': 0.,
+                         # # 'figure.subplot.hspace': 0.2, 'figure.subplot.wspace': 0.2,
+                         # 'figure.subplot.left': 0, 'figure.subplot.right': 1.,
+                         # 'figure.subplot.top': 1., 'figure.subplot.bottom': 0.,
+                         # # constrained layout
+                         # 'figure.constrained_layout.h_pad': 0.,
+                         # 'figure.constrained_layout.w_pad': 0.,
+                         })
+
+def deactivate_saveplot():
+    global in_per_mm
+    plt.rcParams['text.usetex'] = False
+    in_per_mm = .14/2
+    figwidth = 86*in_per_mm * 2
+    figheight = figwidth / 1.618 # golden ratio
+    plt.rcParams["figure.figsize"] = (figwidth, figheight)
+    plt.rcParams.update({'font.family': 'serif', 'font.size': 18,
+                         'legend.fontsize': 18, 'legend.handlelength': 2,
+                         'axes.labelsize': 18, 'axes.titlesize': 18,
+                         'figure.labelsize': 18,
+                         })
+def tighten_graph(pad=0., w_pad=0., h_pad=0.):
+    plt.tight_layout(pad=pad, w_pad=w_pad, h_pad=h_pad)
 def save_graphe(graph_name, imageonly=False, **kwargs):
     figures_directory = 'figures'
     if not os.path.isdir(figures_directory):
