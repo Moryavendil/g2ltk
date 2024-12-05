@@ -15,6 +15,7 @@ from scipy.stats import linregress
 from tools import display, log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
 from tools import utility
 
+### ### BRIDGE FINDING
 
 def singlepeak_gauss(z_, position, width):
     # modelisation = gaussienne
@@ -128,7 +129,21 @@ def find_riv_pos_raw(slice, z = None, problem_threshold = None):
 
     return pos_raw
 
-### 2D PHASE PICTURES
+### ### 2D PHASE PICTURES
+
+def findminmaxs_subpixel(signal, x=None, forcedmins=None, forcedmaxs=None,
+                         **find_peaks_kwargs):
+    # find the *relevant* mins and maxs with pixel precision
+    imins, imaxs = findminmaxs(signal, x=x, forcedmins=forcedmins, forcedmaxs=forcedmaxs, **find_peaks_kwargs)
+    if x is None:
+        x = np.arange(len(signal))
+    mins, maxs = x[imins], x[imaxs]
+    # find *every* min and max, including irrelevant ones, with subpixel precision
+    extrema_subpx = utility.find_extrema(x, signal, peak_category='raw')
+    mins_subpx = [extrema_subpx[np.abs(extrema_subpx - min_).argmin()] for min_ in mins]
+    maxs_subpx = [extrema_subpx[np.abs(extrema_subpx - max_).argmin()] for max_ in maxs]
+    return np.array(mins_subpx), np.array(maxs_subpx)
+
 def findminmaxs(signal, x=None, forcedmins=None, forcedmaxs=None,
                 **find_peaks_kwargs):
     distance = find_peaks_kwargs.get('distance', None)
@@ -174,6 +189,9 @@ def findminmaxs(signal, x=None, forcedmins=None, forcedmaxs=None,
     maxsremoved = maxs[maxstoremove]
     maxs = np.delete(maxs, maxstoremove)
     return mins, maxs
+def findminmax_indexes(signal, forcedmins=None, forcedmaxs=None,
+                **find_peaks_kwargs):
+    return findminmaxs(signal, x=None, forcedmins=forcedmins, forcedmaxs=forcedmaxs, **find_peaks_kwargs)
 
 def find_cminmax(signal, x=None, forcedmins=None, forcedmaxs=None, **find_peaks_kwargs):
     mins, maxs = findminmaxs(signal, x=x, forcedmins=forcedmins, forcedmaxs=forcedmaxs, **find_peaks_kwargs)
@@ -202,21 +220,23 @@ def normalize_for_hilbert(signal, x=None, forcedmins=None, forcedmaxs=None, **fi
 def prepare_signal_for_hilbert(signal, x=None, oversample=True, usesplines=False):
     if x is None:
         x = np.arange(len(signal))
-    x_hilbert = x.copy()
+    x_hilbert = x.astype(float, copy=True)
     signal_hilbert = signal.astype(float, copy=True)
+    log_trace(f'given {x_hilbert.shape} ; {signal_hilbert.shape}')
     # we want to gain a bit in resolution especially on the edges where the extrema can be very close
     if oversample:
         x_oversampled = np.linspace(x.min(), x.max(), len(x) + (len(x)-1)*2, endpoint=True)
-        signal_oversampled = np.interp(x_hilbert, x, signal)
+        signal_oversampled = np.interp(x_oversampled, x, signal)
         x_hilbert = x_oversampled
         signal_hilbert = signal_oversampled
     if usesplines:
         # we smooth everything a bit to ease the phase reconstruction process via Hilbert transform
         hilbert_spline = make_smoothing_spline(x, signal, lam=None)
         signal_hilbert = hilbert_spline(x_hilbert)
+    log_trace(f'returning {x_hilbert.shape} ; {signal_hilbert.shape}')
     return x_hilbert, signal_hilbert
 
-def instantaneous_phase(signal, x=None, oversample=True, usesplines=False, symmetrize=True):
+def hilbert_transform(signal, x=None, oversample=True, usesplines=False, symmetrize=True):
     x_hilbert, sig_hilbert = prepare_signal_for_hilbert(signal, x=x, oversample=oversample, usesplines=usesplines)
 
     ## Now we use the hilbert transform to do some **magic**
@@ -228,6 +248,9 @@ def instantaneous_phase(signal, x=None, oversample=True, usesplines=False, symme
     if symmetrize:
         # We use a small symmetrization trick here because the hilbert thinks everything in life has to be periodic smh
         analytic_signal = hilbert(np.concatenate((sig_hilbert, sig_hilbert[::-1])))[:len(sig_hilbert)]
-    amplitude_envelope = np.abs(analytic_signal)
-    instantaneous_phase_wrapped = np.angle(analytic_signal)
-    return x_hilbert, instantaneous_phase_wrapped
+
+    return x_hilbert, np.abs(analytic_signal), np.angle(analytic_signal)
+
+def instantaneous_phase(signal, x=None, oversample=True, usesplines=False, symmetrize=True):
+    x, amplitude, phase = hilbert_transform(signal, x=x, oversample=oversample, usesplines=usesplines, symmetrize=symmetrize)
+    return x, phase
