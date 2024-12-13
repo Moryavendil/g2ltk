@@ -8,6 +8,7 @@ import os
 import matplotlib.pyplot as plt
 
 in_per_mm = 1 / 25.4
+screen_dpi = 122.38 # 24'' , 2560x1440 px screen. Use 91.79 for 24'' FHD and 165.63 for 13.3'' FHD  (default 100)
 
 figw_aps:Dict[str, float] = {'simple': 86 * in_per_mm, 'wide': 140 * in_per_mm, 'double': 180 * in_per_mm,
                              'inset': 40 * in_per_mm}
@@ -16,9 +17,38 @@ figw_confort:Dict[str, float] = {'simple': 120*in_per_mm, 'wide': 190*in_per_mm,
 
 figw = {**figw_confort}
 
+def figsize(w:Optional[Union[float, int, str]], h:Optional[Union[float, int, str]], unit='mm') ->Tuple[float, float]:
+    global in_per_mm
+    width_in = figw['simple']
+    if isinstance(w, str):
+        width_in = figw.get(w, None)
+        if width_in is None:
+            log_error('Unrecognized figsize: {w}'.format(w=w))
+    elif unit == 'mm':
+        width_in = float(w)*in_per_mm
+    elif unit == 'in':
+        width_in = float(w)
+    elif w is not None:
+        log_error('Unrecognized unit for figsize: {unit}'.format(unit=unit))
+
+    height_in = width_in / 1.618
+    if isinstance(h, str):
+        height_in = figw.get(h, None)
+        if height_in is None:
+            log_error('Unrecognized figsize: {h}'.format(h=h))
+    elif unit == 'mm':
+        height_in = float(h)*in_per_mm
+    elif unit == 'in':
+        height_in = float(h)
+    elif h is not None:
+        log_error('Unrecognized unit for figsize: {unit}'.format(unit=unit))
+
+    return (width_in, height_in)
+
 def configure_mpl(font_size=12):
     # figure options
-    plt.rcParams["figure.dpi"] = 122.38 # 24'' , 2560x1440 px screen. Use 91.79 for 24'' FHD and 165.63 for 13.3'' FHD  (defalut 100)
+    global screen_dpi
+    plt.rcParams["figure.dpi"] = screen_dpi
     plt.rcParams["figure.max_open_warning"] = 50 # we have RAM
 
     # use confortable figure size
@@ -67,7 +97,10 @@ def activate_saveplot(activate=True, font_size=10):
                          'figure.labelsize': font_size,
                          })
     # saving options
-    plt.rcParams.update({'savefig.bbox': 'tight', 'savefig.pad_inches': 0., 'savefig.transparent': True,
+    plt.rcParams.update({'savefig.bbox': 'tight', # tight or standard
+                         'savefig.dpi': 300, # default 'figure'
+                         'savefig.pad_inches': 0., # padding to be used, when bbox is set to 'tight' ; default 0.1
+                         'savefig.transparent': True,
                          # # tight layout
                          # 'figure.subplot.hspace': 0., 'figure.subplot.wspace': 0.,
                          # # 'figure.subplot.hspace': 0.2, 'figure.subplot.wspace': 0.2,

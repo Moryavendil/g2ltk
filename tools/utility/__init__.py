@@ -3,6 +3,8 @@ import numpy as np
 
 from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
 
+from .. import set_verbose
+
 ###### MATHS
 
 import math
@@ -115,7 +117,7 @@ def find_global_peak(x: np.ndarray, y: np.ndarray, peak_category: str = 'raw') -
         return None
 
     try:
-        peaks_positions = find_extrema(x, y, peak_category, smooth_derivative=False)
+        peaks_positions = find_extrema(x, y, 'raw', smooth_derivative=False)
         precise_peak_position = peaks_positions[np.abs(peaks_positions - gross_peak_position).argmin()]
     except:
         precise_peak_position = gross_peak_position

@@ -66,42 +66,42 @@ def log_error(text:str, verbose:int=None): # verbose 1
         verbose=global_verbose
     if verbose >= 1:
         # display('=!=!=!=!=!=!=!=!= ERRORS ARE NOT CODED YET =!=!=!=!=!=!=!=!=')
-        display(Fore.LIGHTRED_EX + 'ERROR: ' + text + Fore.RESET)
+        display(Fore.LIGHTRED_EX + 'ERROR: ' + str(text) + Fore.RESET)
 
 def log_warn(text:str, verbose:int=None): # verbose 2
     if verbose is None:
         global global_verbose
         verbose=global_verbose
     if verbose >= 2:
-        display(Fore.LIGHTYELLOW_EX + 'WARN: ' + text + Fore.RESET)
+        display(Fore.LIGHTYELLOW_EX + 'WARN: ' + str(text) + Fore.RESET)
 
 def log_info(text:str, verbose:int=None): # verbose 3
     if verbose is None:
         global global_verbose
         verbose=global_verbose
     if verbose >= 3:
-        display(Fore.LIGHTGREEN_EX + 'INFO: ' + text + Fore.RESET)
+        display(Fore.LIGHTGREEN_EX + 'INFO: ' + str(text) + Fore.RESET)
 
 def log_debug(text:str, verbose:int=None): # verbose 4
     if verbose is None:
         global global_verbose
         verbose=global_verbose
     if verbose >= 4:
-        display(Fore.LIGHTCYAN_EX + 'DEBUG:\t' + text + Fore.RESET)
+        display(Fore.LIGHTCYAN_EX + 'DEBUG:\t' + str(text) + Fore.RESET)
 
 def log_trace(text:str, verbose:int=None): # verbose 5
     if verbose is None:
         global global_verbose
         verbose=global_verbose
     if verbose >= 5:
-        display(Fore.LIGHTBLUE_EX + 'TRACE:\t\t' + text + Fore.RESET)
+        display(Fore.LIGHTBLUE_EX + 'TRACE:\t\t' + str(text) + Fore.RESET)
 
 def log_subtrace(text:str, verbose:int=None): # verbose 6
     if verbose is None:
         global global_verbose
         verbose=global_verbose
     if verbose >= 6:
-        display(Fore.LIGHTMAGENTA_EX + 'RETRACE:\t\t\t' + text + Fore.RESET)
+        display(Fore.LIGHTMAGENTA_EX + 'RETRACE:\t\t\t' + str(text) + Fore.RESET)
         
 
 log_info('Loading tools version '+__version__)
