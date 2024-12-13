@@ -3,27 +3,16 @@
 # <codecell>
 
 %matplotlib notebook
-
 import os
-import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-
-plt.rcParams['pgf.texsystem'] = 'pdflatex'
-plt.rcParams.update({'font.family': 'serif', 'font.size': 14})
-# plt.rcParams['text.usetex'] = True
-plt.rcParams["figure.figsize"] = (12, 8)
-plt.rcParams["figure.max_open_warning"] = 50
-
-SAVEPLOT = False
-in_per_mm = .1 / 2.54 if SAVEPLOT else .1 / 2
-
 
 from scipy.optimize import curve_fit, minimize
 from scipy.interpolate import CubicSpline, make_smoothing_spline
 from scipy.signal import find_peaks, savgol_filter, hilbert
 
 from tools import datareading, utility
+utility.configure_mpl()
 
 
 # <codecell>
@@ -65,10 +54,9 @@ h0 = lambd * np.pi / (2 * np.pi)/2 # in um
 # <codecell>
 
 # Acquisition selection
-acquisition = '2400mHz_stop'
+# acquisition = '2400mHz_stop'
 acquisition = '1Hz_start'
 acquisition_path = os.path.join(dataset_path, acquisition)
-datareading.is_this_a_video(acquisition_path)
 
 
 # <codecell>
@@ -95,14 +83,6 @@ length, height, width = frames.shape
 
 acquisition_frequency = datareading.get_acquisition_frequency(acquisition_path, unit="Hz")
 t = datareading.get_times(acquisition_path, framenumbers=framenumbers, unit='s')
-
-
-# <codecell>
-
-um_per_px = None
-if dataset=='Nalight_cleanplate_20240708':
-    um_per_px = 5000 / 888
-lambd = 0.589
 
 
 # <codecell>
@@ -157,122 +137,7 @@ ax.set_ylabel('z [px]')
 
 # <codecell>
 
-
-
-
-# <codecell>
-
-def singlepeak_gauss(z_, position, width):
-    # modelisation = gaussienne
-    return utility.gaussian_unnormalized(z_, position, width)
-    # # modelisation = doubletanch
-    # return (np.tanh(z_-position-width/2) - np.tanh(z_-position+width/2) + 1)/2
-
-def signal_bridge(z_, bckgnd_light, bridge_centre, depth, peak_width, peak_spacing):
-    return bckgnd_light - depth*(singlepeak_gauss(z_, bridge_centre-peak_spacing/2, peak_width) + singlepeak_gauss(z_, bridge_centre+peak_spacing/2, peak_width))
-
-def signal_uneven_bridge(z_, bckgnd_light, bridge_centre, depth_1, depth_2, peak_width, peak_spacing):
-    return bckgnd_light - depth_1*singlepeak_gauss(z_, bridge_centre-peak_spacing/2, peak_width) - depth_2*singlepeak_gauss(z_, bridge_centre+peak_spacing/2, peak_width)
-
-def find_symmetric_bridge_centre(z_, l_, local_only=False):
-    bckgnd_light_0 = np.percentile(l_, 75)
-    depth_0 = bckgnd_light_0 - l_.min()
-
-    # brutal estimates
-    peak_width_0 = 20
-    peak_spacing_0 = 50
-    peaks = find_peaks(l_.max()-l_, height = depth_0/2, width = peak_width_0, distance = peak_spacing_0)[0]
-    # if len(peaks) < 2:
-    #     print('LESS THAN TWO PEAKS FOUND !')
-    # elif len(peaks) > 2:
-    #     print('More than 2 peaks found')
-    peaks_height = (l_.max()-l_)[peaks]
-    peak1 = peaks[np.argsort(peaks_height)[-1]] if len(peaks) > 0 else -1
-    peak2 = peaks[np.argsort(peaks_height)[-2]] if len(peaks) > 1 else -1
-    if len(peaks) > 2 and local_only:
-        pairsofvalidpeaks = []
-        for i in range(len(peaks)-1):
-            z1, z2 = peaks[i], peaks[i+1]
-            l1, l2 = l_[z1], l_[z2]
-            if (np.abs(l1 - l2) < 20) and (np.abs(l1 - l2) < 2*peak_spacing_0):
-                pairsofvalidpeaks.append([z1, z2])
-
-        bestpairofvalidpeaks = pairsofvalidpeaks[np.argmin([(l_[pairofvalidpeaks[0]]+l_[pairofvalidpeaks[1]])/2for pairofvalidpeaks in pairsofvalidpeaks])]
-        peak1, peak2 = bestpairofvalidpeaks
-
-    bridge_centre_0 = (peak1 + peak2)/2
-    peak_spacing_0 = np.abs(peak1 - peak2) # refine peak spacing
-
-    p0 = (bckgnd_light_0, bridge_centre_0, depth_0, peak_width_0, peak_spacing_0)
-
-    xfit = z_
-    yfit = l_
-    sigma=None
-
-    if local_only:
-        crit = (z_ < max(peak1, peak2) + peak_spacing_0*1.) * (z_ > min(peak1, peak2) - peak_spacing_0*1.)
-        xfit = z_[crit]
-        yfit = l_[crit]
-        sigma = None
-
-    popt, pcov = curve_fit(signal_bridge, xfit, yfit, p0=p0, sigma=sigma)
-    return popt[1]
-
-def find_uneven_bridge_centre(z_, l_, peak_width_0=30, peak_depth_0=90, peak_spacing_0 = 60, peak_spacing_max = 100, peak_spacing_min = 40, hint=None,
-                              hint_zone_size=None):
-    # brutal estimates
-
-    l_ = savgol_filter(l_, peak_width_0, 2)
-
-    l_findmainpeak = 255 - l_
-    if hint is not None:
-        hint_zone_size = hint_zone_size or (peak_width_0+peak_spacing_max)*2
-        l_findmainpeak *= utility.gaussian_unnormalized(z_, hint, hint_zone_size)
-    # super brutal
-    peak1_z = z_[np.argmax(l_findmainpeak)]
-
-    zone_findpeak2 = (z_ < peak1_z + peak_spacing_max + 5) * (z_ > peak1_z - peak_spacing_max + 5)
-    z_peak2 = z_[zone_findpeak2]
-    l_peak2 = l_[zone_findpeak2]
-    l_peak2 += peak_depth_0 * singlepeak_gauss(z_peak2, peak1_z, peak_width_0)
-
-    peak2_z = z_peak2[np.argmin(l_peak2)]
-
-    # minz, maxz = -np.inf, np.inf
-    minz, maxz = min(peak1_z, peak2_z) - peak_width_0, max(peak1_z, peak2_z) + peak_width_0
-
-    zone_fit = (z_ < maxz) * (z_ > minz)
-    zfit = z_[zone_fit]
-    lfit = l_[zone_fit]
-
-
-    bckgnd_light = lfit.max()
-    depth = lfit.max() - lfit.min()
-    # p0 = (bckgnd_light, (peak1_z+peak2_z)/2, depth, peak_width_0, peak_min_spacing_0)
-    # popt_bipeak, pcov = curve_fit(signal_bridge, zfit, lfit, p0=p0, sigma=None)
-    p0 = (bckgnd_light, (peak1_z+peak2_z)/2, depth, depth, peak_width_0, peak_spacing_0)
-    bounds = ([0, zfit.min(), 0, 0, 0, peak_spacing_min], [255, zfit.max(), 255, 255, z_.max(), peak_spacing_max])
-    popt_bipeak, pcov = curve_fit(signal_uneven_bridge, zfit, lfit, p0=p0, sigma=None, bounds=bounds)
-
-    centre = popt_bipeak[1]
-    return centre
-def find_riv_pos_raw(slice, z = None, problem_threshold = None):
-    if z is None:
-        z = np.arange(slice.shape[1])
-
-    pos_raw = np.array([find_uneven_bridge_centre(z, slice[i_t]) for i_t in range(len(slice))])
-
-    if problem_threshold is not None:
-        for i in range(1, len(pos_raw)):
-            if np.abs(pos_raw[i] - pos_raw[i-1]) > problem_threshold:
-                hint = pos_raw[i-1]
-                hint_zone_size = None
-                if i > 1:
-                    hint_zone_size = np.abs((pos_raw[i-1] - pos_raw[i-2])*2)
-                    hint = pos_raw[i-1] + (pos_raw[i-1] - pos_raw[i-2])
-                pos_raw[i] = find_uneven_bridge_centre(z, slice[i], hint=hint, hint_zone_size=hint_zone_size)
-
-    return pos_raw
+from tools import fringeswork
 
 
 # <codecell>
@@ -304,7 +169,7 @@ slice = frames[i_frame_start:i_frame_stop, :, x_probe - probespan:x_probe + prob
 
 # pos_raw = np.array([find_symmetric_bridge_centre(z, slice[i_t], local_only=local_only) for i_t in range(len(slice))])
 # pos_raw = np.array([find_uneven_bridge_centre(z, slice[i_t]) for i_t in range(len(slice))])
-pos_raw = find_riv_pos_raw(slice, z=z, problem_threshold=150)
+pos_raw = fringeswork.find_riv_pos_raw(slice, z=z, problem_threshold=150)
 
 
 # <codecell>
@@ -840,14 +705,17 @@ meanslope = np.concatenate((slopes_up, slopes_down)).mean()
 
 # <codecell>
 
-activate_saveplot()
+# activate_saveplot()
 
 
 # <codecell>
 
-fig, axes = plt.subplots(2,1, sharex=True, figsize=(86*in_per_mm, 86*in_per_mm))
+fig, axes = plt.subplots(2,1, sharex=True, figsize=(utility.genfig.figw['simple'], utility.genfig.figw['simple']/1.618))
 
 vitunit = um_per_px * acquisition_frequency
+
+markertop = '^'
+markerbot = 'v'
 
 ax = axes[0]
 color = 'c'
@@ -863,8 +731,8 @@ for i_chunk, chunk in enumerate(chunks_down):
 ax.scatter([], [],
            s=s, alpha=1, color=color, label='For different timelags')
 
-ax.errorbar(t_chunks_up / acquisition_frequency, shiftspeeds_avg_up*vitunit, yerr=shiftspeeds_std_up*vitunit, ls='', marker='^', color='k', lw=1, mfc='w', capsize = 3, label='Average value')
-ax.errorbar(t_chunks_down / acquisition_frequency, shiftspeeds_avg_down*vitunit, yerr=shiftspeeds_std_down*vitunit, ls='', marker='v', color='k', lw=1, mfc='w', capsize = 3, label='shift spd ')
+ax.errorbar(t_chunks_up / acquisition_frequency, shiftspeeds_avg_up*vitunit, yerr=shiftspeeds_std_up*vitunit, ls='', marker=markertop, color='k', lw=1, mfc='w', capsize = 3, label='Average value')
+ax.errorbar(t_chunks_down / acquisition_frequency, shiftspeeds_avg_down*vitunit, yerr=shiftspeeds_std_down*vitunit, ls='', marker=markerbot, color='k', lw=1, mfc='w', capsize = 3, label='shift spd ')
 
 ax.legend()
 # ax.scatter(t_chunks_up, shiftspeeds_best_up)
@@ -873,10 +741,10 @@ ax.set_ylim(0, 500)
 
 
 # ax = axes[1]
-# ax.errorbar(t_chunks_up / acquisition_frequency, shiftspeeds_avg_up*vitunit, yerr=shiftspeeds_std_up*vitunit, ls='', marker='^', color='k', lw=1, mfc='w', capsize = 3, label='shift spd (up) by correl')
-# ax.errorbar(t_chunks_down / acquisition_frequency, shiftspeeds_avg_down*vitunit, yerr=shiftspeeds_std_down*vitunit, ls='', marker='v', color='k', lw=1, mfc='w', capsize = 3, label='shift spd (up) by correl')
-# ax.errorbar(t_chunks_up / acquisition_frequency, movespeeds_avg_up*vitunit, yerr=movespeeds_std_up*vitunit, ls='', marker='^', color='r', lw=1, mfc='w', capsize = 3, label='dhdt/dhdx (up)')
-# ax.errorbar(t_chunks_down / acquisition_frequency, movespeeds_avg_down*vitunit, yerr=movespeeds_std_down*vitunit, ls='', marker='v', color='r', lw=1, mfc='w', capsize = 3, label='dhdt/dhdx (down)')
+# ax.errorbar(t_chunks_up / acquisition_frequency, shiftspeeds_avg_up*vitunit, yerr=shiftspeeds_std_up*vitunit, ls='', marker=markertop, color='k', lw=1, mfc='w', capsize = 3, label='shift spd (up) by correl')
+# ax.errorbar(t_chunks_down / acquisition_frequency, shiftspeeds_avg_down*vitunit, yerr=shiftspeeds_std_down*vitunit, ls='', marker=markerbot, color='k', lw=1, mfc='w', capsize = 3, label='shift spd (up) by correl')
+# ax.errorbar(t_chunks_up / acquisition_frequency, movespeeds_avg_up*vitunit, yerr=movespeeds_std_up*vitunit, ls='', marker=markertop, color='r', lw=1, mfc='w', capsize = 3, label='dhdt/dhdx (up)')
+# ax.errorbar(t_chunks_down / acquisition_frequency, movespeeds_avg_down*vitunit, yerr=movespeeds_std_down*vitunit, ls='', marker=markerbot, color='r', lw=1, mfc='w', capsize = 3, label='dhdt/dhdx (down)')
 # 
 # ax.legend()
 # ax.set_ylabel(r'Displacement speed [$\mu$m/s]')
@@ -884,8 +752,8 @@ ax.set_ylim(0, 500)
 
 ax = axes[1]
 ax.axhline(meanslope, color='gray', linestyle='--', label='Average slope')
-ax.errorbar(t_chunks_up / acquisition_frequency, slopes_up, ls='', marker='^', color='k', lw=1, mfc='w', capsize = 3, label='Measurement points')
-ax.errorbar(t_chunks_down / acquisition_frequency, slopes_down, ls='', marker='v', color='k', lw=1, mfc='w', capsize = 3, label='(down)')
+ax.errorbar(t_chunks_up / acquisition_frequency, slopes_up, ls='', marker=markertop, color='k', lw=1, mfc='w', capsize = 3, label='Measurement points')
+ax.errorbar(t_chunks_down / acquisition_frequency, slopes_down, ls='', marker=markerbot, color='k', lw=1, mfc='w', capsize = 3, label='(down)')
 ax.set_ylim(0, 1e-4)
 ax.set_yticks(np.arange(0, 10+1, 2)*1e-5)
 ax.set_yticklabels(['0'] + [fr'${n}\cdot$'+r'$10^{-5}$' for n in np.arange(0, 10+1, 2)][1:-1] + [r'$10^{-4}$'])
@@ -897,12 +765,7 @@ ax.set_ylabel(r'Slope $|\partial_x h|$')
 ax.set_ylim(0, 1e-4)
 
 plt.tight_layout(pad=0., w_pad=0., h_pad=0.)
-utility.save_graphe('slope')
-
-
-# <codecell>
-
-1.5*vitunit
+# utility.save_graphe('slope')
 
 
 # <codecell>
@@ -942,7 +805,10 @@ dv2 = dh2/h2 * v2 * 2
 
 # <codecell>
 
-deactivate_saveplot()
+h0
+
+
+# <codecell>
 
 fig, axes = plt.subplots(1,1, sharex=True)
 
@@ -971,37 +837,6 @@ ax.set_ylim(0, 300)
 # <codecell>
 
 
-def activate_saveplot():
-    plt.rcParams['text.usetex'] = True
-    in_per_mm = .1 / 2.54
-    figwidth = 86*in_per_mm
-    figheight = figwidth / 1.618 # golden ratio
-    plt.rcParams["figure.figsize"] = (figwidth, figheight)
-    plt.rcParams['pgf.texsystem'] = 'pdflatex'
-    plt.rcParams.update({'font.family': 'serif', 'font.size': 10, 
-                         'legend.fontsize': 10, 'legend.handlelength': 2,
-                         'axes.labelsize': 10, 'axes.titlesize': 10,
-                         'figure.labelsize': 10,
-                         'savefig.bbox': 'tight', 'savefig.pad_inches': 0., 'savefig.transparent': True,
-                         # # tight layout
-                         # 'figure.subplot.hspace': 0., 'figure.subplot.wspace': 0.,
-                         # # 'figure.subplot.hspace': 0.2, 'figure.subplot.wspace': 0.2,
-                         # 'figure.subplot.left': 0, 'figure.subplot.right': 1.,
-                         # 'figure.subplot.top': 1., 'figure.subplot.bottom': 0.,
-                         # # constrained layout
-                         # 'figure.constrained_layout.h_pad': 0., 
-                         # 'figure.constrained_layout.w_pad': 0.,
-                         })
-    SAVEPLOT = True
-
-def deactivate_saveplot():
-    plt.rcParams['text.usetex'] = False
-    figwidth = 300*in_per_mm
-    figheight = figwidth / 1.618 # golden ratio
-    plt.rcParams["figure.figsize"] = (figwidth, figheight)
-    SAVEPLOT = False
-
-print(plt.rcParams["figure.figsize"])
 
 
 # <codecell>
@@ -1068,7 +903,12 @@ ax.legend()
 
 # <codecell>
 
+h0
 
+
+# <codecell>
+
+slopes_down.mean()
 
 
 # <codecell>

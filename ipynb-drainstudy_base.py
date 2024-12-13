@@ -517,6 +517,42 @@ Tnew = T[1:-1, 1:-1]
 Xnew = X[1:-1, 1:-1]
 Vnew = V[1:-1, 1:-1]
 
+tnew = t[1:-1]
+xnew = x[1:-1]
+
+
+
+# <codecell>
+
+
+
+
+
+
+# <codecell>
+
+tsamples = np.linspace(50, 100, 11)
+
+i_samples = [np.argmin((tnew - tsample)**2) for tsample in tsamples]
+tsamples = tnew[indexes]
+fn_samples = framenumbers[indexes]
+
+
+# <codecell>
+
+print(fn_samples)
+
+
+# <codecell>
+
+framenumbers[indexes]
+
+
+# <codecell>
+
+plt.figure()
+plt.hist(dHdX.flatten(), bins=1000)
+plt.show()
 
 
 # <codecell>

@@ -5,18 +5,9 @@
 %matplotlib notebook
 
 import os
-import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-# plt.rcParams['pgf.texsystem'] = 'pdflatex'
-# plt.rcParams.update({'font.family': 'serif', 'font.size': 20,
-#                      'figure.titlesize' : 20,
-#                      'axes.labelsize': 20,'axes.titlesize': 20,
-#                      'legend.fontsize': 20, 'legend.handlelength': 2})
-# plt.rcParams['text.usetex'] = True
-plt.rcParams["figure.figsize"] = (12, 8)
-plt.rcParams["figure.max_open_warning"] = 50
 
 from scipy.signal import find_peaks
 from scipy.optimize import curve_fit
@@ -25,6 +16,7 @@ from scipy.signal import savgol_filter
 from scipy.interpolate import make_smoothing_spline
 
 from tools import datareading, utility
+utility.configure_mpl()
 
 
 # <codecell>
@@ -38,11 +30,11 @@ print('Available acquisitions:', datareading.find_available_videos(dataset_path)
 # <codecell>
 
 # Acquisition selection
-acquisition = '10Hz_decal'
+# acquisition = '10Hz_decal'
 # acquisition = '1Hz_strong'
-acquisition = '2400mHz_stop'
+acquisition = '1Hz_start'
+# acquisition = '2400mHz_stop'
 acquisition_path = os.path.join(dataset_path, acquisition)
-datareading.is_this_a_video(acquisition_path)
 
 
 # <codecell>
@@ -80,16 +72,33 @@ t = datareading.get_times(acquisition_path, framenumbers=framenumbers, unit='s')
 um_per_px = None
 if dataset=='Nalight_cleanplate_20240708':
     um_per_px = 5000 / 888
+mm_per_px = um_per_px/1000 if um_per_px is not None else None
+
+density = 1.72
+refractive_index = 1.26
+lambda_Na_void = 0.589 # in um
+gamma = 14
+bsur2 = 600/2 # in mm
+
+lambd = lambda_Na_void/refractive_index # in um
+h0 = lambd * np.pi / (2 * np.pi)/2 # h0 = lambd/4 in um
+
+from matplotlib.colors import LinearSegmentedColormap
+cmap_Na = LinearSegmentedColormap.from_list("cmap_Na", ['black', "xkcd:bright yellow"])
+
+vmin_Na = np.percentile(frames, 1)
+vmax_Na = np.percentile(frames, 99)
 
 
 # <codecell>
 
-n_frame_ref = 1600
+# n_frame_ref = 1600
 # n_frame_ref = 1609
 # n_frame_ref = 1611
-n_frame_ref = 1660
+# n_frame_ref = 1660
+n_frame_ref = 1345
 
-x_probe = 400
+x_probe = 100
 probespan = 5
 
 interesting_probes = None
@@ -149,56 +158,56 @@ ax.set_ylabel('z [px]')
 
 # <codecell>
 
-def singlepeak_gauss(z_, position, width):
-    # modelisation = gaussienne
-    return utility.gaussian_unnormalized(z_, position, width)
-    # # modelisation = doubletanch
-    # return (np.tanh(z_-position-width/2) - np.tanh(z_-position+width/2) + 1)/2
-
-def signal_bridge(z_, bckgnd_light, bridge_centre, depth, peak_width, peak_spacing):
-    return bckgnd_light - depth*(singlepeak_gauss(z_, bridge_centre-peak_spacing/2, peak_width) + singlepeak_gauss(z_, bridge_centre+peak_spacing/2, peak_width))
-
-def signal_uneven_bridge(z_, bckgnd_light, bridge_centre, depth_1, depth_2, peak_width, peak_spacing):
-    return bckgnd_light - depth_1*singlepeak_gauss(z_, bridge_centre-peak_spacing/2, peak_width) - depth_2*singlepeak_gauss(z_, bridge_centre+peak_spacing/2, peak_width)
-
-def find_uneven_bridge_centre(z_, l_, peak_width_0=30, peak_depth_0=90, peak_spacing_0 = 60, peak_spacing_max = 100, peak_spacing_min = 40, hint=None, 
-                              hint_zone_size=None):
-    # brutal estimates
-    
-    l_ = savgol_filter(l_, peak_width_0, 2)
-
-    l_findmainpeak = 255 - l_
-    if hint is not None:
-        hint_zone_size = hint_zone_size or (peak_width_0+peak_spacing_max)*2
-        l_findmainpeak *= utility.gaussian_unnormalized(z_, hint, hint_zone_size)
-    # super brutal
-    peak1_z = z_[np.argmax(l_findmainpeak)]
-
-    zone_findpeak2 = (z_ < peak1_z + peak_spacing_max + 5) * (z_ > peak1_z - peak_spacing_max + 5)
-    z_peak2 = z[zone_findpeak2]
-    l_peak2 = l_[zone_findpeak2]
-    l_peak2 += peak_depth_0 * singlepeak_gauss(z_peak2, peak1_z, peak_width_0)
-    
-    peak2_z = z_peak2[np.argmin(l_peak2)]
-    
-    # minz, maxz = -np.inf, np.inf
-    minz, maxz = min(peak1_z, peak2_z) - peak_width_0, max(peak1_z, peak2_z) + peak_width_0
-    
-    zone_fit = (z_ < maxz) * (z_ > minz)
-    zfit = z_[zone_fit]
-    lfit = l_[zone_fit]
-    
-    
-    bckgnd_light = lfit.max()
-    depth = lfit.max() - lfit.min()
-    # p0 = (bckgnd_light, (peak1_z+peak2_z)/2, depth, peak_width_0, peak_min_spacing_0)
-    # popt_bipeak, pcov = curve_fit(signal_bridge, zfit, lfit, p0=p0, sigma=None)
-    p0 = (bckgnd_light, (peak1_z+peak2_z)/2, depth, depth, peak_width_0, peak_spacing_0)
-    bounds = ([0, zfit.min(), 0, 0, 0, peak_spacing_min], [255, zfit.max(), 255, 255, z_.max(), peak_spacing_max])
-    popt_bipeak, pcov = curve_fit(signal_uneven_bridge, zfit, lfit, p0=p0, sigma=None, bounds=bounds)
-    
-    centre = popt_bipeak[1]
-    return centre
+# def singlepeak_gauss(z_, position, width):
+#     # modelisation = gaussienne
+#     return utility.gaussian_unnormalized(z_, position, width)
+#     # # modelisation = doubletanch
+#     # return (np.tanh(z_-position-width/2) - np.tanh(z_-position+width/2) + 1)/2
+# 
+# def signal_bridge(z_, bckgnd_light, bridge_centre, depth, peak_width, peak_spacing):
+#     return bckgnd_light - depth*(singlepeak_gauss(z_, bridge_centre-peak_spacing/2, peak_width) + singlepeak_gauss(z_, bridge_centre+peak_spacing/2, peak_width))
+# 
+# def signal_uneven_bridge(z_, bckgnd_light, bridge_centre, depth_1, depth_2, peak_width, peak_spacing):
+#     return bckgnd_light - depth_1*singlepeak_gauss(z_, bridge_centre-peak_spacing/2, peak_width) - depth_2*singlepeak_gauss(z_, bridge_centre+peak_spacing/2, peak_width)
+# 
+# def find_uneven_bridge_centre(z_, l_, peak_width_0=30, peak_depth_0=90, peak_spacing_0 = 60, peak_spacing_max = 100, peak_spacing_min = 40, hint=None, 
+#                               hint_zone_size=None):
+#     # brutal estimates
+#     
+#     l_ = savgol_filter(l_, peak_width_0, 2)
+# 
+#     l_findmainpeak = 255 - l_
+#     if hint is not None:
+#         hint_zone_size = hint_zone_size or (peak_width_0+peak_spacing_max)*2
+#         l_findmainpeak *= utility.gaussian_unnormalized(z_, hint, hint_zone_size)
+#     # super brutal
+#     peak1_z = z_[np.argmax(l_findmainpeak)]
+# 
+#     zone_findpeak2 = (z_ < peak1_z + peak_spacing_max + 5) * (z_ > peak1_z - peak_spacing_max + 5)
+#     z_peak2 = z[zone_findpeak2]
+#     l_peak2 = l_[zone_findpeak2]
+#     l_peak2 += peak_depth_0 * singlepeak_gauss(z_peak2, peak1_z, peak_width_0)
+#     
+#     peak2_z = z_peak2[np.argmin(l_peak2)]
+#     
+#     # minz, maxz = -np.inf, np.inf
+#     minz, maxz = min(peak1_z, peak2_z) - peak_width_0, max(peak1_z, peak2_z) + peak_width_0
+#     
+#     zone_fit = (z_ < maxz) * (z_ > minz)
+#     zfit = z_[zone_fit]
+#     lfit = l_[zone_fit]
+#     
+#     
+#     bckgnd_light = lfit.max()
+#     depth = lfit.max() - lfit.min()
+#     # p0 = (bckgnd_light, (peak1_z+peak2_z)/2, depth, peak_width_0, peak_min_spacing_0)
+#     # popt_bipeak, pcov = curve_fit(signal_bridge, zfit, lfit, p0=p0, sigma=None)
+#     p0 = (bckgnd_light, (peak1_z+peak2_z)/2, depth, depth, peak_width_0, peak_spacing_0)
+#     bounds = ([0, zfit.min(), 0, 0, 0, peak_spacing_min], [255, zfit.max(), 255, 255, z_.max(), peak_spacing_max])
+#     popt_bipeak, pcov = curve_fit(signal_uneven_bridge, zfit, lfit, p0=p0, sigma=None, bounds=bounds)
+#     
+#     centre = popt_bipeak[1]
+#     return centre
 
 local_only = False
 if dataset=='Nalight_cleanplate_20240708':

@@ -24,7 +24,7 @@ from scipy.signal import savgol_filter
 from scipy.interpolate import make_smoothing_spline
 from scipy.signal import hilbert
 
-from tools import datareading, utility
+from tools import datareading, utility, fringeswork
 
 
 # <codecell>
@@ -113,15 +113,15 @@ vmax = np.percentile(frames, 99)
 
 # <codecell>
 
-n_frame_ref = 1673
+n_frame_ref = 1345
 
-x_probe = 1800
+x_probe = 1400
 probespan = 5
 
 interesting_probes = None
 if dataset=='Nalight_cleanplate_20240708':
     if acquisition=='1Hz_start':
-        n_frame_ref = 1367
+        # n_frame_ref = 1345
         if n_frame_ref == 1345:
             interesting_probes = [100, 605, 1000, 1400, 1800]
         elif n_frame_ref == 1367:
@@ -177,75 +177,6 @@ if dataset=='Nalight_cleanplate_20240708':
 img = frame_ref[ymin:ymax,:]
 
 
-# <codecell>
-
-fig, axes = plt.subplots(2, 2, figsize = (130 * mm_per_in, 130 * mm_per_in))
-gs = axes[0,0].get_gridspec()
-for ax in axes[:, 0]:
-    ax.remove()
-ax = fig.add_subplot(gs[:, 0])
-ax.imshow(img[::-1, :].T, extent=[-mm_per_px/2, (img.shape[0]+1/2)*mm_per_px, (img.shape[1]+1/2)*mm_per_px, -mm_per_px/2], origin='upper', aspect='equal',
-          cmap=cmap_Na, vmin=vmin, vmax=vmax)
-for x_probe_interest in interesting_probes:
-    ax.axhspan((x_probe_interest-probespan)*mm_per_px, (x_probe_interest+probespan)*mm_per_px, color='k', ls='', alpha=0.5)
-    # ax.axhline(x_probe_interest*mm_per_px, color='k', ls='-', alpha=0.5)
-
-ax.set_ylim()
-ax.set_ylabel(r'$x$ [mm]')
-ax.set_xticks(np.arange(4))
-ax.set_xlabel(r'$z$ [mm]')
-plt.tight_layout()
-
-
-# <codecell>
-
-def singlepeak_gauss(z_, position, width):
-    # modelisation = gaussienne
-    return utility.gaussian_unnormalized(z_, position, width)
-    # # modelisation = doubletanch
-    # return (np.tanh(z_-position-width/2) - np.tanh(z_-position+width/2) + 1)/2
-
-def signal_bridge(z_, bckgnd_light, bridge_centre, depth, peak_width, peak_spacing):
-    return bckgnd_light - depth*(singlepeak_gauss(z_, bridge_centre-peak_spacing/2, peak_width) + singlepeak_gauss(z_, bridge_centre+peak_spacing/2, peak_width))
-
-def signal_uneven_bridge(z_, bckgnd_light, bridge_centre, depth_1, depth_2, peak_width, peak_spacing):
-    return bckgnd_light - depth_1*singlepeak_gauss(z_, bridge_centre-peak_spacing/2, peak_width) - depth_2*singlepeak_gauss(z_, bridge_centre+peak_spacing/2, peak_width)
-
-def find_uneven_bridge_centre(z_, l_, peak_width_0=30, peak_depth_0=90, peak_spacing_0 = 60, peak_spacing_max = 100, peak_spacing_min = 40):
-    # brutal estimates
-
-    l_ = savgol_filter(l_, peak_width_0, 2)
-
-    peak1_z = z_[np.argmin(l_)]
-
-    zone_findpeak2 = (z_ < peak1_z + peak_spacing_max + 5) * (z_ > peak1_z - peak_spacing_max + 5)
-    z_peak2 = z[zone_findpeak2]
-    l_peak2 = l_[zone_findpeak2]
-    l_peak2 += peak_depth_0 * singlepeak_gauss(z_peak2, peak1_z, peak_width_0)
-
-    peak2_z = z_peak2[np.argmin(l_peak2)]
-
-    # minz, maxz = -np.inf, np.inf
-    minz, maxz = min(peak1_z, peak2_z) - peak_width_0, max(peak1_z, peak2_z) + peak_width_0
-
-    zone_fit = (z_ < maxz) * (z_ > minz)
-    zfit = z_[zone_fit]
-    lfit = l_[zone_fit]
-
-
-    bckgnd_light = lfit.max()
-    depth = lfit.max() - lfit.min()
-    # p0 = (bckgnd_light, (peak1_z+peak2_z)/2, depth, peak_width_0, peak_min_spacing_0)
-    # popt_bipeak, pcov = curve_fit(signal_bridge, zfit, lfit, p0=p0, sigma=None)
-    p0 = (bckgnd_light, (peak1_z+peak2_z)/2, depth, depth, peak_width_0, peak_spacing_0)
-    bounds = ([0, zfit.min(), 0, 0, 0, peak_spacing_min], [255, zfit.max(), 255, 255, z_.max(), peak_spacing_max])
-    popt_bipeak, pcov = curve_fit(signal_uneven_bridge, zfit, lfit, p0=p0, sigma=None, bounds=bounds)
-
-    centre = popt_bipeak[1]
-    return centre
-
-
-
 # <markdowncell>
 
 # ##  # F# i# l# m#  # h# e# i# g# h# t
@@ -275,7 +206,7 @@ if dataset=='Nalight_cleanplate_20240708':
                 z_interf_min = 399
                 z_interf_max = 611
             elif x_probe==1000:
-                z_interf_min = 412
+                z_interf_min = 413
                 z_interf_max = 611
             elif x_probe==1400:
                 z_interf_min = 425
@@ -331,30 +262,18 @@ zone_interf = (z >= z_interf_min) * (z <= z_interf_max)
 z_interf = z[zone_interf]
 l_interf = l_span[zone_interf]
 
-centre_ref = find_uneven_bridge_centre(z, l_span)
+centre_ref = fringeswork.find_uneven_bridge_centre(z, l_span)
 
 # Find the peaks (grossier)
-prominence = required_prominence
-distance = required_distance
-maxs = find_peaks(l_interf, prominence = prominence, distance=distance)[0]
-mins = find_peaks(255 - l_interf, prominence = prominence, distance=distance)[0]
 
-# if dataset=='Nalight_cleanplate_20240708' and acquisition=='1Hz_start' and n_frame_ref == 1367 and x_probe == 1800:
-#     mins = mins[mins != 747]
-#     maxs = maxs[maxs != 744]
-    
-# add the min and max
-if maxs.min() < mins.min(): # if the first peak is a max, the first point is a min
-    mins = np.concatenate(([0], mins))
-else:
-    maxs = np.concatenate(([0], maxs))
-if maxs.max() > mins.max(): # if the last peak is a max, the last point is a min
-    mins = np.concatenate((mins, [len(l_interf)-1]))
-else:
-    maxs = np.concatenate((maxs, [len(l_interf)-1]))
+forcedmins=None
+forcedmaxs=None
+find_peaks_kwargs = {'prominence': required_prominence, 'distance': required_distance,}
+
+mins, maxs = fringeswork.findminmaxs(l_interf, x=z_interf, forcedmins=forcedmins, forcedmaxs=forcedmaxs, **find_peaks_kwargs)
+
 z_maxs = z_interf[maxs]
 z_mins = z_interf[mins]
-
 
 # find the central peak
 z_steps = np.concatenate((z_maxs, z_mins))
@@ -401,33 +320,24 @@ p_steps = (2 * (z_steps <= zcentre_verycoarse).astype(int) - 1).cumsum() - 1
 p_steps -= p_steps.min() # au minimum on a p = 0
 phi_steps = p_steps * np.pi
 
+from tools import set_verbose
+set_verbose('trace')
+
 ### HILBERT PHASE ESTIMATION FOR FANCY BITCHES
 
-# find the max and min lines, to estimated the 0-phase line
-l_maxs_cs = np.poly1d(np.polyfit(z_interf[maxs], l_interf[maxs], 1))
-if len(maxs) > 5:
-    l_maxs_cs = make_smoothing_spline(z_interf[maxs], l_interf[maxs], lam=None)
-l_mins_cs = np.poly1d(np.polyfit(z_interf[mins], l_interf[mins], 1))
-if len(maxs) > 5:
-    l_mins_cs = make_smoothing_spline(z_interf[mins], l_interf[mins], lam=None)
+l_mins_cs, l_maxs_cs = fringeswork.find_cminmax(l_interf, x=z_interf, forcedmins=forcedmins, forcedmaxs=forcedmaxs, **find_peaks_kwargs)
+
+# the midline
 l_offset = (l_maxs_cs(z_interf) + l_mins_cs(z_interf))/2
-# substract the midline
-l_interf_clean = l_interf - l_offset
 
-# we want to ain a bit in resolution especially on the edges where the extrema can be very close
-z_hilbert = np.linspace(z_interf.min(), z_interf.max(), len(z_interf) + (len(z_interf)-1)*2, endpoint=True)
-l_hilbert_raw = np.interp(z_hilbert, z_interf, l_interf_clean)
+l_interf_clean = fringeswork.normalize_for_hilbert(l_interf, x=z_interf, forcedmins=forcedmins, forcedmaxs=forcedmaxs, **find_peaks_kwargs)
 
-# we smooth everything a bit to ease the phase reconstruction process via Hilbert transform
-lhibert_spline = make_smoothing_spline(z_interf, l_interf_clean, lam=None)
-l_hilbert_smoothed = lhibert_spline(z_hilbert)
+usesplines = True
 
-## Now we use the hilbert transform to do some **magic**
+z_hilbert, l_hilbert_smoothed = fringeswork.prepare_signal_for_hilbert(l_interf_clean, x=z_interf, usesplines=usesplines)
 
-# analytic_signal = hilbert(l_hilbert_smoothed) # this is brutal (but sometimes works well, just not on film detection. it avoid the phase bad definition if at the end we are not on a min / max
-analytic_signal = hilbert(np.concatenate((l_hilbert_smoothed, l_hilbert_smoothed[::-1])))[:len(l_hilbert_smoothed)] # We use a small symmetrization trick here because the hilbert thinks everything in it has to be periodic smh
-amplitude_envelope = np.abs(analytic_signal)
-instantaneous_phase_wrapped = np.angle(analytic_signal)
+z_hilbert, amplitude_envelope, instantaneous_phase_wrapped = fringeswork.hilbert_transform(l_interf_clean, x=z_interf, 
+                                                                                           usesplines=usesplines, symmetrize=True)
 
 # Find the centre (precisely)
 instantaneous_phase_wrapped_zeros = utility.find_roots(z_hilbert, instantaneous_phase_wrapped)
@@ -447,7 +357,7 @@ phi_hilbert -=phi_hilbert.min()
 
 # <codecell>
 
-fig, axes = plt.subplots(3,1, figsize = (12, 10))
+fig, axes = plt.subplots(3,1, figsize = (12, 10), sharex=True)
 
 ax = axes[0]
 ax.plot(z_interf, l_interf, color='k', lw=2, label='Signal (raw)')
@@ -466,8 +376,7 @@ ax.legend()
 
 ax = axes[1]
 ax.plot(z_interf, l_interf_clean, color='k', lw=0, marker='o', label='Signal (shifted)')
-ax.plot(z_hilbert, l_hilbert_raw, color='k', lw=1, alpha=.3, label='Signal (shifted, interpolated)')
-ax.plot(z_hilbert, l_hilbert_smoothed, color='k', lw=2, label='Signal (shifted, interpolated, smoothed)')
+ax.plot(z_hilbert, l_hilbert_smoothed, color='k', lw=2, label='Signal (shifted, smoothed)')
 ax.plot(z_hilbert, amplitude_envelope, color='r', lw=2, label='Amplitude (Hilbert)')
 ax.plot(z_hilbert, -amplitude_envelope, color='r', lw=2)
 # ax.plot(z_hilbert, l_offset-l_offset, color='k', alpha=0.5)
@@ -481,7 +390,11 @@ ax = axes[2]
 ax.plot(z_hilbert, instantaneous_phase_wrapped, color='k', alpha=.3)
 ax.plot(z_hilbert, phi_hilbert, color='k', lw=2)
 
-ax.scatter(z_steps, phi_steps, s=50, ec='k', fc='w', label='center of fringes')
+ax.scatter(z_steps, phi_steps, s=30, ec='k', fc='w', label='center of fringes')
+
+ax.scatter(z_interf[maxs], np.zeros(len(z_interf[maxs])), s=30, ec='w', fc='k', label='maxs-mins')
+ax.scatter(z_interf[mins], np.full(len(z_interf[mins]), np.pi), s=30, ec='w', fc='k')
+ax.scatter(z_interf[mins], np.full(len(z_interf[mins]), -np.pi), s=30, ec='w', fc='k')
 
 ax.axvline(zcentre_better, color='k', ls=':', alpha=.5, label='Phase extrema (estimated)')
 ax.set_xlabel('z [px]')
@@ -495,18 +408,108 @@ ax.legend()
 
 # <codecell>
 
+z_um = z_hilbert * um_per_px
+zcentre_um = zcentre_better * um_per_px
+h_um = phi_hilbert / (2 * np.pi) * lambd / 2
 
-# Scale the height
-h = lambd * phi_hilbert / (4 * np.pi)
-h_steps = lambd * phi_steps / (4*np.pi)
 
-centre_ref = find_bridge_centre(z, l_span)
-data[x_probe]['centre_ref_px'] = centre_ref
+# <codecell>
 
-# Scale the width
-Z = (z_hilbert-centre_ref) * um_per_px
-Z_steps = (z_steps-centre_ref) * um_per_px
-Zfilm_centre = (zcentre_better-centre_ref) * um_per_px
+number_of_points_on_each_side = 8
+
+zmi = z_steps[z_steps < zcentre_better][-number_of_points_on_each_side]
+zma = z_steps[z_steps > zcentre_better][number_of_points_on_each_side+1]
+
+utility.log_debug(f'{zmi, zma}')
+zone_for_snap_estimation = [zmi, zma]
+# zone_for_snap_estimation = [450, 600]
+# zone_for_snap_estimation = [425, 600]
+# zone_for_snap_estimation = [450 - 25, 600 + 25]
+# zone_for_snap_estimation = [450 + 25, 600 - 25]
+# zone_for_snap_estimation = [450 + 50, 600 - 50]
+in_zone = (z_hilbert > zone_for_snap_estimation[0]) & (z_hilbert < zone_for_snap_estimation[1])
+
+z_snapestim = z_um[in_zone] - zcentre_um
+h_snapestim = h_um[in_zone]
+
+
+poly4 = np.polyfit(z_snapestim, h_snapestim, 4)
+
+h_polyfit = np.poly1d(poly4)(z_snapestim)
+
+S = -poly4[0]*4*3*2
+
+utility.log_info(f'xprobe: {x_probe} px')
+utility.log_info(f'S = {S*1e9} mm-3')
+
+hmax = h_um.max()
+
+zmax = np.max(np.abs(z_um - zcentre_um))
+
+utility.log_info(f'hmax: {hmax/1000} mm | zmax: {zmax/1000} mm')
+
+utility.log_info(str(4/3 * hmax / (zmax**4) * 1e9)+' mm-3')
+
+
+
+# <codecell>
+
+
+
+
+# <codecell>
+
+fig, axes = plt.subplots(3,1, figsize = (12, 10), sharex=True)
+
+ax = axes[0]
+ax.plot(z_snapestim, h_snapestim, color='k', lw=1, label=r'$h(z)$')
+ax.plot(z_snapestim, h_polyfit, color='r', ls='--', lw=1, label=r'$h(z)$')
+
+# ax.scatter(z_interf[maxs], l_interf[maxs], s=50, color='r', label='maxs')
+# ax.plot(z_interf, l_maxs_cs(z_interf), color='r', alpha=0.5)
+# ax.scatter(z_interf[mins], l_interf[mins], s=50, color='b', label='mins')
+# ax.plot(z_interf, l_mins_cs(z_interf), color='b', alpha=0.5)
+# 
+# ax.plot(z_interf, l_offset, color='k', alpha=0.5, label='Midline (estimated)')
+# 
+# ax.axvline(zcentre_better, color='k', ls=':', alpha=.5, label='Phase extrema (estimated)')
+# ax.set_xlabel('z [px]')
+# ax.set_ylabel('luminosity [0-255]')
+# ax.legend()
+# 
+# ax = axes[1]
+# ax.plot(z_interf, l_interf_clean, color='k', lw=0, marker='o', label='Signal (shifted)')
+# ax.plot(z_hilbert, l_hilbert_smoothed, color='k', lw=2, label='Signal (shifted, smoothed)')
+# ax.plot(z_hilbert, amplitude_envelope, color='r', lw=2, label='Amplitude (Hilbert)')
+# ax.plot(z_hilbert, -amplitude_envelope, color='r', lw=2)
+# # ax.plot(z_hilbert, l_offset-l_offset, color='k', alpha=0.5)
+# 
+# ax.axvline(zcentre_better, color='k', ls=':', alpha=.5)
+# ax.set_xlabel('z [px]')
+# ax.set_ylabel('luminosity - midline')
+# ax.legend()
+# 
+# ax = axes[2]
+# ax.plot(z_hilbert, instantaneous_phase_wrapped, color='k', alpha=.3)
+# ax.plot(z_hilbert, phi_hilbert, color='k', lw=2)
+# 
+# ax.scatter(z_steps, phi_steps, s=30, ec='k', fc='w', label='center of fringes')
+# 
+# ax.scatter(z_interf[maxs], np.zeros(len(z_interf[maxs])), s=30, ec='w', fc='k', label='maxs-mins')
+# ax.scatter(z_interf[mins], np.full(len(z_interf[maxs]), np.pi), s=30, ec='w', fc='k')
+# ax.scatter(z_interf[mins], np.full(len(z_interf[maxs]), -np.pi), s=30, ec='w', fc='k')
+# 
+# ax.axvline(zcentre_better, color='k', ls=':', alpha=.5, label='Phase extrema (estimated)')
+# ax.set_xlabel('z [px]')
+# ax.set_ylabel(r'Phase unwrapped $\Phi = 2\pi (2h)/\lambda$ [rad]')
+# pticks = np.arange(-2, (int(phi_steps.max() / (2 * np.pi)) + 2) * 2 + 1, 2)
+# ax.set_ylim(pticks.min()*np.pi, pticks.max()*np.pi)
+# ax.set_yticks(pticks*np.pi)
+# ax.set_yticklabels([fr'${p}\pi$' for p in pticks])
+# ax.legend()
+
+
+# <codecell>
 
 
 

@@ -2,7 +2,6 @@
 # <nbformat>3.0</nbformat>
 # <codecell>
 
-import tools.fringeswork
 %matplotlib notebook
 
 import os
@@ -17,7 +16,6 @@ plt.rcParams.update({'font.family': 'serif', 'font.size': 12})
 # plt.rcParams['text.usetex'] = True
 
 SAVEPLOT = False
-in_per_mm = .14/2
 
 from scipy.optimize import curve_fit, minimize
 from scipy.interpolate import CubicSpline, make_smoothing_spline
@@ -60,7 +58,7 @@ roi = None, None, None, None  #start_x, start_y, end_x, end_y
 
 interframes = 1
 
-nframeseekfort10 = [2478, 2727, 2976, 3225, 3475, 3724, 3973, 4222, 4471, 4720, 4969]
+nframeseekfort10 = [2490, 2739, 2989, 3238, 3487, 3736, 3985, 4234, 4483, 4732, 4982]
 
 if dataset == 'Nalight_cleanplate_20240708':
     if acquisition=='10Hz_decal':
@@ -116,8 +114,8 @@ def extremapoints(n_frame):
             heights1 = [76, 68, 68, 68, 55]
             p1[1] = np.interp(n_frame, frames1, heights1)
 
-            frames2 = [2477, 5011]
-            heights2 = [183, 178]
+            frames2 = [2477, 2490, 5011]
+            heights2 = [183, 179, 178]
             p2[1] = np.interp(n_frame, frames2, heights2)
     return [p1, p2]
 
@@ -152,12 +150,12 @@ for i_frame_ref, n_frame in enumerate(framenumbers):
     x1, z1 = p1
     x2, z2 = p2
     dlength = int(np.hypot(x2 - x1, z2 - z1))+1
-    x, z = np.linspace(x1, x2, dlength), np.linspace(z1, z2, dlength)
+    x_crest, z_crest = np.linspace(x1, x2, dlength), np.linspace(z1, z2, dlength)
 
-    d = np.hypot(x - x1, z - z1)
+    d = np.hypot(x_crest - x1, z_crest - z1)
 
     # bourrin, minimal
-    l = map_coordinates(frame, np.vstack((z, x)))
+    l = map_coordinates(frame, np.vstack((z_crest, x_crest)))
 
     sig_raw[i_frame_ref] = l[:sig_norm.shape[1]]
 
@@ -183,26 +181,26 @@ for i_frame_ref, n_frame in enumerate(framenumbers):
 
 # <codecell>
 
-fig, axes = plt.subplots(1, 3, sharex=True, sharey=True)
-imshow_kw = {'aspect':'auto', 'origin':'lower', 'interpolation':'nearest'}
-imshow_kw_rawunits = {'extent': utility.correct_extent_spatio(np.arange(sig_raw.shape[1]), framenumbers, origin='lower'), **imshow_kw}
-ax = axes[0]
-ax.set_title('Signal raw')
-ax.imshow(sig_raw, **imshow_kw_rawunits)
-ax.set_ylabel('time [frames]')
-ax.set_xlabel('distance d (a bit ill-defined) [px]')
-
-ax = axes[1]
-ax.set_title('Signal smoothed')
-ax.imshow(sig_raw, **imshow_kw_rawunits)
+# fig, axes = plt.subplots(1, 3, sharex=True, sharey=True)
+# imshow_kw = {'aspect':'auto', 'origin':'lower', 'interpolation':'nearest'}
+# imshow_kw_rawunits = {'extent': utility.correct_extent_spatio(np.arange(sig_raw.shape[1]), framenumbers, origin='lower'), **imshow_kw}
+# ax = axes[0]
+# ax.set_title('Signal raw')
+# ax.imshow(sig_raw, **imshow_kw_rawunits)
 # ax.set_ylabel('time [frames]')
-ax.set_xlabel('distance d (a bit ill-defined) [px]')
-
-ax = axes[2]
-ax.set_title('Signal smoothed, normalized')
-ax.imshow(sig_norm, **imshow_kw_rawunits)
-# ax.set_ylabel('time [frames]')
-ax.set_xlabel('distance d (a bit ill-defined) [px]')
+# ax.set_xlabel('distance d (a bit ill-defined) [px]')
+# 
+# ax = axes[1]
+# ax.set_title('Signal smoothed')
+# ax.imshow(sig_raw, **imshow_kw_rawunits)
+# # ax.set_ylabel('time [frames]')
+# ax.set_xlabel('distance d (a bit ill-defined) [px]')
+# 
+# ax = axes[2]
+# ax.set_title('Signal smoothed, normalized')
+# ax.imshow(sig_norm, **imshow_kw_rawunits)
+# # ax.set_ylabel('time [frames]')
+# ax.set_xlabel('distance d (a bit ill-defined) [px]')
 
 
 # <codecell>
@@ -213,11 +211,9 @@ sig = sig_norm
 # <codecell>
 
 # interesting frame
-# nframeseek = 2480
-# nframeseek = 4900
-nframeseek = nframeseekfort10[0]
-# interest point at wich to compute the snap
+nframeseek = nframeseekfort10[10]
 
+# interest point at wich to compute the snap
 xd = np.arange(sig.shape[1])
 
 iframeseek = np.where(framenumbers == nframeseek)[0][0]
@@ -229,9 +225,9 @@ p1, p2 = extremapoints(nframeseek)
 x1, z1 = p1
 x2, z2 = p2
 dlength = int(np.hypot(x2 - x1, z2 - z1))+1
-x, z = np.linspace(x1, x2, dlength), np.linspace(z1, z2, dlength)
+x_crest, z_crest = np.linspace(x1, x2, dlength), np.linspace(z1, z2, dlength)
 
-d = np.hypot(x - x1, z - z1)
+d = np.hypot(x_crest - x1, z_crest - z1)
 
 d_freq = utility.estimatesignalfrequency(lnorm, x=xd)
 T = 1/d_freq
@@ -242,16 +238,17 @@ d_interests = d_interests_potential[(d_interests_potential -xd.min() > T/4) & (x
 n_samplepoints = len(d_interests)
 
 i_d_interests = [np.argmin((d-d_interest)**2) for d_interest in d_interests]
-xps, zps = x[i_d_interests], z[i_d_interests]
+xps, zps = x_crest[i_d_interests], z_crest[i_d_interests]
 
 # bourrin, minimal
-l = map_coordinates(frame, np.vstack((z, x))).astype(float)
+l = map_coordinates(frame, np.vstack((z_crest, x_crest))).astype(float)
 l -= l.mean()
 l /= np.abs(l).max()
 
 
 colors = plt.cm.hsv(np.linspace(0, 1, n_samplepoints, endpoint=False))
-colors = plt.cm.rainbow(np.linspace(0, 1, n_samplepoints, endpoint=False))
+colors = plt.cm.rainbow(np.linspace(0, 1, n_samplepoints, endpoint=True))
+colors = plt.cm.gnuplot(np.linspace(0, 1, n_samplepoints, endpoint=False))
 
 
 
@@ -261,7 +258,7 @@ fig, axes = plt.subplots(2, 1, sharex=False, sharey=False)
 
 ax = axes[0]
 ax.imshow(frame, aspect='auto', origin='lower', interpolation='nearest')
-ax.plot(x, z, lw=2, c='k')
+ax.plot(x_crest, z_crest, lw=2, c='k')
 ax.scatter(xps, zps, fc=colors, ec='k', lw=2, s=50, zorder=4)
 
 ax = axes[1]
@@ -276,6 +273,11 @@ ax.legend()
 
 # <codecell>
 
+print(len(d_interests))
+
+
+# <codecell>
+
 near_point = 50
 length_n = 200
 if nframeseek==4900:
@@ -284,7 +286,7 @@ if nframeseek==2480:
     length_n = 150
     
 nearps = [np.abs(d - d_interest) < near_point for d_interest in d_interests]
-slope = [np.mean(utility.der1(x[nearp], z[nearp])[1]) for nearp in nearps]
+slope = [np.mean(utility.der1(x_crest[nearp], z_crest[nearp])[1]) for nearp in nearps]
 a = np.arctan(np.array(slope))
 
 xn1s, zn1s = xps - np.cos(np.pi / 2 + a) * length_n / 2, zps - np.sin(np.pi / 2 + a) * length_n / 2
@@ -303,7 +305,7 @@ fig, axes = plt.subplots(2, 1, sharex=True, sharey=False)
 
 ax = axes[0]
 ax.imshow(frame, aspect='equal', origin='lower', interpolation='nearest')
-ax.plot(x, z, lw=1, c='k', alpha=.8, ls=':')
+ax.plot(x_crest, z_crest, lw=1, c='k', alpha=.8, ls=':')
 for i_interest, d_interest in enumerate(d_interests):
     nearp = nearps[i_interest]
     # ax.plot(x[nearp], z[nearp], lw=3, c='k')
@@ -376,10 +378,10 @@ fig, axes = plt.subplots(2, 1, sharex=False, sharey=False)
 
 ax = axes[0]
 ax.imshow(frame, aspect='auto', origin='lower', interpolation='nearest')
-ax.plot(x, z, lw=1, c='k')
+ax.plot(x_crest, z_crest, lw=1, c='k')
 for i_interest, d_interest in enumerate(d_interests):
     nearp = nearps[i_interest]
-    ax.plot(x[nearp], z[nearp], lw=3, c='k')
+    ax.plot(x_crest[nearp], z_crest[nearp], lw=3, c='k')
 ax.scatter(xps, zps, fc='r', ec='w', lw=2, s=50, zorder=4)
 
 for i_interest, d_interest in enumerate(d_interests):
@@ -417,6 +419,10 @@ def decide_nminmax(nframe, d:float=0):
     n_mins = [-40, -40, -45, -56, -65]
     n_max = np.interp(nframe, nframes, n_maxs)
     n_min = np.interp(nframe, nframes, n_mins)
+    if nframe == 4234 and d == 1862:
+        n_min, n_max = -48, 89
+    if nframe == 2490 and d > 1700:
+        n_min, n_max = -31, 31
     return n_min, n_max
 
 def peakfinding_parameters_forframe(nframe, d:float=0):
@@ -428,10 +434,20 @@ def peakfinding_parameters_forframe(nframe, d:float=0):
             peak_finding_params['forcedmaxs'] = [24]
     if nframe==2480:
         peak_finding_params['prominence'] = 2
+    if nframe==2490:
+        peak_finding_params['prominence'] = 2
+        if d==1304:
+            peak_finding_params['prominence'] = 3
+            
 
     return peak_finding_params
 
-number_of_points_on_each_side = 8
+number_of_points_on_each_side = 12
+
+
+# <codecell>
+
+nframeseek
 
 
 # <codecell>
@@ -509,9 +525,9 @@ H_um_tots = [np.array(Ptots[i_interest]) / (2 * np.pi) * lambd / 2 for i_interes
 
 # <codecell>
 
-fig, axes = plt.subplots(2, 1, sharex=False, sharey=False)
+fig, axes = plt.subplots(4, 1, figsize=(12, 10), sharex=False, sharey=False)
 
-i_interest = 0
+i_interest = 5
 d_interest = d_interests[i_interest]
 
 ax = axes[0]
@@ -526,6 +542,14 @@ if True:
     valid = (d_n > n_min) & (d_n < n_max)
     mins, maxs = findminmaxs(l_n[valid], x=d_n[valid], **peak_finding_params)
 
+    # find the peaks
+    d_steps_tot = np.concatenate((d_n[valid][maxs], d_n[valid][mins]))
+    d_steps_tot.sort()
+
+    # find the central peak
+    i_centralpeak = np.argmin(np.abs(d_steps_tot))
+    dcentre = d_steps_tot[i_centralpeak]
+
     cmin, cmax = fringeswork.find_cminmax(l_n[valid], x=d_n[valid], **peak_finding_params)
 
     ax.plot(d_n, l_n, color=color, alpha=.3)
@@ -534,10 +558,71 @@ if True:
     ax.plot(d_n, cmin(d_n), color='b', lw=1, alpha=.3)
     ax.scatter(d_n[valid][maxs], l_n[valid][maxs], s=50, lw=1, fc=color, ec='r', alpha=.8, label='maxs')
     ax.scatter(d_n[valid][mins], l_n[valid][mins], s=50, lw=1, fc=color, ec='b', alpha=.8, label='mins')
+    ax.axvline(dcentre, color=color, ls='--', alpha=.3)
 
 ax.set_ylim(np.min(mins)*0.85, np.max(maxs)*1.15)
 
 ax = axes[1]
+if True:
+    d_n = d_ns[i_interest]
+    l_n = l_ns[i_interest]
+    color = colors[i_interest]
+
+    n_min, n_max = decide_nminmax(nframeseek, d=d_interest)
+    peak_finding_params = peakfinding_parameters_forframe(nframeseek, d=d_interest)
+
+    valid = (d_n > n_min) & (d_n < n_max)
+    mins, maxs = findminmaxs(l_n[valid], x=d_n[valid], **peak_finding_params)
+
+    # find the peaks
+    d_steps_tot = np.concatenate((d_n[valid][maxs], d_n[valid][mins]))
+    d_steps_tot.sort()
+
+    # find the central peak
+    i_centralpeak = np.argmin(np.abs(d_steps_tot))
+    dcentre = d_steps_tot[i_centralpeak]
+
+    cmin, cmax = fringeswork.find_cminmax(l_n[valid], x=d_n[valid], **peak_finding_params)
+
+    norm = fringeswork.normalize_for_hilbert(l_n[valid], x=d_n[valid], **peak_finding_params)
+    
+    ax.plot(d_n[valid], norm, color=color, lw=2)
+    ax.axvline(dcentre, color=color, ls='--', alpha=.3)
+
+ax = axes[2]
+if True:
+    d_n = d_ns[i_interest]
+    l_n = l_ns[i_interest]
+    color = colors[i_interest]
+
+    n_min, n_max = decide_nminmax(nframeseek, d=d_interest)
+    peak_finding_params = peakfinding_parameters_forframe(nframeseek, d=d_interest)
+
+    valid = (d_n > n_min) & (d_n < n_max)
+    mins, maxs = findminmaxs(l_n[valid], x=d_n[valid], **peak_finding_params)
+
+    # find the peaks
+    d_steps_tot = np.concatenate((d_n[valid][maxs], d_n[valid][mins]))
+    d_steps_tot.sort()
+
+    # find the central peak
+    i_centralpeak = np.argmin(np.abs(d_steps_tot))
+    dcentre = d_steps_tot[i_centralpeak]
+
+    cmin, cmax = fringeswork.find_cminmax(l_n[valid], x=d_n[valid], **peak_finding_params)
+
+    norm = fringeswork.normalize_for_hilbert(l_n[valid], x=d_n[valid], **peak_finding_params)
+    z_hilbert, phase_wrap = fringeswork.instantaneous_phase(norm, x=d_n[valid], usesplines=True)
+
+    phase_wrap_zeros = utility.find_roots(z_hilbert, phase_wrap)
+    zcentre_hilbert = phase_wrap_zeros[np.argmin((phase_wrap_zeros - dcentre) ** 2)]
+
+
+    ax.plot(z_hilbert, phase_wrap, color=color, lw=2)
+    ax.scatter(phase_wrap_zeros, np.zeros(len(phase_wrap_zeros)), fc='#00000000', ec=color)
+    ax.axvline(dcentre, color=color, ls='--', alpha=.3)
+    ax.axvline(zcentre_hilbert, color=color, ls='--')
+ax = axes[3]
 if True:
     color = colors[i_interest]
     ax.scatter(Z_ums[i_interest], H_ums[i_interest], s=50, fc=color, ec='k')
@@ -564,13 +649,13 @@ for i_interest, d_interest in enumerate(d_interests):
     
     ax.plot(d_n, l_n, color=color, alpha=.3)
     ax.plot(d_n[valid], l_n[valid], color=color, lw=2)
-    ax.scatter(d_n[valid][maxs], l_n[valid][maxs], s=50, lw=1, fc=color, ec='r', alpha=.8, label='maxs')
-    ax.scatter(d_n[valid][mins], l_n[valid][mins], s=50, lw=1, fc=color, ec='b', alpha=.8, label='mins')
+    ax.scatter(d_n[valid][maxs], l_n[valid][maxs], s=30, lw=1, fc=color, ec='r', alpha=.8, label='maxs')
+    ax.scatter(d_n[valid][mins], l_n[valid][mins], s=30, lw=1, fc=color, ec='b', alpha=.8, label='mins')
 
 ax = axes[1]
 for i_interest, d_interest in enumerate(d_interests):
     color = colors[i_interest] * np.array([1, 1, 1, .3])
-    ax.scatter(Zs[i_interest], Ps[i_interest], s=50, fc=color, ec='k')
+    ax.scatter(Zs[i_interest], Ps[i_interest], s=30, fc=color, ec='k')
 ax.set_xlabel(r'$\phi$ [rad]')
 ax.set_xlabel(r'z [px]')
 
@@ -578,105 +663,75 @@ ax.set_xlabel(r'z [px]')
 # <codecell>
 
 def find_snap(z, h, maxfev=None):
-    x0_guess = z[np.argmax(h)]
-    h0_guess = h.max()
-    m_guess = 0.
-    if nframeseek == 2478:
-        m_guess = 1e-2
-    R_guess = 1e4
-    S_guess = 0.
-    p0 = [x0_guess, h0_guess, m_guess, R_guess]
-    limmin = [Z_um.min(), H_um.max() / 2, -np.inf, 0, -np.inf]
-    limmax = [z.max(), h.max()*2, np.inf, np.inf, np.inf]
-    utility.log_debug(f'p0: {p0}')
 
-    popt12, _ = curve_fit(polyfit_curb_012, z, h, p0=p0, bounds=[limmin[:-1], limmax[:-1]], maxfev=maxfev)
-    utility.log_debug(f'popt12: {popt12}')
+    Rbounds = [0, np.inf]
+    z0bounds = [z.min(), z.max()]
+    h0bounds = [h.max()/1.5, h.max()*1.5]
 
-    popt124, _ = curve_fit(polyfit_snap_0124, z, h, p0=[popt12[0], popt12[1], popt12[2], popt12[3], S_guess], bounds=[limmin, limmax], maxfev=maxfev)
-    utility.log_debug(f'popt124: {popt124}')
-    S = popt124[4]
-    return S
+    poly2 = np.polyfit(z, h, 2)
+    R = -1/(2*poly2[0])
+    if not((R > Rbounds[0]) and (R < Rbounds[1])):
+        utility.log_error('Parabola found with negative curvature ?!')
+    z0 = R * poly2[1]
+    if not((z0 > z0bounds[0]) and (z0 < z0bounds[1])):
+        utility.log_error('Parabola found with x0 out of bounds ?!')
+    h0 = poly2[2] + z0 ** 2 / (2 * R)
+    if not((h0 > h0bounds[0]) and (h0 < h0bounds[1])):
+        utility.log_error('Parabola found with h0 out of bounds ?!')
+    popt_curb = [z0, h0, R]
+    utility.log_debug(f'\tpopt_curb: {popt_curb}')
+
+    # from direct 4-degree polynom fit
+    poly4 = np.polyfit(z, h, 4)
+    S_poly4 = -24*poly4[0]
+    utility.log_info(f'\tS (polyfit): {S_poly4}')
+    
+    return S_poly4
 
 
 # <codecell>
 
+def parabola_custom(z_, z0, h0, R):
+    return h0 - (z_ - z0)**2 * 1/(2 * R)
 
-def polyfit_curb_012(x, x0, h0, m, R):
-    return h0 + (x-x0) * m - (x-x0)**2 * 1/(2*R)
-def polyfit_snap_0124(x, x0, h0, m, R, Srel):
-    return h0 + (x-x0) * m - (x-x0)**2 * 1/(2*R) - (x-x0)**4 * Srel /24
 d_test = np.linspace(min([np.min(z_um) for z_um in Z_ums]), max([np.max(z_um) for z_um in Z_ums]), 1000)
 
 from tools import set_verbose
 set_verbose('info')
 
 
-popt_curb = []
-popt_snap = []
+popt_curbs = []
+poly4s = []
 
 for i_interest, d_interest in enumerate(d_interests):
-    Z_um, H_um = Z_ums[i_interest], H_ums[i_interest]
-    # Z_um, H_um = z_ums[i_interest], h_ums[i_interest]
+    utility.log_info(f'###### d_interest: {d_interest}')
+    z, h = z_ums[i_interest], h_ums[i_interest]
+    # z, h = Z_ums[i_interest], H_ums[i_interest]
 
-    x0_guess = Z_um[np.argmax(H_um)]
-    h0_guess = H_um.max()
-    m_guess = 0.
-    if nframeseek == 2478:
-        m_guess = 1e-2
-    R_guess = 1e4
-    S_guess = 0.
-    p0 = [x0_guess, h0_guess, m_guess, R_guess]
-    limmin = [Z_um.min(), H_um.max() / 2, -np.inf, 0, -np.inf]
-    limmax = [Z_um.max(), H_um.max() * 2, np.inf, np.inf, np.inf]
-    utility.log_debug(f'p0: {p0}')
+    Rbounds = [0, np.inf]
+    z0bounds = [z.min(), z.max()]
+    h0bounds = [h.max()/1.5, h.max()*1.5]
+
+    poly2 = np.polyfit(z, h, 2)
+    R = -1/(2*poly2[0])
+    if not((R > Rbounds[0]) and (R < Rbounds[1])):
+        utility.log_error('Parabola found with negative curvature ?!')
+    z0 = R * poly2[1]
+    if not((z0 > z0bounds[0]) and (z0 < z0bounds[1])):
+        utility.log_error('Parabola found with x0 out of bounds ?!')
+    h0 = poly2[2] + z0 ** 2 / (2 * R)
+    if not((h0 > h0bounds[0]) and (h0 < h0bounds[1])):
+        utility.log_error('Parabola found with h0 out of bounds ?!')
+    popt_curb = [z0, h0, R]
+    utility.log_debug(f'\tpopt_curb: {popt_curb}')
+
+    # from direct 4-degree polynom fit
+    poly4 = np.polyfit(z, h, 4)
+    S_poly4 = -24*poly4[0]
+    utility.log_info(f'\tS (polyfit): {S_poly4}')
     
-    popt12, _ = curve_fit(polyfit_curb_012, Z_um, H_um, p0=p0, bounds=[limmin[:-1], limmax[:-1]])
-    utility.log_debug(f'popt12: {popt12}')
-    popt_curb.append(popt12)
-    
-    popt124, _ = curve_fit(polyfit_snap_0124, Z_um, H_um,
-                           p0=[popt12[0], popt12[1], popt12[2], popt12[3], S_guess], bounds=[limmin, limmax],
-                           maxfev=maxfev)
-    utility.log_debug(f'popt124: {popt124}')
-    S = popt124[4]
-    utility.log_info(f'S: {S}')
-    
-    popt_snap.append(popt124)
-
-
-
-# <codecell>
-
-fig, axes = plt.subplots(2, 1, sharex=False, sharey=False)
-
-i_interest = 0
-d_interest = d_interests[i_interest]
-
-ax = axes[0]
-if True:
-    d_n = d_ns[i_interest]
-    l_n = l_ns[i_interest]
-    color = colors[i_interest]
-
-    n_min, n_max = decide_nminmax(nframeseek, d=d_interest)
-    peak_finding_params = peakfinding_parameters_forframe(nframeseek, d=d_interest)
-
-    valid = (d_n > n_min) & (d_n < n_max)
-    mins, maxs = findminmaxs(l_n[valid], x=d_n[valid], **peak_finding_params)
-
-    ax.plot(d_n, l_n, color=color, alpha=.3)
-    ax.plot(d_n[valid], l_n[valid], color=color, lw=2)
-    ax.scatter(d_n[valid][maxs], l_n[valid][maxs], s=50, lw=1, fc=color, ec='r', alpha=.8, label='maxs')
-    ax.scatter(d_n[valid][mins], l_n[valid][mins], s=50, lw=1, fc=color, ec='b', alpha=.8, label='mins')
-
-ax = axes[1]
-if True:
-    color = colors[i_interest]
-    ax.scatter(Z_ums[i_interest], H_ums[i_interest], s=50, fc=color, ec='k')
-    ax.plot(z_ums[i_interest], h_ums[i_interest], c='k', lw=.5)
-    ax.plot(d_test, polyfit_curb_012(d_test, *popt_curb[i_interest]), color=color, ls='--', alpha=.3, label='Best parabola')
-    ax.plot(d_test, polyfit_snap_0124(d_test, *popt_snap[i_interest]), color=color, ls='-', label='Best parabola with snap')
+    popt_curbs.append(popt_curb)
+    poly4s.append(poly4)
 
 
 
@@ -685,17 +740,22 @@ if True:
 fig, axes = plt.subplots(1, 1, sharex=True, sharey=False)
 
 ax = axes
-for i_interest in range(7):
+
+
+i_interest = 7
+if True:
+# for i_interest in range(len(d_interests)):
     color = colors[i_interest]
     ax.scatter(Z_ums[i_interest], H_ums[i_interest], s=50, fc=color, ec='k')
-    ax.plot(d_test, polyfit_curb_012(d_test, *popt_curb[i_interest]), color=color, ls='--', label='Best parabola')
-    ax.plot(d_test, polyfit_snap_0124(d_test, *popt_snap[i_interest]), color=color, ls='-', label='Best parabola with snap')
-
+    ax.plot(z_ums[i_interest], h_ums[i_interest], color='k')
+    ax.plot(d_test, parabola_custom(d_test, *popt_curbs[i_interest]), color=color, ls=':', label='Best parabola')
+    ax.plot(d_test, np.poly1d(poly4s[i_interest])(d_test), color=color, ls='--', label='Best 4-th order poly')
 
 
 # <codecell>
 
-snaps = np.array([find_snap(Z_ums[i_interest], H_ums[i_interest], maxfev=maxfev) for i_interest in range(n_samplepoints)])
+snaps = np.array([find_snap(z_ums[i_interest], h_ums[i_interest], maxfev=maxfev) for i_interest in range(n_samplepoints)])
+# snaps = np.array([find_snap(Z_ums[i_interest], H_ums[i_interest], maxfev=maxfev) for i_interest in range(n_samplepoints)])
 
 snaps *= 1e9 # conversion from um-3 to mm-3
 
@@ -706,69 +766,24 @@ if nframeseek < 2600:
 snapval = np.mean(snaps[crit]) 
 snapincert = np.std(snaps[crit])
 
-utility.log_info(f'snap = {snapval} +- {snapincert}')
+utility.log_info(f'snap = {snapval} +- {snapincert} mm-3')
 
 
 # <codecell>
 
-popt_curb
+# utility.activate_saveplot()
+# # SAVEPLOT = True
 
 
 # <codecell>
 
-popt_snap
-
-
-# <codecell>
-
-
-def activate_saveplot():
-    global in_per_mm
-    plt.rcParams['text.usetex'] = True
-    in_per_mm = .1 / 2.54
-    figwidth = 86*in_per_mm
-    figheight = figwidth / 1.618 # golden ratio
-    plt.rcParams["figure.figsize"] = (figwidth, figheight)
-    plt.rcParams['pgf.texsystem'] = 'pdflatex'
-    plt.rcParams.update({'font.family': 'serif', 'font.size': 10,
-                         'legend.fontsize': 10, 'legend.handlelength': 2,
-                         'axes.labelsize': 10, 'axes.titlesize': 10,
-                         'figure.labelsize': 10,
-                         'savefig.bbox': 'tight', 'savefig.pad_inches': 0., 'savefig.transparent': True,
-                         # # tight layout
-                         # 'figure.subplot.hspace': 0., 'figure.subplot.wspace': 0.,
-                         # # 'figure.subplot.hspace': 0.2, 'figure.subplot.wspace': 0.2,
-                         # 'figure.subplot.left': 0, 'figure.subplot.right': 1.,
-                         # 'figure.subplot.top': 1., 'figure.subplot.bottom': 0.,
-                         # # constrained layout
-                         # 'figure.constrained_layout.h_pad': 0., 
-                         # 'figure.constrained_layout.w_pad': 0.,
-                         })
-
-def deactivate_saveplot():
-    global in_per_mm, SAVEPLOT
-    plt.rcParams['text.usetex'] = False
-    in_per_mm = .14/2
-    figwidth = 86*in_per_mm * 2
-    figheight = figwidth / 1.618 # golden ratio
-    plt.rcParams["figure.figsize"] = (figwidth, figheight)
-
-
-
-# <codecell>
-
-deactivate_saveplot()
-
-
-# <codecell>
-
-fig, axes = plt.subplots(3, 1, figsize=(86*in_per_mm*2, 86*in_per_mm*1.5), sharex=False, sharey=False)
+fig, axes = plt.subplots(3, 1, figsize=(utility.figw_double, utility.figw_big), sharex=False, sharey=False)
 
 kw_imshow_Na = {'aspect': 'equal', 'origin':'lower', 'cmap':cmap_Na, 'vmin':vmin, 'vmax':vmax}
 
 ax = axes[0]
 ax.imshow(frame, interpolation='bilinear', extent=(0, frame.shape[1]*mm_per_px, 0, frame.shape[0]*mm_per_px), **kw_imshow_Na)
-ax.plot(x*mm_per_px, z*mm_per_px, lw=1, c='k', ls=':')
+ax.plot(x_crest * mm_per_px, z_crest * mm_per_px, lw=1, c='k', ls=':')
 for i_interest, d_interest in enumerate(d_interests):
     nearp = nearps[i_interest]
     # ax.plot(x[nearp], z[nearp], lw=3, c='k')
@@ -796,8 +811,10 @@ for i_interest, d_interest in enumerate(d_interests):
     d_test = np.linspace(min([np.min(z_um) for z_um in Z_ums]) * 1.6, max([np.max(z_um) for z_um in Z_ums]) * 1.7, 1000)
 
 
-    ax.plot(d_test / um_per_px + d_interest, polyfit_snap_0124(d_test, *popt_snap[i_interest]), 
-            color=color, ls='-', label='Best parabola with snap')
+    # ax.plot(d_test / um_per_px + d_interest, snap_full_fitfunction(d_test, *popt_snaps[i_interest]),
+    #         color=color, ls='-', label='Best parabola with snap')
+    ax.plot(z_ums[i_interest] / um_per_px + d_interest , h_ums[i_interest], color=color_faded)
+    ax.plot(d_test / um_per_px + d_interest, np.poly1d(poly4s[i_interest])(d_test), color=color, ls='--')
 
 ticks_relative_um = np.array([-500, 0, 500])
 ticks_relative_labels = ['0' if tick_relative==0 else str(round(tick_relative, 1)) for tick_relative in ticks_relative_um]
@@ -847,7 +864,7 @@ ax.set_xlim(0, frame.shape[1])
 ax.set_xticks([])
 ax.set_ylim(min(0, snaps.min()*1.15), max(0, snaps.max()*1.15))
 # ax.set_xlabel(r'Measurement point')
-ax.set_ylabel(r'snap $\partial_{zzzz} h$ [mm$^{-3}$]')
+ax.set_ylabel(r'$-\partial_{zzzz} h$ [mm$^{-3}$]')
 
 plt.tight_layout()
 
@@ -857,24 +874,41 @@ if SAVEPLOT:
 
 # <codecell>
 
-utility.activate_saveplot()
-SAVEPLOT = False
-in_per_mm = 1/25.4
+
 
 
 # <codecell>
 
-i_interest = 0
+i_interest = 5
+
+zlim=None
+llim = None
+hlim = None
+
 if nframeseek==2478:
     i_interest = 0
+    zlim = (-200, 200)
+    llim = (100, 160)
+    hlim = (-1, 1.25)
+if nframeseek==3736:
+    i_interest = 4
+    zlim = (-400, 400)
+    llim = (105, 165)
+    hlim = (-1, 1.5)
+if nframeseek==4982:
+    i_interest = 3
+    zlim = (-400, 400)
+    llim = (115, 165)
+    hlim = (-1.5, 2)
+
 d_interest = d_interests[i_interest]
 
 # fig, axes = plt.subplots(1, 2, figsize=(12, 10), sharex=False, sharey=False)
-fig = plt.figure(figsize=(86*in_per_mm*2, 86*in_per_mm*.9))
+fig = plt.figure(figsize=(utility.figw_double, utility.figw_simple*.9))
 
 ax = fig.add_subplot(121)
 ax.imshow(frame, interpolation='nearest', extent=(0, frame.shape[1]*mm_per_px, 0, frame.shape[0]*mm_per_px), **kw_imshow_Na)
-ax.plot(x*mm_per_px, z*mm_per_px, lw=1, c='k', ls=':')
+ax.plot(x_crest * mm_per_px, z_crest * mm_per_px, lw=1, c='k', ls=':')
 if True:
     nearp = nearps[i_interest]
     # ax.plot(x[nearp], z[nearp], lw=3, c='k')
@@ -929,8 +963,8 @@ if True:
     ax.scatter(d_n[valid][mins]*um_per_px, l_n[valid][mins], s=30, lw=1, fc=color, ec='b', alpha=.2)
     ax.scatter(d_n[valid][mins][mintaken]*um_per_px, l_n[valid][mins][mintaken], s=30, lw=1, fc=color_faded, ec='k')
 ax.set_ylabel('Luminosity [0-255]')
-ax.set_xlim(-200, 200)
-ax.set_ylim(100, 160)
+ax.set_xlim(zlim)
+ax.set_ylim(llim)
 ax.yaxis.tick_right()
 ax.yaxis.set_label_position('right')
 
@@ -941,17 +975,19 @@ if True:
     # ax.scatter(Zs[i_interest] + d_interest, h_ums[i_interest], s=50, fc=color, ec='k')
     ax.scatter(Ztots[i_interest]*um_per_px, H_um_tots[i_interest], s=30, fc=color, ec='k', alpha=.2)
     ax.scatter(Zs[i_interest]*um_per_px , H_ums[i_interest], s=30, fc=color_faded, ec='k', label='Extrema over which the fit was made')
+    ax.plot(z_ums[i_interest] , h_ums[i_interest], color=color_faded)
 
     d_test = np.linspace(min([np.min(z_um) for z_um in Z_ums]) * 1.6, max([np.max(z_um) for z_um in Z_ums]) * 1.7, 1000)
 
 
-    ax.plot(d_test, polyfit_snap_0124(d_test, *popt_snap[i_interest]),
-            color=color, ls='-', label='Best fitting parabola')
-    ax.plot(d_test, polyfit_curb_012(d_test, *popt_curb[i_interest]),
-            color=color, ls='--', alpha=.3, label='Best fitting parabola + snap')
+    # ax.plot(d_test, snap_full_fitfunction(d_test, *popt_snaps[i_interest]),
+    #         color=color, ls='-', label='Best fitting parabola')
+    # ax.plot(d_test, parabola_custom(d_test, *popt_curbs[i_interest]),
+    #         color=color, ls='--', alpha=.3, label='Best fitting parabola + snap')
+    ax.plot(d_test, np.poly1d(poly4s[i_interest])(d_test), color=color, ls='--')
 ax.legend()
-ax.set_xlim(-200, 200)
-ax.set_ylim(-1, 1.25)
+ax.set_xlim(zlim)
+ax.set_ylim(hlim)
 ax.set_xlabel(r'Local distance in the normal direction $\tilde{z}$ [$\mu$m]')
 ax.set_ylabel(r'Height $h$ [$\mu$m]')
 ax.yaxis.tick_right()
@@ -966,7 +1002,7 @@ ax.yaxis.set_label_position('right')
 # ax.set_ylabel(r'Height $h$ (- offset) [um]')
 
 plt.tight_layout(pad=0., w_pad=0.1, h_pad=0.)
-SAVEPLOT =True
+
 if SAVEPLOT:
     utility.save_graphe(f'snapmeasure_frame{nframeseek}_point{i_interest}')
 
