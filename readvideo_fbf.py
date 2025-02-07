@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 
 plt.rcParams["figure.figsize"] = (12, 8)
 plt.rcParams["figure.max_open_warning"] = 50
-
 plt.rcParams['pgf.texsystem'] = 'pdflatex'
 plt.rcParams.update({'font.family': 'serif', 'font.size': 12,
                      'figure.titlesize' : 12,
@@ -30,7 +29,7 @@ if len(datasets) == 1:
     dataset = datasets[0]
     datareading.log_info(f'Auto-selected dataset {dataset}')
 dataset_path = os.path.join(root_path, dataset)
-datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
+datareading.describe_dataset(dataset_path, type='all', makeitshort=True)
 #%%
 # Acquisition selection
 acquisition = '10Hz_decal'
