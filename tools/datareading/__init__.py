@@ -29,6 +29,8 @@ def is_this_a_video(acquisition_path:str) -> bool:
         return True
     elif is_this_a_t16(acquisition_path):
         return True
+    elif is_this_a_t8(acquisition_path):
+        return True
     elif is_this_a_lcv(acquisition_path):
         return True
     elif is_this_a_mp4(acquisition_path):
@@ -40,7 +42,7 @@ def is_this_a_video(acquisition_path:str) -> bool:
         return False
 
 def find_available_videos(dataset_path: str, type:Optional[str]=None) ->List[str]:
-    all_types = ['gcv', 't16', 'flv', 'mp4', 'mov']
+    all_types = ['gcv', 't16', 't8', 'flv', 'mp4', 'mov']
     log_subtrace(f'Finding available videos of type {type or all_types} at {dataset_path}')
 
     if type is None or type=='all':
@@ -51,6 +53,8 @@ def find_available_videos(dataset_path: str, type:Optional[str]=None) ->List[str
         available_acquisitions = find_available_gcv(dataset_path)
     elif type=='t16':
         available_acquisitions = find_available_t16(dataset_path)
+    elif type=='t8':
+        available_acquisitions = find_available_t8(dataset_path)
     elif type=='flv':
         available_acquisitions = find_available_lcv(dataset_path)
     elif type=='mp4':
@@ -89,6 +93,8 @@ def get_number_of_available_frames(acquisition_path: str) -> Optional[int]:
         return get_number_of_available_frames_gcv(acquisition_path)
     elif is_this_a_t16(acquisition_path):
         return get_number_of_available_frames_t16(acquisition_path)
+    elif is_this_a_t8(acquisition_path):
+        return get_number_of_available_frames_t8(acquisition_path)
     elif is_this_a_lcv(acquisition_path):
         return get_number_of_available_frames_lcv(acquisition_path)
     elif is_this_a_mp4(acquisition_path):
@@ -107,6 +113,8 @@ def get_acquisition_frequency(acquisition_path:str, unit = None, verbose:Optiona
         return get_acquisition_frequency_gcv(acquisition_path, unit=unit, verbose=verbose)
     if is_this_a_t16(acquisition_path):
         return get_acquisition_frequency_t16(acquisition_path, unit=unit, verbose=verbose)
+    if is_this_a_t8(acquisition_path):
+        return get_acquisition_frequency_t8(acquisition_path, unit=unit, verbose=verbose)
     if is_this_a_mov(acquisition_path):
         return get_acquisition_frequency_mov(acquisition_path, unit=unit, verbose=verbose)
     if is_this_a_mp4(acquisition_path):
@@ -116,6 +124,7 @@ def get_acquisition_frequency(acquisition_path:str, unit = None, verbose:Optiona
         return -1.
 
 def get_acquisition_duration(acquisition_path:str, framenumbers:Optional[np.ndarray], unit = None, verbose:Optional[int]=None) -> Optional[float]:
+    log_subtrace('func:get_acquisition_duration')
     framenumbers = format_framenumbers(acquisition_path, framenumbers, verbose=verbose)
     if framenumbers is None:
         log_error("ERROR Wrong framenumber, couldnt format it")
@@ -157,6 +166,7 @@ def format_framenumbers(acquisition_path:str, framenumbers:Framenumbers=None, ve
     return framenumbers
 
 def get_geometry(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, verbose:Optional[int]=None) -> Optional[Tuple]:
+    log_subtrace('func:get_geometry')
     if not is_this_a_video(acquisition_path):
         log_error(f"There is no video at {acquisition_path}. Could not get geometry.")
         return None
@@ -187,7 +197,9 @@ def get_frames(acquisition_path:str, framenumbers:Framenumbers=None, subregion:S
     if is_this_a_gcv(acquisition_path):
         frames = get_frames_gcv(acquisition_path, framenumbers, verbose=verbose)
     elif is_this_a_t16(acquisition_path):
-        frames = get_frames_t16(acquisition_path, framenumbers, verbose=verbose)
+        frames = get_frames_t16(acquisition_path, framenumbers)
+    elif is_this_a_t8(acquisition_path):
+        frames = get_frames_t8(acquisition_path, framenumbers)
     elif is_this_a_lcv(acquisition_path):
         frames = get_frames_lcv(acquisition_path, framenumbers, verbose=verbose)
     elif is_this_a_mp4(acquisition_path):
@@ -195,6 +207,7 @@ def get_frames(acquisition_path:str, framenumbers:Framenumbers=None, subregion:S
     elif is_this_a_mov(acquisition_path):
         frames = get_frames_mov(acquisition_path, framenumbers, verbose=verbose)
     else:
+        log_subtrace('ERROR INCOMING func:get_frames')
         log_error(f'Cannot get frames: there is no video at {acquisition_path}')
         return None
 
@@ -261,6 +274,7 @@ def missing_frames(acquisition_path: str, verbose:Optional[int]=None) -> List:
     return []
 
 def missing_frames_in_framenumbers(acquisition_path: str, framenumbers:Optional[np.ndarray]=None, verbose:Optional[int]=None) -> List:
+    log_subtrace('func:get_acquisition_duration')
     all_missing_chunks = missing_frames(acquisition_path, verbose=verbose)
     explicit_framenumbers = format_framenumbers(acquisition_path, framenumbers, verbose=verbose)
 
@@ -291,7 +305,8 @@ def are_there_missing_frames(acquisition_path: str, framenumbers:Optional[np.nda
     return False
 
 def describe_acquisition(dataset:str, acquisition:str, framenumbers:Optional[np.ndarray]=None, subregion:Subregion=None, verbose:Optional[int]=None):
-    display(f'Acquisition: "{acquisition}" ({dataset})')
+    log_subtrace('func:describe_acquisition')
+    log_info(f'Acquisition: "{acquisition}" ({dataset})')
 
     dataset_path = os.path.join('../', dataset)
     acquisition_path = os.path.join(dataset_path, acquisition)
@@ -300,7 +315,7 @@ def describe_acquisition(dataset:str, acquisition:str, framenumbers:Optional[np.
         log_error(f'No video named {acquisition} in dataset {dataset}', verbose=verbose)
         return
 
-    # genberal
+    # general
     frequency = get_acquisition_frequency(acquisition_path, unit="Hz", verbose=verbose)
 
     log_info(f'Acquisition frequency: {round(frequency, 2)} Hz', verbose=verbose)

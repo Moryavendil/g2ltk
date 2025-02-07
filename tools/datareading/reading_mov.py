@@ -15,6 +15,7 @@ def find_available_mov(dataset_path: str) ->List[str]:
     return available_acquisitions
 
 def is_this_a_mov(acquisition_path: str) -> bool:
+    log_subtrace(f'func:is_this_a_mov')
     video:Optional[Any] = capture_mov(acquisition_path)
     if video is None:
         return False
@@ -23,13 +24,14 @@ def is_this_a_mov(acquisition_path: str) -> bool:
         return True
 
 def capture_mov(acquisition_path:str) -> Optional[Any]:
+    log_subtrace(f'func:capture_mov')
     # This only captures LOSSY COMPRESSED VIDEOS WITH CODEC H264 AND FILETYPE MP4
 
     # Check for existence
     video_path = acquisition_path + '.MOV'
 
     if not os.path.isfile(video_path):
-        log_error(f'No mov video named {video_path}')
+        log_trace(f'No mov video named {video_path}')
         return None
 
     # Open video

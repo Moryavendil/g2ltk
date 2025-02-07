@@ -101,7 +101,7 @@ def log_subtrace(text:str, verbose:int=None): # verbose 6
         global global_verbose
         verbose=global_verbose
     if verbose >= 6:
-        display(Fore.LIGHTMAGENTA_EX + 'RETRACE:\t\t\t' + str(text) + Fore.RESET)
+        display(Fore.LIGHTMAGENTA_EX + 'SUBTRACE:\t\t\t' + str(text) + Fore.RESET)
         
 
 log_info('Loading tools version '+__version__)

@@ -50,7 +50,7 @@ def is_this_a_t16(acquisition_path: str) -> bool:
 
 def is_this_a_t8(acquisition_path: str) -> bool:
     """
-    Checks if there is a Tiff 16-bits video (t16) for the given dataset.
+    Checks if there is a Tiff 8-bits video (t8) for the given dataset.
 
     :param acquisition_path:
     :return:
@@ -82,7 +82,7 @@ def get_number_of_available_frames_t8(acquisition_path: str) -> int:
     else:
         return 0
 
-def get_frames_t16(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
+def get_frames_t16(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
 
     all_images = os.listdir(acquisition_path)
     all_images.sort()
@@ -112,13 +112,11 @@ def get_frames_t16(acquisition_path:str, framenumbers:np.ndarray, verbose:Option
         # frames[i_frame] = np.array(Image.open(os.path.join(acquisition_path, all_images[framenumber]))) # this is the 3rd fastest
 
     frames = (frames // 2**8).astype(np.uint8, copy=False)
-    if verbose >= 2:
-        # todo INFO here
-        print('INFO: quality was degraded from 12-bits to 8-bits depth')
+    log_info('Quality was degraded from 16-bits to 8-bits depth')
 
     return frames
 
-def get_frames_t16_conservequality(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
+def get_frames_t16_conservequality(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
 
     all_images = os.listdir(acquisition_path)
     all_images.sort()
@@ -150,7 +148,7 @@ def get_frames_t16_conservequality(acquisition_path:str, framenumbers:np.ndarray
     return frames
 
 
-def get_frames_t8(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
+def get_frames_t8(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
 
     all_images = os.listdir(acquisition_path)
     all_images.sort()
@@ -181,7 +179,7 @@ def get_frames_t8(acquisition_path:str, framenumbers:np.ndarray, verbose:Optiona
 
     return frames
 
-def get_acquisition_frequency_t16(acquisition_path: str, unit = None, verbose:Optional[int]=None) -> float:
+def get_acquisition_frequency_t16(acquisition_path: str, unit = None) -> float:
     if '20230309_chronos_b' in acquisition_path:
         if 'f30tiff' in acquisition_path:
             return 1200
@@ -234,10 +232,15 @@ def get_acquisition_frequency_t16(acquisition_path: str, unit = None, verbose:Op
             return 3000
         if 'f400breakuptiff' in acquisition_path:
             return 3000
+    log_warn(f'Trying to get the acquition frequency of a t16 acquisition ({acquisition_path}). Returning 1, which is probably false.')
     return 1.
 
-def get_acquisition_duration_t16(acquisition_path: str, framenumbers:np.ndarray, unit = None, verbose:Optional[int]=None) -> float:
-    acqu_freq: float = get_acquisition_frequency_t16(acquisition_path, unit =  'Hz', verbose = verbose)
+def get_acquisition_frequency_t8(acquisition_path: str, unit = None) -> float:
+    log_warn(f'Trying to get the acquition frequency of a t8 acquisition ({acquisition_path}). Returning 1, which is probably false.')
+    return 1.
+
+def get_acquisition_duration_t16(acquisition_path: str, framenumbers:np.ndarray, unit = None) -> float:
+    acqu_freq: float = get_acquisition_frequency_t16(acquisition_path, unit =  'Hz')
     acqu_frames: float = len(framenumbers)
 
     return (acqu_frames - 1) / acqu_freq

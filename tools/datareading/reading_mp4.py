@@ -34,16 +34,14 @@ def capture_mp4(acquisition_path:str) -> Optional[Any]:
     video_path = acquisition_path + '.mp4'
 
     if not os.path.isfile(video_path):
-        #Todo: ERROR here
-        # print('ERROR: No MP4 video')
+        log_debug(f'No mov video named {video_path}')
         return None
 
     # Open video
     video = cv2.VideoCapture(video_path)
 
     if video.isOpened()== False:
-        #Todo:ERROR here
-        print("Error opening video file")
+        log_error(f'Error opening video file {video_path}')
         return None
 
     #Check codec
@@ -52,8 +50,7 @@ def capture_mp4(acquisition_path:str) -> Optional[Any]:
 
     if codec != 'avc1':
         video.release()
-        #Todo:ERROR here
-        print(f"Codec is {codec}. Cannot read frames from video that is not lossy compressed with codec avc1")
+        log_error(f"Codec is {codec}. Cannot read frames from video that is not lossy compressed with codec avc1")
         return None
 
     return video
