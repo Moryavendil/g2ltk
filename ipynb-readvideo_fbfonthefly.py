@@ -1,9 +1,13 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# <nbformat>3.0</nbformat>
+# <codecell>
+
+%matplotlib qt # use this line if in a Jupyter notebook
+# import matplotlib ; matplotlib.use('Qt5Agg') # use this line if in a Python script
+
 import os
 import cv2
 import numpy as np
-import matplotlib
-matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 
 plt.rcParams["figure.figsize"] = (12, 8)
@@ -16,76 +20,66 @@ plt.rcParams.update({'font.family': 'serif', 'font.size': 12,
 
 from matplotlib.colors import Normalize # colormaps
 
-from tools import datareading
-#%%
+from tools import set_verbose, datareading, utility
+
 # Datasets display
 root_path = '../'
 datasets = datareading.find_available_datasets(root_path)
 print('Available datasets:', datareading.find_available_datasets(root_path))
-#%%
+
+
+# <codecell>
+
 # Dataset selection & acquisitions display
 dataset = '-'
 if len(datasets) == 1:
     dataset = datasets[0]
     datareading.log_info(f'Auto-selected dataset {dataset}')
 dataset_path = os.path.join(root_path, dataset)
-datareading.describe_dataset(dataset_path, type='all', makeitshort=True)
-#%%
+datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
+
+
+# <codecell>
+
 # Acquisition selection
-acquisition = '10Hz_decal'
+acquisition = 'ha_n140f500a1000_gcv'
 acquisition_path = os.path.join(dataset_path, acquisition)
 datareading.is_this_a_video(acquisition_path)
-#%%
-relative_colorscale:bool = False
-remove_median_bckgnd = True #remove the mediab img, practical for dirt on plate
-median_correc = False # remove the median value over each z line. helps with the heterogenous lighting.
-saturate_a_bit = False # removes bright spots by accepting cmap saturation (1%)
 
-normalize_each_image = False
-#%%
+
+# <codecell>
+
+
+
+
+# <codecell>
+
 # Parameters definition
-framenumbers = np.arange(datareading.get_number_of_available_frames(acquisition_path) or 1)
+framenumbers = datareading.format_framenumbers(acquisition_path, None)
 roi = None, None, None, None  #start_x, start_y, end_x, end_y
-if acquisition=='drainagelent':
-    roi = 800, 600, 1400, 900  #start_x, start_y, end_x, end_y
-if (dataset, acquisition)==('Nalight_cleanplate_20240708', '10Hz_decal'):
-    framenumbers = np.arange(1400, 1600)
-#%%
 # Data fetching
 datareading.describe_acquisition(dataset, acquisition, framenumbers=framenumbers, subregion=roi)
-frames = datareading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
-length, height, width = frames.shape
-
+length, height, width = datareading.get_geometry(acquisition_path, framenumbers=framenumbers, subregion=roi)
 acquisition_frequency = datareading.get_acquisition_frequency(acquisition_path, unit="Hz")
 t = datareading.get_times(acquisition_path, framenumbers=framenumbers, unit='s')
-#%%
-# luminosity corrections
-if remove_median_bckgnd:
-    median_bckgnd = np.median(frames, axis=0, keepdims=True)
-    frames = frames - median_bckgnd
+# Colorscale option
+relative_colorscale: bool = True
+saturate_a_bit: bool = True
 
-if median_correc:
-    frames = frames - np.median(frames, axis=(0,1), keepdims=True)
+vmin_absolutecmap = 0
+vmax_absolutecmap = 255
+if dataset == 'illustrations' and acquisition == '1200_s_break_gcv':
+    vmax_absolutecmap = 10
+if dataset == 'illustrations' and acquisition == '300_s_break_gcv':
+    vmax_absolutecmap = 10
+if dataset == 'illustrations' and acquisition == '600_s_break_gcv':
+    vmax_absolutecmap = 10
+if dataset == 'illustrations' and acquisition == '60_s_break_gcv':
+    vmax_absolutecmap = 70
 
-# if remove_median_bckgnd or median_correc:
-#     frames -= frames.min()
-#     frames *= 255/frames.max()
 
-if normalize_each_image:
-    # frames.setflags(write=1)
-    # im = np.zeros_like(frames[0])
-    # for i in range(length):
-    #     cv2.normalize(frames[i], im, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
-    #     frames[i] = im
-    frames = frames - frames.min(axis = (1,2), keepdims=True)
-    # frames *= 255/frames.max(axis=0, keepdims=True)
+# <codecell>
 
-vmin_absolutecmap = frames.min()
-vmax_absolutecmap = frames.max()
-if saturate_a_bit:
-    vmin_absolutecmap = np.percentile(frames.flatten(), 1)
-    vmax_absolutecmap = np.percentile(frames.flatten(), 99)
-#%%
 def on_press(event):
     # print('press', event.key)
     global height, width
@@ -108,13 +102,13 @@ def on_press(event):
 
 def update_display():
     global i, fig
-    global frames, t, length
+    global t, length
     i = i % length
-    s = t[i]%60
-    m = t[i]//60
-    ax.set_title(f't = {f"{m} m " if np.max(t[-1])//60 > 0 else ""}{s:.2f} s - frame {framenumbers[i]} ({i+1}/{length})')
+    ax.set_title(f't = {utility.format_videotime(t[i], finaltime_s=t[-1])} - frame {framenumbers[i]} ({i+1}/{length})')
 
-    frame = frames[i]
+    frame = datareading.get_frame(acquisition_path, i, subregion=roi)
+    if dataset == 'illustrations' and acquisition == '1200_s_break_gcv':
+        frame[11, :] = frame[10, :]
 
     global see_image, median_correc, saturate_a_bit
     global img
@@ -124,19 +118,22 @@ def update_display():
         if relative_colorscale:
             vmin_relativecmap = image.min()
             vmax_relativecmap = image.max()
-            if remove_bright_spots:
+            if saturate_a_bit:
                 vmin_relativecmap = np.percentile(image.flatten(), 1)
                 vmax_relativecmap = np.percentile(image.flatten(), 99)
             relative_norm = Normalize(vmin=vmin_relativecmap, vmax=vmax_relativecmap)
             img.set_norm(relative_norm)
 
     fig.canvas.draw()
-#%%
+
+
+# <codecell>
+
 ### Display
 fig, ax = plt.subplots(1, 1)  # initialise la figure
 fig.suptitle(f'{acquisition} ({dataset})')
-ax.set_xlim(0, width)
-ax.set_ylim(0, height)
+ax.set_xlim(-.5, width + .5)
+ax.set_ylim(-.5, height + .5)
 plt.tight_layout()
 
 see_image:bool = True
@@ -145,7 +142,7 @@ i = 0 # time
 ### ANIMATED ELEMENTS
 
 # frame
-img = ax.imshow(np.zeros((height, width)), origin='lower', vmin = vmin_absolutecmap, vmax = vmax_absolutecmap
+img = ax.imshow(datareading.get_frame(acquisition_path, i, subregion=roi), origin='lower', vmin = vmin_absolutecmap, vmax = vmax_absolutecmap
                 # , aspect='auto'
                 )
 if not see_image:
@@ -159,3 +156,9 @@ update_display()
 fig.canvas.mpl_connect('key_press_event', on_press)
 
 plt.show()
+
+
+# <codecell>
+
+
+
