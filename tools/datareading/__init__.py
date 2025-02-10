@@ -1,11 +1,11 @@
-from typing import Optional, Any, Tuple, Dict, List, Union
+from typing import Optional, Tuple, List, Union
 import numpy as np
-import cv2 # to manipulate images and videos
-import os # to navigate in the directories
-import shutil # to remove directories
+# import cv2 # to manipulate images and videos
+# import os # to navigate in the directories
+# import shutil # to remove directories
 
-from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
-from .. import utility, datasaving
+# from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
+# from .. import utility, datasaving
 
 # Custom typing
 Framenumbers = Optional[Union[np.ndarray, List[int]]]
@@ -112,9 +112,9 @@ def get_acquisition_frequency(acquisition_path:str, unit = None, verbose:Optiona
     if is_this_a_gcv(acquisition_path):
         return get_acquisition_frequency_gcv(acquisition_path, unit=unit, verbose=verbose)
     if is_this_a_t16(acquisition_path):
-        return get_acquisition_frequency_t16(acquisition_path, unit=unit, verbose=verbose)
+        return get_acquisition_frequency_t16(acquisition_path, unit=unit)
     if is_this_a_t8(acquisition_path):
-        return get_acquisition_frequency_t8(acquisition_path, unit=unit, verbose=verbose)
+        return get_acquisition_frequency_t8(acquisition_path, unit=unit)
     if is_this_a_mov(acquisition_path):
         return get_acquisition_frequency_mov(acquisition_path, unit=unit, verbose=verbose)
     if is_this_a_mp4(acquisition_path):
@@ -133,7 +133,7 @@ def get_acquisition_duration(acquisition_path:str, framenumbers:Optional[np.ndar
     if is_this_a_gcv(acquisition_path):
         return get_acquisition_duration_gcv(acquisition_path, framenumbers=framenumbers, unit=unit, verbose=verbose)
     elif is_this_a_t16(acquisition_path):
-        return get_acquisition_duration_t16(acquisition_path, framenumbers=framenumbers, unit=unit, verbose=verbose)
+        return get_acquisition_duration_t16(acquisition_path, framenumbers=framenumbers, unit=unit)
     else:
         fns = len(framenumbers)
         freq_hz = get_acquisition_frequency(acquisition_path, unit='Hz', verbose=verbose)
