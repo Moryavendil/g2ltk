@@ -17,7 +17,7 @@ figw_confort:Dict[str, float] = {'simple': 120*in_per_mm, 'wide': 190*in_per_mm,
 
 figw = {**figw_confort}
 
-def figsize(w:Optional[Union[float, int, str]], h:Optional[Union[float, int, str]], unit='mm') ->Tuple[float, float]:
+def figsize(w:Optional[Union[float, int, str]], h:Optional[Union[float, int, str]]=None, unit='mm') ->Tuple[float, float]:
     global in_per_mm
     width_in = figw['simple']
     if isinstance(w, str):
@@ -32,16 +32,17 @@ def figsize(w:Optional[Union[float, int, str]], h:Optional[Union[float, int, str
         log_error('Unrecognized unit for figsize: {unit}'.format(unit=unit))
 
     height_in = width_in / 1.618
-    if isinstance(h, str):
-        height_in = figw.get(h, None)
-        if height_in is None:
-            log_error('Unrecognized figsize: {h}'.format(h=h))
-    elif unit == 'mm':
-        height_in = float(h)*in_per_mm
-    elif unit == 'in':
-        height_in = float(h)
-    elif h is not None:
-        log_error('Unrecognized unit for figsize: {unit}'.format(unit=unit))
+    if h is not None:
+        if isinstance(h, str):
+            height_in = figw.get(h, None)
+            if height_in is None:
+                log_error('Unrecognized figsize: {h}'.format(h=h))
+        elif unit == 'mm':
+            height_in = float(h)*in_per_mm
+        elif unit == 'in':
+            height_in = float(h)
+        else:
+            log_error('Unrecognized unit for figsize: {unit}'.format(unit=unit))
 
     return (width_in, height_in)
 
