@@ -30,3 +30,15 @@ datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
 
 datareading.save_all_gcv_videos(dataset, do_timestamp = True, fps = 20., filetype = 'mp4')
 
+
+    # <markdowncell>
+    
+    # If you can read this, reads_py() is no longer broken! 
+    
+
+
+    # <markdowncell>
+    
+    # If you can read this, reads_py() is no longer broken! 
+    
+

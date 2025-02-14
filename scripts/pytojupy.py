@@ -2,15 +2,17 @@
 import os
 from nbformat import v3, v4
 
-scriptsdir = 'scripts' # '.'
+maindir = '.'
+scriptsdir = os.path.join(maindir, 'scripts')
 
 prefix = 'ipynb-'
-ipynbs = [f[len(prefix):-3] for f in os.listdir(scriptsdir) if os.path.isfile(f) and f.endswith('.py') and f.startswith(prefix)]
+ipynbs = [f[len(prefix):-3] for f in os.listdir(scriptsdir) if os.path.isfile(os.path.join(scriptsdir, f)) and f.endswith('.py') and f.startswith(prefix)]
 ipynbs.sort()
+print(ipynbs)
 
 for ipynb in ipynbs:
     infilename = os.path.join(scriptsdir, prefix + ipynb + '.py')
-    outfilename = os.path.join('.', ipynb + '.ipynb')
+    outfilename = os.path.join(maindir, ipynb + '.ipynb')
 
     with open(infilename) as fin:
         text = fin.read()

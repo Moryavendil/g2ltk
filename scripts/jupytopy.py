@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 import os, json
 
-scriptsdir = 'scripts' # '.'
+maindir = '.'
+scriptsdir = os.path.join(maindir, 'scripts')
 
 prefix = 'ipynb-'
-ipynbs = [f[:-6] for f in os.listdir('.') if os.path.isfile(f) and f.endswith('.ipynb')]
+ipynbs = [f[:-6] for f in os.listdir(maindir) if os.path.isfile(os.path.join(maindir, f)) and f.endswith('.ipynb')]
 ipynbs.sort()
 
 for ipynb in ipynbs:
-    infilename = os.path.join('.', ipynb + '.ipynb')
+    infilename = os.path.join(maindir, ipynb + '.ipynb')
     outfilename = os.path.join(scriptsdir, prefix + ipynb + '.py')
 
     fin = open(infilename, 'r') #input.ipynb
