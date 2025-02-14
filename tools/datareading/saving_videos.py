@@ -47,7 +47,7 @@ def save_frames_to_video(video_rawpath:str, frames:np.ndarray, fps:float = 25., 
 
     writer.release()
 
-    display(f'Video {video_path} saved')
+    display(f'Video {video_path} saved', end='\n')
 
 def save_acquisition_to_video(acquisition_path:str, do_timestamp:bool = True, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
     if not(is_this_a_gcv(acquisition_path)) and not(is_this_a_t16(acquisition_path)):
@@ -56,6 +56,7 @@ def save_acquisition_to_video(acquisition_path:str, do_timestamp:bool = True, fp
         return
 
     frames = get_frames(acquisition_path, framenumbers = None, subregion=None)
+    frames = np.copy(frames)
     length, height, width = frames.shape
 
     if do_timestamp and not(are_there_missing_frames(acquisition_path)):
@@ -105,12 +106,12 @@ def save_acquisition_to_video(acquisition_path:str, do_timestamp:bool = True, fp
                          fps = fps, filetype=filetype, codec=codec, resize_factor=resize_factor)
 
 def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
-    display(f'Saving all the gcv acquisition in the dataset: {dataset}')
+    log_info(f'Saving all the gcv acquisition in the dataset: {dataset}')
 
     dataset_path = '../' + dataset
 
     available_acquisitions =  find_available_videos(dataset_path, type='gcv')
-    display(f'The following acquisition will be saved: {available_acquisitions}')
+    log_info(f'The following acquisition will be saved: {available_acquisitions}')
 
     for acquisition in available_acquisitions:
         acquisition_path = os.path.join(dataset_path, acquisition)

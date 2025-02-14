@@ -49,11 +49,6 @@ datareading.is_this_a_video(acquisition_path)
 
 # <codecell>
 
-
-
-
-# <codecell>
-
 # Parameters definition
 framenumbers = datareading.format_framenumbers(acquisition_path, None)
 roi = None, None, None, None  #start_x, start_y, end_x, end_y
@@ -160,5 +155,8 @@ plt.show()
 
 # <codecell>
 
-
+    # <markdowncell>
+    
+    # If you can read this, reads_py() is no longer broken! 
+    
 
