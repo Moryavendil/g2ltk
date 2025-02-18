@@ -10,8 +10,13 @@ import matplotlib.pyplot as plt
 in_per_mm = 1 / 25.4
 screen_dpi = 122.38 # 24'' , 2560x1440 px screen. Use 91.79 for 24'' FHD and 165.63 for 13.3'' FHD  (default 100)
 
+# for APS & AIP (latex revtex4)
 figw_aps:Dict[str, float] = {'simple': 86 * in_per_mm, 'wide': 140 * in_per_mm, 'double': 180 * in_per_mm,
                              'inset': 40 * in_per_mm}
+# for thesis - WORK IN PROGRESS
+figw_these:Dict[str, float] = {'simple': 70*in_per_mm, 'wide': 110*in_per_mm, 'double': 150*in_per_mm,
+                               'inset': 35*in_per_mm, 'small': 50*in_per_mm}
+# for viewing confort, on a screen
 figw_confort:Dict[str, float] = {'simple': 120*in_per_mm, 'wide': 190*in_per_mm, 'double': 250*in_per_mm,
                                  'inset': 60*in_per_mm}
 
@@ -46,6 +51,25 @@ def figsize(w:Optional[Union[float, int, str]], h:Optional[Union[float, int, str
 
     return (width_in, height_in)
 
+latex_preamble = r"""%
+%%% PACKAGES
+%
+\usepackage{amsmath} %maths
+\usepackage{amssymb} %maths
+\usepackage{amsfonts} %maths
+\usepackage{physics} %physics
+\usepackage[range-phrase = --,retain-unity-mantissa = false,exponent-product = \cdot]{siunitx} % dimensioned quantities
+%
+%%% QOL
+%
+\setlength{\parindent}{0pt}% no indent
+%
+%%% MACROS
+%
+\newcommand{\mucl}{\mu_\text{cl}}
+\newcommand{\vdrift}{v_\text{drift}}
+%"""
+
 def configure_mpl(font_size=12):
     # figure options
     global screen_dpi
@@ -71,6 +95,12 @@ def configure_mpl(font_size=12):
                          'legend.fontsize': font_size,
                          'axes.labelsize': font_size, 'axes.titlesize': font_size,
                          'figure.labelsize': font_size,
+                         ### LEGEND
+                         'legend.frameon': True, # default True
+                         'legend.framealpha': 0.9, # default 0.9
+                         'legend.edgecolor': '1.0', # default 0.8
+                         'legend.labelspacing': 0.4, # default 0.5
+                         'legend.handletextpad': 0.5  # default 0.8
                          })
 
     # setup correct
@@ -83,6 +113,8 @@ def activate_saveplot(activate=True, font_size=10):
     # use LaTeX
     plt.rcParams['text.usetex'] = True
     plt.rcParams['pgf.texsystem'] = 'pdflatex'
+    global latex_preamble
+    plt.rcParams['text.latex.preamble'] = latex_preamble
 
     # use figure size
     global figw, figw_aps
@@ -96,6 +128,11 @@ def activate_saveplot(activate=True, font_size=10):
                          'legend.fontsize': font_size,
                          'axes.labelsize': font_size, 'axes.titlesize': font_size,
                          'figure.labelsize': font_size,
+                         ### LEGEND
+                         'legend.frameon': False, # default True
+                         'legend.framealpha': 0.9, # default 0.9
+                         'legend.labelspacing': 0.4, # default 0.5
+                         'legend.handletextpad': 0.5  # default 0.8
                          })
     # saving options
     plt.rcParams.update({'savefig.bbox': 'tight', # tight or standard
