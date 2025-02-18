@@ -8,7 +8,6 @@ scriptsdir = os.path.join(maindir, 'scripts')
 prefix = 'ipynb-'
 ipynbs = [f[len(prefix):-3] for f in os.listdir(scriptsdir) if os.path.isfile(os.path.join(scriptsdir, f)) and f.endswith('.py') and f.startswith(prefix)]
 ipynbs.sort()
-print(ipynbs)
 
 for ipynb in ipynbs:
     infilename = os.path.join(scriptsdir, prefix + ipynb + '.py')
