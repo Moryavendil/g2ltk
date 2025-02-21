@@ -440,21 +440,20 @@ from .saving_videos import *
 
 ###### GET INFO
 def get_t_frames(acquisition_path:str, framenumbers:Framenumbers = None, verbose:Optional[int]=None) -> Optional[np.ndarray]:
+    """Returns the time, in frames (integers)"""
     return format_framenumbers(acquisition_path, framenumbers = framenumbers, verbose = verbose).astype(float)
 
-def get_t_s(acquisition_path:str, framenumbers:Framenumbers = None, verbose:Optional[int]=None) -> Optional[np.ndarray]:
+def get_t_s( acquisition_path:str, framenumbers:Framenumbers = None, verbose:Optional[int]=None) -> Optional[np.ndarray]:
     return get_times(acquisition_path, framenumbers=framenumbers, unit='s', verbose = verbose)
-
 def get_t_ms(acquisition_path:str, framenumbers:Framenumbers = None, verbose:Optional[int]=None) -> Optional[np.ndarray]:
     return get_times(acquisition_path, framenumbers=framenumbers, unit='ms', verbose = verbose)
-
 def get_x_px(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, resize_factor:int = 1, verbose:Optional[int]=None) -> Optional[np.ndarray]:
     length, height, width = get_geometry(acquisition_path, framenumbers=framenumbers, subregion=subregion, verbose = verbose)
     return np.arange(width * resize_factor) / resize_factor
-
 def get_x_mm(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, resize_factor:int = 1, px_per_mm:float = 1., verbose:Optional[int]=None) -> Optional[np.ndarray]:
     return get_x_px(acquisition_path, framenumbers, subregion, resize_factor, verbose) / px_per_mm
-
-def get_x_m(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, resize_factor:int = 1, px_per_mm:float = 1., verbose:Optional[int]=None) -> Optional[np.ndarray]:
+def get_x_m( acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, resize_factor:int = 1, px_per_mm:float = 1., verbose:Optional[int]=None) -> Optional[np.ndarray]:
     return get_x_mm(acquisition_path, framenumbers, subregion, resize_factor, px_per_mm, verbose) / 1e3
+def get_x_um(acquisition_path:str, framenumbers:Framenumbers = None, subregion:Subregion = None, resize_factor:int = 1, px_per_mm:float = 1., verbose:Optional[int]=None) -> Optional[np.ndarray]:
+    return get_x_mm(acquisition_path, framenumbers, subregion, resize_factor, px_per_mm, verbose) * 1e3
 
