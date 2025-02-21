@@ -8,24 +8,28 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-plt.rcParams["figure.figsize"] = (12, 8)
-plt.rcParams["figure.max_open_warning"] = 50
+from tools import set_verbose, datareading, datasaving, utility, rivuletfinding
 
-plt.rcParams['pgf.texsystem'] = 'pdflatex'
-plt.rcParams.update({'font.family': 'serif', 'font.size': 12,
-                     'figure.titlesize' : 12,
-                     'axes.labelsize': 12,'axes.titlesize': 12,
-                     'legend.fontsize': 12})
-
-from tools import datareading, rivuletfinding, datasaving, utility
+utility.configure_mpl()
 
 
 # <codecell>
 
-# Dataset selection
-dataset = '20241104'
-dataset_path = os.path.join('../', dataset)
-print('Available acquisitions:', datareading.find_available_gcv(dataset_path))
+### Datasets display
+root_path = '../'
+datasets = datareading.find_available_datasets(root_path)
+print('Available datasets:', datareading.find_available_datasets(root_path))
+
+
+# <codecell>
+
+### Dataset selection & acquisitions display
+dataset = '-'
+if len(datasets) == 1:
+    dataset = datasets[0]
+    datareading.log_info(f'Auto-selected dataset {dataset}')
+dataset_path = os.path.join(root_path, dataset)
+datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
 
 
 # <codecell>

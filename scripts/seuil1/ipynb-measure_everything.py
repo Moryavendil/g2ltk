@@ -2,23 +2,14 @@
 # <nbformat>3.0</nbformat>
 # <codecell>
 
-from tools.utility import peak_vicinity1d
 %matplotlib notebook
 
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-plt.rcParams["figure.figsize"] = (12, 8)
-plt.rcParams["figure.max_open_warning"] = 50
-
-plt.rcParams['pgf.texsystem'] = 'pdflatex'
-plt.rcParams.update({'font.family': 'serif', 'font.size': 12,
-                     'figure.titlesize' : 12,
-                     'axes.labelsize': 12,'axes.titlesize': 12,
-                     'legend.fontsize': 12})
-
-from tools import datareading, rivuletfinding, datasaving, utility, log_info
+from tools import set_verbose, datareading, datasaving, utility
+utility.configure_mpl()
 
 
 # <markdowncell>
@@ -29,32 +20,53 @@ from tools import datareading, rivuletfinding, datasaving, utility, log_info
 
 # <codecell>
 
-# Dataset selection
-dataset = '20241104'
-dataset_path = os.path.join('../', dataset)
-print('Available acquisitions:', datareading.find_available_gcv(dataset_path))
-
-# Acquisition selection
-acquisition = '100mid_gcv'
-acquisition_path = os.path.join(dataset_path, acquisition)
-
-datareading.describe(dataset, acquisition, verbose=3)
+### Datasets display
+root_path = '../'
+datasets = datareading.find_available_datasets(root_path)
+print('Available datasets:', datareading.find_available_datasets(root_path))
 
 
 # <codecell>
 
-# Parameters definition
+### Dataset selection & acquisitions display
+dataset = '-'
+if len(datasets) == 1:
+    dataset = datasets[0]
+    datareading.log_info(f'Auto-selected dataset {dataset}')
+dataset_path = os.path.join(root_path, dataset)
+datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
+
+
+# <codecell>
+
+### Acquisition selection
+acquisition = '100mid_gcv'
+acquisition_path = os.path.join(dataset_path, acquisition)
+
+
+# <codecell>
+
+### Parameters definition
+
+# conversion factor
+px_per_mm = 33.6
+px_per_um = px_per_mm * 1e3
+
+# parameters to find the rivulet
 rivfinding_params = {
     'resize_factor': 2,
     'borders_min_distance': 8,
     'max_borders_luminosity_difference': 50,
     'max_rivulet_width': 100.,
 }
+
+# portion of the video that is of interest to us
 framenumbers = np.arange(datareading.get_number_of_available_frames(acquisition_path))
 roi = None, None, None, None  #start_x, start_y, end_x, end_y
 
 # framenumbers = np.arange(100)
-roi = 250, None, 1150, None
+if dataset == '20241104':
+    roi = 250, None, 1150, None
 
 
 
@@ -73,7 +85,8 @@ w_raw = utility.w_from_borders(datasaving.fetch_or_generate_data('borders', data
 # <markdowncell>
 
 # ## data cleaning
-# We do various cleaning steps to obtaon a cleaner $Z$ and $W$
+# 
+# We do various cleaning steps to obtain a cleaner $Z$ and $W$
 
 
 # <codecell>
@@ -162,28 +175,28 @@ realplot_kw = {'origin': 'upper', 'interpolation': 'nearest', 'aspect': 'auto'}
 
 ax = axes[0, 0]
 ax.set_title('Z (normal)')
-imz = ax.imshow(z_xt_treated, extent=utility.correct_extent_spatio(x, t), cmap='viridis', **realplot_kw)
+imz = ax.imshow(z_xt_treated, extent=utility.correct_extent(x, t), cmap='viridis', **realplot_kw)
 ax.set_xlabel('$x$ [px]')
 ax.set_ylabel('$t$ [frame]')
 plt.colorbar(imz, ax=ax, label='$z$ [px]')
 
 ax = axes[0, 1]
 ax.set_title('W (normal)')
-imw = ax.imshow(w_xt_treated, extent=utility.correct_extent_spatio(x, t), cmap='viridis', **realplot_kw)
+imw = ax.imshow(w_xt_treated, extent=utility.correct_extent(x, t), cmap='viridis', **realplot_kw)
 ax.set_xlabel('$x$ [px]')
 ax.set_ylabel('$t$ [frame]')
 plt.colorbar(imz, ax=ax, label='$w$ [px]')
 
 ax = axes[1, 0]
 ax.set_title('Z (smoothed)')
-imz = ax.imshow(z_filtered, extent=utility.correct_extent_spatio(x, t), cmap='viridis', **realplot_kw)
+imz = ax.imshow(z_filtered, extent=utility.correct_extent(x, t), cmap='viridis', **realplot_kw)
 ax.set_xlabel('$x$ [px]')
 ax.set_ylabel('$t$ [frame]')
 plt.colorbar(imz, ax=ax, label='$z$ [px]')
 
 ax = axes[1, 1]
 ax.set_title('W (smoothed)')
-imw = ax.imshow(w_filtered, extent=utility.correct_extent_spatio(x, t), cmap='viridis', **realplot_kw)
+imw = ax.imshow(w_filtered, extent=utility.correct_extent(x, t), cmap='viridis', **realplot_kw)
 ax.set_xlabel('$x$ [px]')
 ax.set_ylabel('$t$ [frame]')
 plt.colorbar(imz, ax=ax, label='$w$ [px]')
@@ -204,7 +217,7 @@ else:
 # <codecell>
 
 fig, axes = plt.subplots(1, 2, sharex=True, sharey=True)
-realplot_kw = {'origin': 'upper', 'interpolation': 'nearest', 'aspect': 'auto', 'extent': utility.correct_extent_spatio(x, t)}
+realplot_kw = {'origin': 'upper', 'interpolation': 'nearest', 'aspect': 'auto', 'extent': utility.correct_extent(x, t)}
 
 ax = axes[0]
 imz = ax.imshow(Z, cmap='viridis', **realplot_kw)
@@ -461,8 +474,8 @@ ax.set_xlabel(r'$f$ [frame$^{-1}$]')
 
 # <codecell>
 
-n_k = np.arange(0, 3+1)
-n_f = np.arange(-3, 3+1)
+n_k = np.arange(0, 2+1)
+n_f = np.arange(-2, 1+1)
 
 mode_ik, mode_if = np.meshgrid(n_k, n_f)
 mode_if, mode_ik = np.meshgrid(n_f, n_k)
@@ -476,7 +489,7 @@ print(mode_ik.shape)
 # <codecell>
 
 fig, axes = plt.subplots(1, 2, sharex=True, sharey=True)
-fftplot_kw = {'origin': 'lower', 'aspect': 'auto', 'interpolation': 'nearest', 'extent': utility.correct_extent_fft(k, f)}
+fftplot_kw = {'origin': 'lower', 'aspect': 'auto', 'interpolation': 'nearest', 'extent': utility.correct_extent(k, f, origin='lower')}
 # ticks for fft
 def get_cbticks(vmax, range_db):
     step_db = 5 * int(range_db / 25)
@@ -527,21 +540,13 @@ ax.set_ylim(-3.5*f0_guess, 3.5*f0_guess)
 
 # <codecell>
 
-nk = 0
-nf = -1
-# nk = 2
-# nf = -1
-# z2
-nk = 0
-nf = -1
-# # w1
-# nk = 1
-# nf = -1
+nk = 1
+nf = -2
 
 i_k = np.where(n_k == nk)[0][0]
 i_f = np.where(n_f == nf)[0][0]
 # print(i_k, i_f)
-    
+
 # z0
 kcentre = mode_k[i_k, i_f]
 fcentre = mode_f[i_k, i_f]
@@ -563,14 +568,14 @@ w_peakpower = utility.power_near_peak2d(kcentre, fcentre, W_psd, peak_depth_dB, 
 
 z_peakamplitude = np.sqrt(z_peakpower) * np.sqrt(2)
 w_peakamplitude = np.sqrt(w_peakpower) * np.sqrt(2)
-log_info(f'z_({mode_ik[i_k, i_f]},{mode_if[i_k, i_f]}) = {round(z_peakamplitude, 3)} px (filtering PSD of Z)')
-log_info(f'w_({mode_ik[i_k, i_f]},{mode_if[i_k, i_f]}) = {round(w_peakamplitude, 3)} px (filtering PSD of W)')
+utility.log_info(f'z_({mode_ik[i_k, i_f]},{mode_if[i_k, i_f]}) = {round(z_peakamplitude, 3)} px (filtering PSD of Z)')
+utility.log_info(f'w_({mode_ik[i_k, i_f]},{mode_if[i_k, i_f]}) = {round(w_peakamplitude, 3)} px (filtering PSD of W)')
 
 
 # <codecell>
 
 fig, axes = plt.subplots(2, 2, sharex=True, sharey=True)
-fftplot_kw = {'origin': 'lower', 'aspect': 'auto', 'interpolation': 'nearest', 'extent': utility.correct_extent_fft(k, f)}
+fftplot_kw = {'origin': 'lower', 'aspect': 'auto', 'interpolation': 'nearest', 'extent': utility.correct_extent(k, f, origin='lower')}
 
 range_db = peak_depth_dB + 60
 
@@ -637,82 +642,82 @@ ax.set_ylim(-.1, .1)
 
 # <codecell>
 
-acquisition
-
-
-# <codecell>
-
-nkmin = 0
-nkmax = 0
-nfmin = 0
-nfmax = 0
-
-if dataset=='20241104':
-    if acquisition=='100eta_gcv':
-        nfmin, nfamc = -3, 3
-        nkmin, nkmax = 0, 0
-    else:
-        
-
-n_k = np.arange(nkmin, nkmax+1)
-n_f = np.arange(nfmin, nfmax+1)
-
-amplitude_z = np.zeros_like(mode_ik, dtype=float)
-amplitude_w = np.zeros_like(mode_ik, dtype=float)
-
-peak_depth_dB = 60
-
-options = {'peak_max_area': 100, 'peak_min_circularity': .4}
-
-set_verbose(4)
-
-for i_k, nk in enumerate(n_k):
-    for i_f, nf in enumerate(n_f):
-        kcentre = mode_k[i_k, i_f]
-        fcentre = mode_f[i_k, i_f]
-        label = f'  ({mode_ik[i_k, i_f]}, {mode_if[i_k, i_f]})'
-        
-        if np.isclose(fcentre, 0) and np.isclose(kcentre, 0):
-            z_peakpower = 0
-            w_peakpower = 0
-        else:
-            z_peakpower = utility.power_near_peak2d(kcentre, fcentre, Z_psd, peak_depth_dB, x=k, y=f, **options)
-            # w_peakpower = utility.power_near_peak2d(kcentre, fcentre, W_psd, peak_depth_dB, x=k, y=f, **options)
-
-        amplitude_z[i_k, i_f] = np.sqrt(z_peakpower) * np.sqrt(2)
-        # amplitude_w[i_k, i_f] = np.sqrt(w_peakpower) * np.sqrt(2)
-
-        log_info(f'Done {len(n_f)*i_k+i_f+1} / {len(n_f)*len(n_k)}')
-#         
+# nkmin = 0
+# nkmax = 0
+# nfmin = 0
+# nfmax = 0
+# 
+# if dataset=='20241104':
+#     if acquisition=='100eta_gcv':
+#         nfmin, nfamc = -3, 3
+#         nkmin, nkmax = 0, 0
+#     else:
+#         pass
+# 
+# n_k = np.arange(nkmin, nkmax+1)
+# n_f = np.arange(nfmin, nfmax+1)
+# 
+# amplitude_z = np.zeros_like(mode_ik, dtype=float)
+# amplitude_w = np.zeros_like(mode_ik, dtype=float)
+# 
+# peak_depth_dB = 60
+# 
+# options = {'peak_max_area': 100, 'peak_min_circularity': .4}
+# 
+# set_verbose(4)
+# 
 # for i_k, nk in enumerate(n_k):
 #     for i_f, nf in enumerate(n_f):
 #         kcentre = mode_k[i_k, i_f]
 #         fcentre = mode_f[i_k, i_f]
 #         label = f'  ({mode_ik[i_k, i_f]}, {mode_if[i_k, i_f]})'
-# 
-#         z_peakpower = utility.power_near_peak2d(kcentre, fcentre, Z_psd, peak_depth_dB, x=k, y=f, **options)
-#         w_peakpower = utility.power_near_peak2d(kcentre, fcentre, W_psd, peak_depth_dB, x=k, y=f, **options)
+#         
+#         if np.isclose(fcentre, 0) and np.isclose(kcentre, 0):
+#             z_peakpower = 0
+#             w_peakpower = 0
+#         else:
+#             z_peakpower = utility.power_near_peak2d(kcentre, fcentre, Z_psd, peak_depth_dB, x=k, y=f, **options)
+#             # w_peakpower = utility.power_near_peak2d(kcentre, fcentre, W_psd, peak_depth_dB, x=k, y=f, **options)
 # 
 #         amplitude_z[i_k, i_f] = np.sqrt(z_peakpower) * np.sqrt(2)
-#         amplitude_w[i_k, i_f] = np.sqrt(w_peakpower) * np.sqrt(2)
+#         # amplitude_w[i_k, i_f] = np.sqrt(w_peakpower) * np.sqrt(2)
 # 
-#         log_info(f'Done {len(nf)*i_k+i_f+1} / {len(nf)*len(nk)}')
+#         utility.log_info(f'Done {len(n_f)*i_k+i_f+1} / {len(n_f)*len(n_k)}')
+# #         
+# # for i_k, nk in enumerate(n_k):
+# #     for i_f, nf in enumerate(n_f):
+# #         kcentre = mode_k[i_k, i_f]
+# #         fcentre = mode_f[i_k, i_f]
+# #         label = f'  ({mode_ik[i_k, i_f]}, {mode_if[i_k, i_f]})'
+# # 
+# #         z_peakpower = utility.power_near_peak2d(kcentre, fcentre, Z_psd, peak_depth_dB, x=k, y=f, **options)
+# #         w_peakpower = utility.power_near_peak2d(kcentre, fcentre, W_psd, peak_depth_dB, x=k, y=f, **options)
+# # 
+# #         amplitude_z[i_k, i_f] = np.sqrt(z_peakpower) * np.sqrt(2)
+# #         amplitude_w[i_k, i_f] = np.sqrt(w_peakpower) * np.sqrt(2)
+# # 
+# #         log_info(f'Done {len(nf)*i_k+i_f+1} / {len(nf)*len(nk)}')
 
 
 
 # <codecell>
 
-plt.figure()
-
-plt.imshow(amplitude_z)
+# plt.figure()
+# 
+# plt.imshow(amplitude_z)
 
 
 # <codecell>
 
-### GO REAL UNITS
-px_per_mm = 33.6
-acquisition_frequency = datareading.get_acquisition_frequency(acquisition_path, unit="Hz")
+# ### GO REAL UNITS
+# 
+# acquisition_frequency = datareading.get_acquisition_frequency(acquisition_path, unit="Hz")
+# 
+# tt = datareading.get_t_s(acquisition_path, framenumbers)
+# xx = datareading.get_x_mm(acquisition_path, framenumbers, subregion=roi, resize_factor=rivfinding_params['resize_factor'], px_per_mm=px_per_mm)
 
-tt = datareading.get_t_s(acquisition_path, framenumbers)
-xx = datareading.get_x_mm(acquisition_path, framenumbers, subregion=roi, resize_factor=rivfinding_params['resize_factor'], px_per_mm=px_per_mm)
+
+# <codecell>
+
+
 
