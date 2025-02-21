@@ -89,7 +89,7 @@ def find_extrema(x: np.ndarray, y: np.ndarray, peak_category: str = 'all', smoot
         dy = savgol_filter(dy, 25, 3)
 
     ### SECOND DERIVATIVE for sign
-    ddx, ddy = lap(dx, dy)
+    ddx, ddy = lap(x, y)
 
     ### INTERPOLATE TO KNOW THE SIGN
     is_max = np.interp(roots, ddx, ddy) < 0
