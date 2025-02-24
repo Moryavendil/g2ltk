@@ -149,10 +149,10 @@ def erase_items(parameters: dict, total_match:bool = False, verbose:Optional[int
     # Remove the items
     for item in [i for i in items if (i in index)]:  # run across the items that are indeed in the index
         index.pop(item)
-        log_trace(f'\r    Removed item {item} from index', verbose)
+        log_trace(f'    Removed item {item} from index', verbose)
         file_path = os.path.join(save_directory, item)
         if os.path.isfile(file_path): os.remove(file_path)
-        log_trace(f'\r    Deleted file {file_path}', verbose)
+        log_trace(f'    Deleted file {file_path}', verbose)
     # save the modified index
     set_index(index)
 
@@ -196,7 +196,7 @@ def save_data(data: Any, parameters: dict, verbose:Optional[int]=None) -> None:
     # save the file
     np.savez(os.path.join(save_directory, filename), data=data)
     # end
-    log_trace(f'\rSaved an item named {filename}', verbose)
+    log_trace(f'Saved an item named {filename}', verbose)
 
 ### TO GENERATE DATA
 def data_generating_fn(parameters:Dict[str, Any], verbose:int=1):
@@ -246,11 +246,11 @@ def fetch_or_generate_data_from_parameters(datatype:str, parameters:dict, verbos
     else: # Si tout n'est pas dispo
         if wanted_fns is not None: # si on demande pas tout
             if np.sum(np.isin(available_fns, wanted_fns, assume_unique=True)) == len(wanted_fns): # si cette partie est incluse dans la partie disponible
-                log_debug(f'\r{len(available_fns)} framenumbers available, {len(wanted_fns)} wanted. No need to generate data.', verbose)
+                log_debug(f'{len(available_fns)} framenumbers available, {len(wanted_fns)} wanted. No need to generate data.', verbose)
                 data = fetch_saved_data(parameters, verbose=verbose) # prendre tout
                 return data[np.isin(available_fns, wanted_fns, assume_unique=True)] # donner une partie
             else: # si on a des trucs mais la partie demandée on l'a pas
-                log_debug(f'\r{len(available_fns)} framenumbers available, {len(wanted_fns)} wanted.', verbose)
+                log_debug(f'{len(available_fns)} framenumbers available, {len(wanted_fns)} wanted.', verbose)
                 total_fns = np.sort( np.unique( np.concatenate((wanted_fns, available_fns)) ) ) # on prend l'union des deux
         else: # si on demande tout
             log_debug('All framenumbers wanted', verbose)

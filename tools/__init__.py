@@ -33,6 +33,7 @@ verbose_codes:Dict[str, int] = {'critical': 0,
                                 'error': 10,
                                 'warning': 20,
                                 'info': 30,
+                                'subinfo': 35,
                                 'debug': 40,
                                 'trace': 50,
                                 'subtrace': 55,
@@ -81,7 +82,12 @@ def log_info(text:str, verbose:int=None): # verbose 3
         verbose=__VERBOSE__
     if verbose >= verbose_codes['info']:
         display(Fore.LIGHTGREEN_EX + 'INFO: ' + str(text) + Fore.RESET)
-
+def log_subinfo(text:str, verbose:int=None): # verbose 3.5
+    global verbose_codes, __VERBOSE__
+    if verbose is None:
+        verbose=__VERBOSE__
+    if verbose >= verbose_codes['subinfo']:
+        display(Fore.GREEN + '(SUB)INFO: ' + str(text) + Fore.RESET)
 def log_debug(text:str, verbose:int=None): # verbose 4
     global verbose_codes, __VERBOSE__
     if verbose is None:

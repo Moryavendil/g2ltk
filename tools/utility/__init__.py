@@ -1,9 +1,9 @@
 from typing import Optional, Any, Tuple, Dict, List, Union
 import numpy as np
 
-from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
+from .. import display, throw_G2L_warning
 
-from .. import set_verbose
+from .. import set_verbose, log_error, log_warn, log_info, log_subinfo, log_debug, log_trace, log_subtrace
 
 ###### MATHS
 
