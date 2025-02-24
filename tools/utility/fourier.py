@@ -8,15 +8,39 @@ from . import step, span, find_roots, find_global_max, correct_limits
 
 ### FFT AND PSD COMPUTATIONS
 def dual(arr:np.ndarray) -> np.ndarray:
+    """Returns the dual, i.e. the frequencies.
+
+    The unit is the inverse: for exemple, time (s)-> frequency (Hz).
+
+    Parameters
+    ----------
+    arr
+
+    Returns
+    -------
+
+    """
     return np.fft.fftshift(np.fft.fftfreq(len(arr), step(arr)))
 
 def rdual(arr:np.ndarray) -> np.ndarray:
+    """Returns the dual, i.e. the frequencies, in a numpy.fft.rfft-compatible style.
+
+    The unit is the inverse: for exemple, time [s]-> frequency [Hz].
+
+    Parameters
+    ----------
+    arr
+
+    Returns
+    -------
+
+    """
     return np.fft.rfftfreq(len(arr), step(arr))
 
 from scipy.signal.windows import get_window # FFT windowing
 
 def ft1d(arr:np.ndarray, window:str= 'hann', norm=None) -> np.ndarray:
-    """
+    """Returns the 1-D Fourier transform of the input array using the given windowing.
 
     Parameters
     ----------
@@ -37,6 +61,18 @@ def ft1d(arr:np.ndarray, window:str= 'hann', norm=None) -> np.ndarray:
     return z_hat
 
 def ft2d(arr:np.ndarray, window:str='hann', norm=None) -> np.ndarray:
+    """Returns the 2-D Fourier transform of the input array using the given windowing.
+
+    Parameters
+    ----------
+    arr
+    window
+    norm
+
+    Returns
+    -------
+
+    """
     Nt, Nx = arr.shape
     z_treated = arr * np.expand_dims(get_window(window, Nt), axis=1) * np.expand_dims(get_window(window, Nx), axis=0)
     # z_treated -= np.mean(z_treated) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
@@ -48,7 +84,7 @@ def ft2d(arr:np.ndarray, window:str='hann', norm=None) -> np.ndarray:
 
 def window_factor(window:str):
     """
-    Returns the factor by which the energy is multiplied when the signal is windowed
+    Returns the factor by which the energy is multiplied when the signal is windowed.
 
     Parameters
     ----------
@@ -68,21 +104,35 @@ def window_factor(window:str):
         return 1/((get_window(window, 1000)**2).sum()/1000)
 
 def psd1d(z, x, window:str= 'hann') -> np.ndarray:
+    ### Step 1 : do the dimensional Fourier transform
+    # if the unit of z(t) is [Z(s)], then the unit of $\hat{z}$ is [Z/Hz(Hz)]
     z_ft = ft1d(z, window=window, norm="backward") * step(x) # x dt for units
-    # energy spectral density: energy of the signal at this frequency
-    # useful for time-limited signals (impulsions)
+    ### Step 2 : compute the ESD (Energy Spectral Density)
+    # Rigorously, this is the oly thing we can really measure with discretized inputs and FFT
+    # It is the total energy (i.e., during all the sampling time) of the signal at this frequency
+    # It is useful in itself for time-limited signals (impulsions)
+    # if the unit of z(t) is [Z(s)], then the unit of $ESD(z)$ is [Z^2/Hz^2(Hz)]
     esd = np.abs(z_ft)**2 * window_factor(window)
     esd[1:] *= 2 # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
-    # psd = esd / T
+    ### Step 3 : compute the PSD (Power Spectral Density)
+    # Assuming that the signal is periodic, then PSD = ESD / duration
+    # Thus if the unit of z(t) is [Z(s)], then the unit of PSD(z)$ is [Z^2/Hz(Hz)]
     return esd / span(x)
 
 def psd2d(z, x, y, window:str= 'hann') -> np.ndarray:
+    ### Step 1 : do the dimensional Fourier transform
+    # if the unit of z(t, x) is [Z(s, mm)], then the unit of $\hat{z}$ is [Z/(Hz.mm^{-1})(Hz, mm-1)]
     y_ft = ft2d(z, window=window, norm="backward") * step(x) * step(y) # x dt for units
-    # energy spectral density: energy of the signal at this frequency
-    # useful for time-limited signals (impulsions)
+    ### Step 2 : compute the ESD (Energy Spectral Density)
+    # Rigorously, this is the oly thing we can really measure with discretized inputs and FFT
+    # It is the total energy (i.e., during all the sampling time) of the signal at this 2-frequency
+    # It is useful in itself for space-time-limited signals (wavelets)
+    # if the unit of z(t, x) is [Z(s, mm)], then the unit of $ESD(z)$ is [Z^2/(Hz^2.mm^{-2})(Hz, mm-1)]
     esd = np.abs(y_ft)**2 * window_factor(window)**2
     esd[:, 1:] *= 2 # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
-    # psd = esd / (T X)
+    ### Step 3 : compute the PSD (Power Spectral Density)
+    # Assuming that the signal is 2-D periodic, then PSD = ESD / (duration_1.duration_2)
+    # Thus if the unit of z(t, x) is [Z(s, mm)], then the unit of PSD(z)$ is [Z^2/(Hz.mm^{-1})(Hz, mm-1)]
     return esd / span(x) / span(y)
 
 #
