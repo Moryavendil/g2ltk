@@ -724,12 +724,17 @@ def find_cos(**parameters):
 
     rivs = np.zeros((length, width * parameters['resize_factor']), float)
 
-    np.seterr(all='raise')
-    for framenumber in range(length):
-        try:
-            rivs[framenumber] = cos_framewise(frames[framenumber], **parameters)
-        except:
-            print(f'Error frame {framenumber}')
+    np.seterr(all='raise') # we are extra-careful because we do not want trash data
+    try:
+        # we first try the faster videowise
+        rivs = cos_videowise(frames **parameters)
+    except:
+        utility.log_error('cos_videowise failed. trying framewise to identify the problematic frame.')
+        for framenumber in range(length):
+            try:
+                rivs[framenumber] = cos_framewise(frames[framenumber], **parameters)
+            except:
+                utility.log_error(f'Error doint cos_framewise on frame {framenumber}')
 
     return rivs
 
