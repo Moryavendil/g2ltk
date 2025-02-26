@@ -3,7 +3,7 @@ import numpy as np
 
 from .. import display, throw_G2L_warning
 
-from .. import set_verbose, log_error, log_warn, log_info, log_subinfo, log_debug, log_trace, log_subtrace
+from .. import set_verbose, log_error, log_warn, log_warning, log_info, log_subinfo, log_debug, log_trace, log_subtrace
 
 ###### MATHS
 
