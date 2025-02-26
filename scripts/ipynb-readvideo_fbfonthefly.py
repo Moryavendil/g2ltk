@@ -20,7 +20,7 @@ plt.rcParams.update({'font.family': 'serif', 'font.size': 12,
 
 from matplotlib.colors import Normalize # colormaps
 
-from tools import set_verbose, datareading, utility
+from g2ltk import set_verbose, datareading, utility
 
 # Datasets display
 root_path = '../'

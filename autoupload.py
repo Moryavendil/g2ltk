@@ -33,10 +33,10 @@ gitversion = subprocess.check_output(cmd_getlatesttag, shell=True, text=True)[:-
 
 print(bcolors.HEADER + f"Current tagged version: '{gitversion or '[None]'}'" + bcolors.ENDC)
 
-import tools
+import g2ltk
 
-toolsversion = tools.__version__
-print(bcolors.HEADER + f"Current tools version: '{toolsversion}'" + bcolors.ENDC)
+toolsversion = g2ltk.__version__
+print(bcolors.HEADER + f"Current g2ltk version: '{toolsversion}'" + bcolors.ENDC)
 
 if toolsversion == gitversion:
     print(bcolors.FAIL + "Cannot autotag: Current version is git's last version" + bcolors.ENDC)
@@ -78,15 +78,15 @@ if toolsversion_new == toolsversion:
     print(bcolors.OKGREEN + 'COULD NOT UPDATE VERSION NUMBER' + bcolors.ENDC)
     sys.exit(300)
 
-with open('tools/__init__.py', 'r') as f:
+with open('g2ltk/__init__.py', 'r') as f:
     txt = f.read()
 
 txt = txt.replace(f"__version__ = '{toolsversion}'", f"__version__ = '{toolsversion_new}'")
 
-with open('tools/__init__.py', 'w') as f:
+with open('g2ltk/__init__.py', 'w') as f:
     f.write(txt)
 
 
-subprocess.run(f"git add tools/__init__.py", shell=True)
+subprocess.run(f"git add g2ltk/__init__.py", shell=True)
 subprocess.run(f'git commit -m "Increment version number to {toolsversion_new}"', shell=True)
 subprocess.run(f"git push", shell=True)

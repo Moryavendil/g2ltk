@@ -3,8 +3,8 @@ import numpy as np
 import os # to navigate in the directories
 # import shutil # to remove directories
 
-from tools import log_trace, log_debug, log_info, log_warning, log_error, VERSION
-from tools import rivuletfinding, datareading
+from g2ltk import log_trace, log_debug, log_info, log_warning, log_error, VERSION
+from g2ltk import rivuletfinding, datareading
 
 
 save_directory:str = 'analysis_files'

@@ -8,12 +8,12 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from tools import set_verbose, datareading, utility
+from g2ltk import set_verbose, datareading, utility
 utility.configure_mpl()
 
 import pandas as pd
 
-from tools import datareading
+from g2ltk import datareading
 
 
 # <codecell>

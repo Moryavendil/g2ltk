@@ -12,8 +12,8 @@ from scipy.ndimage import map_coordinates
 from scipy.signal import savgol_filter, butter, filtfilt, correlate, correlation_lags, find_peaks, hilbert
 from scipy.stats import linregress
 
-from tools import display, log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
-from tools import utility
+from g2ltk import display, log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
+from g2ltk import utility
 
 ### ### BRIDGE FINDING
 

@@ -13,7 +13,7 @@ def display(text:str, flush:bool=True, end:str='\n', padding:bool=True, displayt
 VIOLET = '#4f0e51'
 JAUNE = '#eaac3f'
 
-__version__ = '0.11.3'
+__version__ = '1.0.0'
 VERSION = __version__
 
 import warnings
@@ -110,4 +110,4 @@ def log_subtrace(text:str, verbose:int=None): # verbose 6
         display(Fore.LIGHTMAGENTA_EX + 'SUBTRACE:\t\t\t' + str(text) + Fore.RESET)
         
 
-log_info('Loading tools version '+__version__)
+log_info('Loading g2ltk version '+__version__)
