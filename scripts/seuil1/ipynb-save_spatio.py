@@ -2,7 +2,7 @@
 # <nbformat>3.0</nbformat>
 # <codecell>
 
-%matplotlib notebook
+# %matplotlib notebook
 
 import os
 import numpy as np
@@ -35,6 +35,7 @@ datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
 
 ### Acquisition selection
 acquisition = 'rest_gcv'
+acquisition = '50high_gcv'
 acquisition_path = os.path.join(dataset_path, acquisition)
 
 
@@ -61,7 +62,6 @@ roi = None, None, None, None  #start_x, start_y, end_x, end_y
 # framenumbers = np.arange(100)
 if dataset == '20241104':
     roi = 250, None, 1150, None
-
 
 
 # <codecell>
@@ -169,28 +169,28 @@ realplot_kw = {'origin': 'upper', 'interpolation': 'nearest', 'aspect': 'auto'}
 
 ax = axes[0, 0]
 ax.set_title('Z (normal)')
-imz = ax.imshow(z_xt_treated, extent=utility.correct_extent_spatio(x, t), cmap='viridis', **realplot_kw)
+imz = ax.imshow(z_xt_treated, extent=utility.correct_extent(x, t), cmap='viridis', **realplot_kw)
 ax.set_xlabel('$x$ [px]')
 ax.set_ylabel('$t$ [frame]')
 plt.colorbar(imz, ax=ax, label='$z$ [px]')
 
 ax = axes[0, 1]
 ax.set_title('W (normal)')
-imw = ax.imshow(w_xt_treated, extent=utility.correct_extent_spatio(x, t), cmap='viridis', **realplot_kw)
+imw = ax.imshow(w_xt_treated, extent=utility.correct_extent(x, t), cmap='viridis', **realplot_kw)
 ax.set_xlabel('$x$ [px]')
 ax.set_ylabel('$t$ [frame]')
 plt.colorbar(imz, ax=ax, label='$w$ [px]')
 
 ax = axes[1, 0]
 ax.set_title('Z (smoothed)')
-imz = ax.imshow(z_filtered, extent=utility.correct_extent_spatio(x, t), cmap='viridis', **realplot_kw)
+imz = ax.imshow(z_filtered, extent=utility.correct_extent(x, t), cmap='viridis', **realplot_kw)
 ax.set_xlabel('$x$ [px]')
 ax.set_ylabel('$t$ [frame]')
 plt.colorbar(imz, ax=ax, label='$z$ [px]')
 
 ax = axes[1, 1]
 ax.set_title('W (smoothed)')
-imw = ax.imshow(w_filtered, extent=utility.correct_extent_spatio(x, t), cmap='viridis', **realplot_kw)
+imw = ax.imshow(w_filtered, extent=utility.correct_extent(x, t), cmap='viridis', **realplot_kw)
 ax.set_xlabel('$x$ [px]')
 ax.set_ylabel('$t$ [frame]')
 plt.colorbar(imz, ax=ax, label='$w$ [px]')
@@ -210,14 +210,14 @@ else:
 
 # <codecell>
 
-log_info(f'Mean z: {Z.mean()} px')
-log_info(f'Mean w: {W.mean()} px')
+utility.log_info(f'Mean z: {Z.mean()} px')
+utility.log_info(f'Mean w: {W.mean()} px')
 
 
 # <codecell>
 
 fig, axes = plt.subplots(1, 2, sharex=True, sharey=True)
-realplot_kw = {'origin': 'upper', 'interpolation': 'nearest', 'aspect': 'auto', 'extent': utility.correct_extent_spatio(x, t)}
+realplot_kw = {'origin': 'upper', 'interpolation': 'nearest', 'aspect': 'auto', 'extent': utility.correct_extent(x, t)}
 
 ax = axes[0]
 imz = ax.imshow(Z, cmap='viridis', **realplot_kw)
@@ -237,7 +237,6 @@ plt.colorbar(imw, ax=ax, label='$w$ [px]')
 # <codecell>
 
 ### GO REAL UNITS
-px_per_mm = 33.6
 acquisition_frequency = datareading.get_acquisition_frequency(acquisition_path, unit="Hz")
 
 # ms
@@ -257,7 +256,6 @@ wmidscale = W.mean()
 wmin, wmax = np.percentile(W.flatten(), 1.), np.percentile(W.flatten(), 99.)
 
 
-
 # <codecell>
 
 import matplotlib.colors as mcolors
@@ -273,14 +271,13 @@ cmap_w = mcolors.LinearSegmentedColormap.from_list('customseismic', colors)
 
 # <codecell>
 
-
 # plt.rcParams['text.usetex'] = True
 
 
 # <codecell>
 
 fig, axes = plt.subplots(1, 2, sharex=True, sharey=True)
-realplot_kw = {'origin': 'upper', 'interpolation': 'nearest', 'aspect': 'auto', 'extent': utility.correct_extent_spatio(x, t)}
+realplot_kw = {'origin': 'upper', 'interpolation': 'nearest', 'aspect': 'auto', 'extent': utility.correct_extent(x, t)}
 
 fig.suptitle(f'{acquisition} ({dataset})')
 
@@ -300,9 +297,4 @@ plt.colorbar(imw, ax=ax, label=fr'$w$ [{unit_x}]')
 
 plt.tight_layout()
 utility.save_graphe(f'{acquisition}_spatio', imageonly=True)
-
-
-# <codecell>
-
-
 

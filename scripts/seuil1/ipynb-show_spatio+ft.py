@@ -2,7 +2,7 @@
 # <nbformat>3.0</nbformat>
 # <codecell>
 
-%matplotlib notebook
+# %matplotlib notebook
 
 import os
 import numpy as np
