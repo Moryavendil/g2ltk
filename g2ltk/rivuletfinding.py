@@ -1,11 +1,12 @@
-from typing import Optional, Any, Tuple, Dict, List
+from typing import Optional, Tuple, Dict
 import numpy as np
 import os
-import cv2 # to manipulate images and videos
+# import cv2 # to manipulate images and videos
+from scipy.ndimage import gaussian_filter
 from scipy.optimize import curve_fit # to fit functions
 
 from g2ltk import datareading, datasaving, utility
-from g2ltk import display, log_info, log_debug
+from g2ltk import display
 
 # Custom typing
 Meta = Dict[str, str]
@@ -27,15 +28,22 @@ Default value for finding functions parameters
  - verbose (int, 0 - 5):                    Debug level
 """
 default_kwargs = {
+
     'resize_factor': 2,
-    'remove_median_bckgnd': False,
+    ### median removing
+    'remove_median_bckgnd': False, # removes the t- median background for each pixel.
+    # This is recommended if there are no pixel where the rivulet is often, i.e. the rivulet moves a lot over a large span and is rarely straight
+    'remove_median_bckgnd_zwise': False, # removes the t-median for each z-line, independently.
+    # This is smarter because at a given x we rarely have more than half the pixel spanned by the rivulet so it is often useful.
+    # it allows us to mitigate the effects of uneven lighting in the x direction
+    'gaussian_blur_kernel_size': None,
     'white_tolerance': 70.,
     'rivulet_size_factor': 2.,
     'std_factor': 3.,
     'borders_min_distance': 1.,
     'max_rivulet_width': 20.,
     'max_borders_luminosity_difference': 50.,
-    'verbose': 2
+    'verbose': None
 }
 
 
@@ -134,54 +142,98 @@ def mean_shadowmax_linewise(z:np.ndarray, y:np.ndarray, **kwargs)-> float:
 
 
 ### FRAMEWISE METHODS
-def cos_framewise(frame:np.ndarray, **kwargs)-> float:
+def cos_framewise(frame:np.ndarray, **kwargs)->np.ndarray:
     """
 
-    :param frame:
-    :param kwargs: resize_factor (resizing of the frame, 1-4) ; white_tolerance (whiteness of the rivulet, 0-256) ; rivulet_size_factor (width of the rivulet, 1.-5.)
-    :return:
+    white_tolerance :
+    the channel is deemed there if the light is superior to (max l)  - white_tolerance
+    for example if the max value of light in image is 253 and white_tolerance = 70, everything where  l > (253-70) is deemed the channel
+
+    kwargs
+    resize_factor (resizing of the frame, 1-4) ;
+    white_tolerance (whiteness of the channel, 0-256) ;
+    rivulet_size_factor (width of the rivulet, 1.-5.)
+    'remove_median_bckgnd_zwise': False, # removes the t-median for each z-line, independently.
+    'gaussian_blur_kernel_size'
+    # This is smarter because at a given x we rarely have more than half the pixel spanned by the rivulet so it is often powerful.
+
+    Parameters
+    ----------
+    frame
+    kwargs
+
+    Returns
+    -------
+
     """
     for key in default_kwargs.keys():
         if not key in kwargs.keys():
             kwargs[key] = default_kwargs[key]
 
+
+    ### Step 1: Alter the image
+    # 1.1 : resize (if needed)
     l = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
+    l_origin = l.copy()
+    l_origin -= l_origin.min()
+
+    # 1.2 remove z median
+    if kwargs['remove_median_bckgnd_zwise']:
+        l = l - np.median(l, axis=(0), keepdims=True)
+    l_bckgnd_rmved = l.copy()
+    l_bckgnd_rmved -= l_bckgnd_rmved.min()
+
+    # 1.3 gaussian blur
+    if kwargs['gaussian_blur_kernel_size'] is not None:
+        sigma = kwargs['gaussian_blur_kernel_size']
+        l = gaussian_filter(l, sigma=sigma)
+    l_filtered = l.copy()
+    l_filtered -= l_filtered.min()
+
+    # 1.4 remove minimum
+    l -= l.min() # so that the min is at 0, i.e. the max of shadow is a 255
+
+    ### Step 2: Obtain the shadow representation
     height, width = l.shape
 
-    # the z coordinate ('horizontal' in real life)
-    z = np.arange(height)
-    z = np.repeat(z, width).reshape((height, width))
+    # 2.1 build the z coordinate ('horizontal' in real life)
+    x1D = np.arange(width)
+    z1D = np.arange(height)
+    z2D = np.repeat(z1D, width).reshape((height, width))
 
-    # select the channel (white zone in the image)
-    max_l = np.percentile(l, 95, axis=0, keepdims=True) # the max luminosiy (except outliers)
+    # 2.2 discriminate the channel (white zone in the image)
+    max_l = np.percentile(l, 95, axis=0, keepdims=True) # the max luminosity (except outliers). we take the 95th percentile
     threshold_l = max_l - kwargs['white_tolerance']
     is_channel = l >= threshold_l
 
-    # the channel borders
+    # 2.3 identify the channel borders
     top = np.argmax(is_channel, axis=0).max()
     bot = height - np.argmax(is_channel[::-1], axis=0).min()
 
-    # the channel
+    # 2.4 Obtain the z and shadow image for the channel
     s_channel = 255 - l[top:bot, :] # shadowisity (255 - luminosity)
-    z_channel = z[top:bot, :]           # z coordinate
+    z_channel = z2D[top:bot, :]           # z coordinate
 
-    # get the width of the rivulet
+    ### Step 3: Obtain the border of the rivulet
+    # 3.1 get a threshold to know where is the reivulet
     s_channel_max = np.amax(s_channel, axis=0, keepdims=True)
     s_channel_median = np.median(s_channel, axis=0, keepdims=True)
     # The threshold above which we count the rivulet
+    # This should be ap[prox. the half-max of the rivulet shadow
     s_channel_threshold = (s_channel_max + s_channel_median) / 2
 
-    # the half-width of the rivulet
+    # 3.2 compute the upper-approximate the half-width of the rivulet
     approx_rivulet_size = np.sum(s_channel >= s_channel_threshold, axis=0) * kwargs['rivulet_size_factor']
 
-    # the approximate position (resolution = size of the rivulet, a minima 1 pixel)
-    riv_pos_approx = np.argmax(s_channel, axis=0) + z_channel[0, :]
+    # 3.3 the approximate position (resolution = size of the rivulet, a minima 1 pixel)
+    riv_pos_approx = np.argmax(s_channel, axis=0, keepdims=True) + z_channel[0, :]
 
-    # the zone around the rivulet
+    # 3.4 identify the zone around the rivulet
     z_top = np.maximum(riv_pos_approx - approx_rivulet_size, np.zeros_like(riv_pos_approx))
     z_bot = np.minimum(riv_pos_approx + approx_rivulet_size, s_channel.shape[0] * np.ones_like(riv_pos_approx))
     around_the_rivulet = (z_channel >= z_top) & (z_channel <= z_bot)
 
+    ### Step 4: compute the center fo mass
     # the background near the rivulet
     s_bckgnd_near_rivulet = np.amin(s_channel, axis=0, where=around_the_rivulet, initial=255, keepdims=True) * (1-1e-5)
 
@@ -200,55 +252,90 @@ def cos_framewise(frame:np.ndarray, **kwargs)-> float:
 
 ### VIDEOWISE METHODS
 
-def cos_videowise(frames:np.ndarray, **kwargs)-> float: # WORK IN PROGRESS
+def cos_videowise(frames:np.ndarray, **kwargs)->np.ndarray: # WORK IN PROGRESS
     for key in default_kwargs.keys():
         if not key in kwargs.keys():
             kwargs[key] = default_kwargs[key]
 
-    frame = datareading.resize_frame(frames, resize_factor=kwargs['resize_factor'])
+    ### Step 1: Alter the image
+    # 1.1 : resize (if needed)
+    l = datareading.resize_frames(frames, resize_factor=kwargs['resize_factor'])
+    l_origin = l.copy() - l.min() # DEBUG
 
-    # the z coordinate ('horizontal' in real life)
-    z = np.arange(frame.shape[0])
-    z = np.repeat(z, frame.shape[1]).reshape(frames.shape)
+    # 1.2 remove z median
+    if kwargs['remove_median_bckgnd_zwise']:
+        l = l - np.median(l, axis=(0, 1), keepdims=True)
+    l_bckgnd_rmved = l.copy() - l.min() # DEBUG
 
-    # select the channel (white zone in the image)
-    maxlight = np.amax(frame, axis=0, keepdims=True)
-    white_threshold = maxlight - kwargs['white_tolerance']
-    is_white = frame >= white_threshold
+    # 1.3 gaussian blur
+    if kwargs['gaussian_blur_kernel_size'] is not None:
+        sigma = kwargs['gaussian_blur_kernel_size']
+        for i_t in range(len(l)):
+            l[i_t] = gaussian_filter(l[i_t], sigma=sigma)
+    l_filtered = l.copy() - l.min() # DEBUG
 
-    # the channel borders
-    top = np.argmax(is_white, axis=0).max()
-    bot = frame.shape[0] - np.argmax(is_white[::-1], axis=0).min()
+    # 1.4 remove minimum
+    l -= l.min() # so that the min is at 0, i.e. the max of shadow is a 255
 
-    # the channel
-    channel = 255 - frame[top:bot, :]
-    z_channel = z[top:bot, :]
+    ### Step 2: Obtain the shadow representation
+    length, height, width = l.shape
 
-    # get the width of the rivulet
-    channel_max = np.amax(channel, axis=0, keepdims=True)
-    channel_median = np.median(channel, axis=0, keepdims=True)
+    # 2.1 build the z coordinate ('horizontal' in real life)
+    x1D = np.arange(width)
+    z1D = np.arange(height)
+    z2D = np.repeat(z1D, width).reshape((height, width))
+    z3D = np.repeat(z2D[None, :, :], length, axis=0)
+
+    # 2.2 discriminate the channel (white zone in the image)
+    max_l = np.percentile(l, 95, axis=(0, 1), keepdims=True) # the max luminosity (except outliers). we take the 95th percentile
+    threshold_l = max_l - kwargs['white_tolerance']
+    is_channel = l >= threshold_l
+
+    # 2.3 identify the channel borders
+    top = np.argmax(is_channel, axis=1).max()
+    bot = height - np.argmax(is_channel[::-1], axis=1).min()
+
+    # 2.4 Obtain the z and shadow image for the channel
+    s_channel = 255 - l[:, top:bot, :] # shadowisity (255 - luminosity)
+    z_channel = z3D[:, top:bot, :]           # z coordinate
+
+    ### Step 3: Obtain the border of the rivulet
+    # 3.1 get a threshold to know where is the reivulet
+    s_channel_max = np.amax(s_channel, axis=(1), keepdims=True)
+    s_channel_median = np.median(s_channel, axis=(1), keepdims=True)
     # The threshold above which we count the rivulet
-    channel_threshold = (channel_max + channel_median) / 2
+    # This should be ap[prox. the half-max of the rivulet shadow
+    s_channel_threshold = (s_channel_max + s_channel_median) / 2
 
-    # the half-width of the rivulet
-    approx_size = np.sum(channel >= channel_threshold, axis=0) * kwargs['rivulet_size_factor']
+    # 3.2 compute the upper-approximate the half-width of the rivulet
+    approx_rivulet_size = np.sum(s_channel >= s_channel_threshold, axis=1, keepdims=True) * kwargs['rivulet_size_factor']
 
-    # the approximate position (resolution = size of the rivulet, a minima 1 pixel)
-    riv_pos_approx = np.argmax(channel, axis=0) + z_channel[0, :]
+    # 3.3 the approximate position (resolution = size of the rivulet, a minima 1 pixel)
+    riv_pos_approx = np.argmax(s_channel, axis=1, keepdims=True) + z_channel[:, 0:1:, :]
 
-    # the zone around the rivulet
-    z_top = np.maximum(riv_pos_approx - approx_size, np.zeros_like(riv_pos_approx))
-    z_bot = np.minimum(riv_pos_approx + approx_size, channel.shape[0] * np.ones_like(riv_pos_approx))
+    # utility.log_info(f's {s_channel.shape} --(argmax)-> {np.argmax(s_channel, axis=1, keepdims=True).shape}')
+    # utility.log_info(f'+ z {z_channel[:, 0:1:, :].shape}')
+    # utility.log_info(f'= riv_pos_approx {riv_pos_approx.shape}')
+
+    # 3.4 identify the zone around the rivulet
+    z_top = np.maximum(riv_pos_approx - approx_rivulet_size, np.zeros_like(riv_pos_approx))
+    z_bot = np.minimum(riv_pos_approx + approx_rivulet_size, s_channel.shape[0] * np.ones_like(riv_pos_approx))
     around_the_rivulet = (z_channel >= z_top) & (z_channel <= z_bot)
 
-    # the background near the rivulet
-    bckgnd_near_rivulet = np.amin(channel, axis=0, where=around_the_rivulet, initial=255, keepdims=True) * (1-1e-5)
+    # utility.log_info(f'riv_pos_approx {riv_pos_approx.shape} + approx_rivulet_size {approx_rivulet_size.shape}')
+    # utility.log_info(f'? np.zeros_like(riv_pos_approx) {np.zeros_like(riv_pos_approx).shape}')
+    # utility.log_info(f'= z_top {z_top.shape}')
 
-    # the weights to compute the COM
-    weights = (channel - bckgnd_near_rivulet) * around_the_rivulet
 
-    # The COM rivulet with sub-pixel resolution
-    rivulet = np.sum(z_channel * weights, axis=0) / np.sum(weights, axis=0)
+    ### Step 4: compute the center fo mass
+    # 4.1 remove the background near the rivulet
+    s_bckgnd_near_rivulet = np.amin(s_channel, axis=1, where=around_the_rivulet, initial=255, keepdims=True) * (1-1e-5)
+
+    # 4.2 compute the weights to compute the COM
+    weights = (s_channel - s_bckgnd_near_rivulet) * around_the_rivulet
+
+    # 4.3 The COM rivulet with sub-pixel resolution
+    rivulet = np.sum(z_channel * weights, axis=1) / np.sum(weights, axis=1)
 
     # take into account the resizing
     rivulet /= kwargs['resize_factor']
@@ -279,11 +366,11 @@ def bimax_naive(x, y):
         return xmax[0], ymax[0], xmax[0], ymax[0]
 
     # take the 2 bigger maxs
-    sorted = ymax.argsort()
-    x1, x2 = xmax[sorted][-1], xmax[sorted][-2]
+    maxs_sorted = ymax.argsort()
+    x1, x2 = xmax[maxs_sorted][-1], xmax[maxs_sorted][-2]
 
     # y of the 2 bigger maxs
-    y1, y2 = ymax[sorted][-1], ymax[sorted][-2]
+    y1, y2 = ymax[maxs_sorted][-1], ymax[maxs_sorted][-2]
 
     return x1, y1, x2, y2
 
@@ -299,11 +386,11 @@ def bimax_supernaive(x, y, **kwargs):
         return xmax[0], ymax[0], xmax[0], ymax[0]
 
     # take the 2 bigger maxs
-    sorted = ymax.argsort()
-    x1, x2 = xmax[sorted][-1], xmax[sorted][-2]
+    maxs_sorted = ymax.argsort()
+    x1, x2 = xmax[maxs_sorted][-1], xmax[maxs_sorted][-2]
 
     # y of the 2 bigger maxs
-    y1, y2 = ymax[sorted][-1], ymax[sorted][-2]
+    y1, y2 = ymax[maxs_sorted][-1], ymax[maxs_sorted][-2]
 
     return x1, y1, x2, y2
 
@@ -338,7 +425,7 @@ def bimax(x, y, do_fit:bool = False, w0:float = 1., **kwargs):
     if do_fit:
         return bimax_fit(x, y, w0)
     return bimax_supernaive(x, y, **kwargs)
-    return bimax_naive(x, y)
+    # return bimax_naive(x, y)
 
 from scipy.signal import find_peaks
 
@@ -346,11 +433,11 @@ def bimax_by_peakfinder(z, y, distance:float = 1, prominence:float = 1):
     peaks, _ = find_peaks(y, distance = distance, prominence = prominence)
 
     # take the 2 bigger maxs
-    sorted = y[peaks].argsort()
-    x1, x2 = z[peaks][sorted][-1], z[peaks][sorted][-2]
+    maxs_sorted = y[peaks].argsort()
+    x1, x2 = z[peaks][maxs_sorted][-1], z[peaks][maxs_sorted][-2]
 
     # y of the 2 bigger maxs
-    y1, y2 = y[peaks][sorted][-1], y[peaks][sorted][-2]
+    y1, y2 = y[peaks][maxs_sorted][-1], y[peaks][maxs_sorted][-2]
 
     return x1, y1, x2, y2
 
@@ -476,11 +563,19 @@ def borders(frame:np.ndarray, do_fit:bool = False, w0:float = 1., **kwargs) -> n
 def borders_via_peakfinder(frame:np.ndarray, prominence:float = 1, do_fit:bool=False, **kwargs) -> np.ndarray:
     """
 
-    :param frame:
-    :param do_fit:
-    :param w0:
-    :param kwargs: resize_factor (resizing of the frame, 1-4) ; max_rivulet_width (maximum authorized rivulet with, in pixels, 1-100)  ; max_borders_luminosity_difference (maximum authorized luminosity difference between the rivulet borders, 0-255)
-    :return:
+    kwargs resize_factor (resizing of the frame, 1-4) ; max_rivulet_width (maximum authorized rivulet with, in pixels, 1-100)  ; max_borders_luminosity_difference (maximum authorized luminosity difference between the rivulet borders, 0-255)
+
+
+    Parameters
+    ----------
+    frame
+    prominence
+    do_fit
+    kwargs
+
+    Returns
+    -------
+
     """
     for key in default_kwargs.keys():
         if not key in kwargs.keys():
@@ -489,7 +584,7 @@ def borders_via_peakfinder(frame:np.ndarray, prominence:float = 1, do_fit:bool=F
     frame_resized = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
     height, width = frame_resized.shape
 
-    zz = np.zeros((width, 4), dtype=float)
+    zz:np.ndarray = np.zeros((width, 4), dtype=float)
 
     z = np.arange(height) / kwargs['resize_factor']
 
@@ -507,14 +602,14 @@ def borders_via_peakfinder(frame:np.ndarray, prominence:float = 1, do_fit:bool=F
     x1, x2 = x.copy(), x.copy()
 
     # remove too spaced away
-    zdiff = np.abs(z1 - z2)
+    zdiff:np.ndarray = np.abs(z1 - z2)
     space_ok = zdiff < kwargs['max_rivulet_width']
-    log_debug(f'Too spaced away (> {kwargs["max_rivulet_width"]} resized px): {(1 - space_ok).sum()} pts', verbose=kwargs['verbose'])
+    utility.log_debug(f'Too spaced away (> {kwargs["max_rivulet_width"]} resized px): {(1 - space_ok).sum()} pts', verbose=kwargs['verbose'])
 
     # remove too different peaks
-    ydiff = np.abs(y1 - y2)
+    ydiff:np.ndarray = np.abs(y1 - y2)
     ydiff_ok = ydiff < kwargs['max_borders_luminosity_difference']
-    log_debug(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1 - ydiff_ok).sum()} pts', verbose=kwargs['verbose'])
+    utility.log_debug(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1 - ydiff_ok).sum()} pts', verbose=kwargs['verbose'])
 
     # There are 2 peaks
     deuxmax = space_ok * ydiff_ok
@@ -563,7 +658,7 @@ def get_frames_from_parameters(**parameters):
 
     # Data fetching
     frames = datareading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
-    length, height, width = frames.shape
+    # length, height, width = frames.shape
 
     frames = frames.astype(float, copy=False)
 
@@ -594,7 +689,7 @@ def find_borders(**parameters):
         if framenumber%10 == 0:
             display(f'Borders finding ({round(100*(framenumber+1)/length, 2)} %)', end = '\r')
     display(f'', end = '\r')
-    log_debug(f'Borders found', verbose=parameters['verbose'])
+    utility.log_debug(f'Borders found', verbose=parameters['verbose'])
 
     return brds
 
@@ -604,13 +699,13 @@ def find_cos(**parameters):
     dataset = parameters.get('dataset', 'unspecified-dataset')
     dataset_path = '../' + dataset
     if not(os.path.isdir(dataset_path)):
-        print(f'WARNING (RVFD): There is no dataset named {dataset}.')
+        utility.log_warning(f'(RVFD): There is no dataset named {dataset}.')
 
     # Acquisition selection
     acquisition = parameters.get('acquisition', 'unspecified-acquisition')
     acquisition_path = os.path.join(dataset_path, acquisition)
     if not(datareading.is_this_a_video(acquisition_path)):
-        print(f'WARNING (RVFD): There is no acquisition named {acquisition} for the dataset {dataset}.')
+        utility.log_warning(f'(RVFD): There is no acquisition named {acquisition} for the dataset {dataset}.')
 
     # Parameters getting
     roi = parameters.get('roi', None)
@@ -679,7 +774,7 @@ def com_naive_linewise(z:np.ndarray, y:np.ndarray, **kwargs)-> float:
 
     return position
 
-#TODO DELETE ME IN VERSION 0.12
+#TODO DELETE ME IN VERSION 2.0
 def com_linewise(z:np.ndarray, y:np.ndarray, **kwargs)-> float:
     """
     This function locates the rivulet by computing the center of mass of the light part of the rivulet.
@@ -865,7 +960,7 @@ def find_bol(verbose:int = 1, **parameters):
         if framenumber%10 == 0:
             display(f'BOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
     display(f'', end = '\r')
-    log_debug(f'BOL computed', verbose=parameters['verbose'])
+    utility.log_debug(f'BOL computed', verbose=parameters['verbose'])
 
     return rivs
 
