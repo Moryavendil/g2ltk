@@ -60,6 +60,8 @@ for ipynb in ipynbs:
             for line in cell["source"]:
                 if cell["cell_type"] == "markdown":
                     fout.write("# ")
+                # hide the %matplotlib magic command so that the script can be runnable by itself
+                line = line.replace('%matplotlib ', '# %matplotlib ')
                 fout.write(line)
             fout.write('\n\n')
     else:

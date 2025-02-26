@@ -69,13 +69,16 @@ for ipynb_name in ipynb_names:
         print(f'ERROR - CANNOT OPEN?: {infilename}')
         sys.exit(-201)
 
+    # restore the magic matplotlib command
+    text = text.replace('# %matplotlib', '%matplotlib')
+
     text += """
     # <markdowncell>
     
     # If you can read this, reads_py() is no longer broken! 
     """
 
-    nbook = v3.reads_py(text)
+    nbook = v3.reads_py(text) # we read in v3 because the formatting is more sympathic
     nbook = v4.upgrade(nbook)  # Upgrade v3 to v4
 
     # nbook.metadata.authors = [
