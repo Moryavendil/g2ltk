@@ -3,7 +3,7 @@ import numpy as np
 import os # to navigate in the directories
 # import shutil # to remove directories
 
-from g2ltk import log_trace, log_debug, log_info, log_warning, log_error, VERSION
+from g2ltk import log_trace, log_debug, log_subinfo, log_info, log_warning, log_error, VERSION
 from g2ltk import rivuletfinding, datareading
 
 
@@ -221,7 +221,7 @@ def fetch_or_generate_data(datatype:str, dataset:str, acquisition:str, verbose:O
     return fetch_or_generate_data_from_parameters(datatype, parameters, verbose=verbose)
 
 def fetch_or_generate_data_from_parameters(datatype:str, parameters:dict, verbose:int = None):
-    log_debug(f'Fetching or generating data: {datatype}', verbose)
+    log_subinfo(f'Fetching or generating data: {datatype}', verbose)
     log_trace(f'Parameters: {parameters}', verbose)
 
     parameters['datatype'] = datatype
