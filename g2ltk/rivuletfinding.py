@@ -715,19 +715,20 @@ def find_cos(**parameters):
     frames = datareading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
     length, height, width = frames.shape
 
-    if parameters['remove_median_bckgnd']:
+    global default_kwargs
+    if parameters.get('remove_median_bckgnd', default_kwargs['remove_median_bckgnd']):
         frames = frames - np.median(frames, axis=0, keepdims=True)
 
     for key in default_kwargs.keys():
         if not key in parameters.keys():
             parameters[key] = default_kwargs[key]
 
-    rivs = np.zeros((length, width * parameters['resize_factor']), float)
+    rivs = np.zeros((length, width * parameters['resize_factor']), dtype=float)
 
     np.seterr(all='raise') # we are extra-careful because we do not want trash data
     try:
         # we first try the faster videowise
-        rivs = cos_videowise(frames **parameters)
+        rivs = cos_videowise(frames, **parameters)
     except:
         utility.log_error('cos_videowise failed. trying framewise to identify the problematic frame.')
         for framenumber in range(length):
