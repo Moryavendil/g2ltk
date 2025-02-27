@@ -24,11 +24,13 @@ figw = {**figw_confort}
 
 def figsize(w:Optional[Union[float, int, str]], h:Optional[Union[float, int, str]]=None, unit='mm') ->Tuple[float, float]:
     global in_per_mm
-    width_in = figw['simple']
+    default_width = 'simple'
+    width_in = figw[default_width]
     if isinstance(w, str):
         width_in = figw.get(w, None)
         if width_in is None:
-            log_error('Unrecognized figsize: {w}'.format(w=w))
+            log_error(f'Unrecognized figsize: {w}. Using {default_width}.')
+            width_in = figw[default_width]
     elif unit == 'mm':
         width_in = float(w)*in_per_mm
     elif unit == 'in':
