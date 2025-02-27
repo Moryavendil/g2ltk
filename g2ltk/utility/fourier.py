@@ -4,10 +4,10 @@ import math
 
 from .. import display, throw_G2L_warning, log_error, log_warning, log_info, log_debug, log_trace, log_subtrace
 
-from . import step, span, find_roots, find_global_max, correct_limits
+from . import step, span, find_roots, find_global_max, correct_limits, attenuate_power
 
 ### FFT AND PSD COMPUTATIONS
-def dual(arr:np.ndarray, zero_pad=None) -> np.ndarray:
+def dual(arr:np.ndarray, zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None) -> np.ndarray:
     """
     Returns the dual, i.e. the frequencies.
 
@@ -23,16 +23,21 @@ def dual(arr:np.ndarray, zero_pad=None) -> np.ndarray:
 
     """
 
-    n = None
+    n = arr.shape[0]
+    if zero_pad_factor is not None:
+        try:
+            n = int(arr.shape[0] * zero_pad_factor)
+        except:
+            log_warning(f'What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
     if zero_pad is not None:
         if isinstance(zero_pad, int):
             n = arr.shape[0] + zero_pad
         else:
             log_warning(f'What is this zero-padding "{zero_pad}" ? I made it None')
 
-    return np.fft.fftshift(np.fft.fftfreq(len(arr)+n, step(arr)))
+    return np.fft.fftshift(np.fft.fftfreq(n, step(arr)))
 
-def rdual(arr:np.ndarray, zero_pad=None) -> np.ndarray:
+def rdual(arr:np.ndarray, zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None) -> np.ndarray:
     """Returns the dual, i.e. the frequencies, in a numpy.fft.rfft-compatible style.
 
     The unit is the inverse, e.g. time (s)-> frequency (Hz).
@@ -47,18 +52,40 @@ def rdual(arr:np.ndarray, zero_pad=None) -> np.ndarray:
 
     """
 
-    n = None
+    n = arr.shape[0]
+    if zero_pad_factor is not None:
+        try:
+            n = int(arr.shape[0] * float(zero_pad_factor))
+        except:
+            log_warning(f'What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
     if zero_pad is not None:
         if isinstance(zero_pad, int):
             n = arr.shape[0] + zero_pad
         else:
             log_warning(f'What is this zero-padding "{zero_pad}" ? I made it None')
-    return np.fft.rfftfreq(len(arr)+n, step(arr))
+
+    return np.fft.rfftfreq(n, step(arr))
+
+def dual2d(x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None,
+           zero_pad:Optional[Tuple[int, int]]=None, zero_pad_factor:Optional[Tuple[float, float]]=None) -> Tuple[np.ndarray, np.ndarray]:
+    zero_pad_x, zero_pad_y = None, None
+    if zero_pad is not None:
+        try:
+            zero_pad_x, zero_pad_y = int(zero_pad[0]), int(zero_pad[1])
+        except:
+            log_warning(f'What is this zero-padding "{zero_pad}" ? I made it None')
+    zero_pad_factor_x, zero_pad_factor_y = None, None
+    if zero_pad_factor is not None:
+        try:
+            zero_pad_factor_x, zero_pad_factor_y = float(zero_pad_factor[0]), float(zero_pad_factor[1])
+        except:
+            log_warning(f'What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
+    return (rdual(x, zero_pad=zero_pad_x, zero_pad_factor=zero_pad_factor_x), dual(y, zero_pad=zero_pad_y, zero_pad_factor=zero_pad_factor_y))
 
 from scipy.signal.windows import get_window # FFT windowing
 from scipy import fft
 
-def ft1d(arr:np.ndarray, x:Optional[np.ndarray]=None, window:str= 'hann', norm=None, zero_pad=None) -> np.ndarray:
+def ft1d(arr:np.ndarray, x:Optional[np.ndarray]=None, window:str= 'hann', norm=None, zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None) -> np.ndarray:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
     The unit is in amplitude/(inverse periode), e.g. V(s) -> V/Hz(Hz)
@@ -80,7 +107,14 @@ def ft1d(arr:np.ndarray, x:Optional[np.ndarray]=None, window:str= 'hann', norm=N
     # z_treated -= np.mean(z_treated) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
     z_treated -= np.mean(z_treated)
 
-    n = None
+
+
+    n = arr.shape[0]
+    if zero_pad_factor is not None:
+        try:
+            n = int(arr.shape[0] * zero_pad_factor)
+        except:
+            log_warning(f'What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
     if zero_pad is not None:
         if isinstance(zero_pad, int):
             n = arr.shape[0] + zero_pad
@@ -91,7 +125,8 @@ def ft1d(arr:np.ndarray, x:Optional[np.ndarray]=None, window:str= 'hann', norm=N
     return z_hat * step(x)
 
 
-def ft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str='hann', norm=None, zero_pad=None) -> np.ndarray:
+def ft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str='hann', norm=None,
+         zero_pad:Optional[Tuple[int, int]]=None, zero_pad_factor:Optional[Tuple[float, float]]=None) -> np.ndarray:
     """Returns the 2-D Fourier transform of the input array using the given windowing.
 
     The unit is in amplitude/(inverse periode), e.g. V(s, m) -> V/Hz/m$^{-1}$(Hz.m$^{-1}$)
@@ -114,6 +149,11 @@ def ft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=Non
     z_treated -= np.mean(z_treated)
 
     s = None
+    if zero_pad_factor is not None:
+        try:
+            s = [arr.shape[0] * float(zero_pad_factor[0]), arr.shape[1] * float(zero_pad_factor[0])]
+        except:
+            log_warning(f'What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
     if zero_pad is not None:
         try:
             s = [arr.shape[0] + int(zero_pad[0]), arr.shape[1] + int(zero_pad[0])]
@@ -145,10 +185,10 @@ def window_factor(window:str):
     else:
         return 1/((get_window(window, 1000)**2).sum()/1000)
 
-def psd1d(z:np.ndarray, x:Optional[np.ndarray]=None, window:str='hann', zero_pad=None) -> np.ndarray:
+def psd1d(z:np.ndarray, x:Optional[np.ndarray]=None, window:str='hann', zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None) -> np.ndarray:
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
-    z_ft = ft1d(z, x=x, window=window, norm="backward", zero_pad=zero_pad)
+    z_ft = ft1d(z, x=x, window=window, norm="backward", zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the oly thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this frequency
@@ -161,10 +201,10 @@ def psd1d(z:np.ndarray, x:Optional[np.ndarray]=None, window:str='hann', zero_pad
     # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
     return esd / span(x)
 
-def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str='hann', zero_pad=None) -> np.ndarray:
+def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str='hann', zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None) -> np.ndarray:
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $\hat{z}$ is [V/(Hz.mm^{-1})(Hz, mm-1)]
-    y_ft = ft2d(z, x=x, y=y, window=window, norm="backward", zero_pad=zero_pad)
+    y_ft = ft2d(z, x=x, y=y, window=window, norm="backward", zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the oly thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this 2-frequency
@@ -187,8 +227,6 @@ def estimatesignalfrequency(z:np.ndarray, x:Optional[np.ndarray]=None, window:st
 
 
 # find the edges of the peak (1D, everything is easy)
-def attenuate_power(value, attenuation_factor_dB):
-    return value / math.pow(10, attenuation_factor_dB / 20)
 def peak_contour1d(peak_x, z, peak_depth_dB, x=None):
     if x is None:
         x = np.arange(z.shape[0])
