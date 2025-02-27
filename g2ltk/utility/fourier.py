@@ -2,51 +2,74 @@ from typing import Optional, Any, Tuple, Dict, List, Union
 import numpy as np
 import math
 
-from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
+from .. import display, throw_G2L_warning, log_error, log_warning, log_info, log_debug, log_trace, log_subtrace
 
 from . import step, span, find_roots, find_global_max, correct_limits
 
 ### FFT AND PSD COMPUTATIONS
-def dual(arr:np.ndarray) -> np.ndarray:
-    """Returns the dual, i.e. the frequencies.
+def dual(arr:np.ndarray, zero_pad=None) -> np.ndarray:
+    """
+    Returns the dual, i.e. the frequencies.
 
-    The unit is the inverse: for exemple, time (s)-> frequency (Hz).
+    The unit is the inverse, e.g. time (s)-> frequency (Hz).
 
     Parameters
     ----------
     arr
+    zero_pad
 
     Returns
     -------
 
     """
-    return np.fft.fftshift(np.fft.fftfreq(len(arr), step(arr)))
 
-def rdual(arr:np.ndarray) -> np.ndarray:
+    n = None
+    if zero_pad is not None:
+        if isinstance(zero_pad, int):
+            n = arr.shape[0] + zero_pad
+        else:
+            log_warning(f'What is this zero-padding "{zero_pad}" ? I made it None')
+
+    return np.fft.fftshift(np.fft.fftfreq(len(arr)+n, step(arr)))
+
+def rdual(arr:np.ndarray, zero_pad=None) -> np.ndarray:
     """Returns the dual, i.e. the frequencies, in a numpy.fft.rfft-compatible style.
 
-    The unit is the inverse: for exemple, time [s]-> frequency [Hz].
+    The unit is the inverse, e.g. time (s)-> frequency (Hz).
 
     Parameters
     ----------
     arr
+    zero_pad
 
     Returns
     -------
 
     """
-    return np.fft.rfftfreq(len(arr), step(arr))
+
+    n = None
+    if zero_pad is not None:
+        if isinstance(zero_pad, int):
+            n = arr.shape[0] + zero_pad
+        else:
+            log_warning(f'What is this zero-padding "{zero_pad}" ? I made it None')
+    return np.fft.rfftfreq(len(arr)+n, step(arr))
 
 from scipy.signal.windows import get_window # FFT windowing
+from scipy import fft
 
-def ft1d(arr:np.ndarray, window:str= 'hann', norm=None) -> np.ndarray:
-    """Returns the 1-D Fourier transform of the input array using the given windowing.
+def ft1d(arr:np.ndarray, x:Optional[np.ndarray]=None, window:str= 'hann', norm=None, zero_pad=None) -> np.ndarray:
+    """ Returns the 1-D Fourier transform of the input array using the given windowing.
+
+    The unit is in amplitude/(inverse periode), e.g. V(s) -> V/Hz(Hz)
 
     Parameters
     ----------
     arr
+    x
     window
     norm
+    zero_pad
 
     Returns
     -------
@@ -57,14 +80,26 @@ def ft1d(arr:np.ndarray, window:str= 'hann', norm=None) -> np.ndarray:
     # z_treated -= np.mean(z_treated) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
     z_treated -= np.mean(z_treated)
 
-    z_hat = np.fft.rfft(z_treated, norm=norm)
-    return z_hat
+    n = None
+    if zero_pad is not None:
+        if isinstance(zero_pad, int):
+            n = arr.shape[0] + zero_pad
+        else:
+            log_warning(f'What is this zero-padding "{zero_pad}" ? I made it None')
+    z_hat = fft.rfft(z_treated, norm=norm, n=n)
 
-def ft2d(arr:np.ndarray, window:str='hann', norm=None) -> np.ndarray:
+    return z_hat * step(x)
+
+
+def ft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str='hann', norm=None, zero_pad=None) -> np.ndarray:
     """Returns the 2-D Fourier transform of the input array using the given windowing.
+
+    The unit is in amplitude/(inverse periode), e.g. V(s, m) -> V/Hz/m$^{-1}$(Hz.m$^{-1}$)
 
     Parameters
     ----------
+    x
+    y
     arr
     window
     norm
@@ -78,8 +113,15 @@ def ft2d(arr:np.ndarray, window:str='hann', norm=None) -> np.ndarray:
     # z_treated -= np.mean(z_treated) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
     z_treated -= np.mean(z_treated)
 
-    z_hat = np.fft.rfft2(z_treated, norm=norm)
-    return np.fft.fftshift(z_hat, axes=0)
+    s = None
+    if zero_pad is not None:
+        try:
+            s = [arr.shape[0] + int(zero_pad[0]), arr.shape[1] + int(zero_pad[0])]
+        except:
+            log_warning(f'What is this zero-padding "{zero_pad}" ? I made it None')
+
+    z_hat = fft.rfft2(z_treated, norm=norm, s=s)
+    return fft.fftshift(z_hat, axes=0) * step(x) * step(y)
     # return np.concatenate((z_hat[(Nt+1)//2:,:], z_hat[:(Nt+1)//2,:])) # reorder bcz of the FT
 
 def window_factor(window:str):
@@ -103,40 +145,40 @@ def window_factor(window:str):
     else:
         return 1/((get_window(window, 1000)**2).sum()/1000)
 
-def psd1d(z, x, window:str= 'hann') -> np.ndarray:
+def psd1d(z:np.ndarray, x:Optional[np.ndarray]=None, window:str='hann', zero_pad=None) -> np.ndarray:
     ### Step 1 : do the dimensional Fourier transform
-    # if the unit of z(t) is [Z(s)], then the unit of $\hat{z}$ is [Z/Hz(Hz)]
-    z_ft = ft1d(z, window=window, norm="backward") * step(x) # x dt for units
+    # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
+    z_ft = ft1d(z, x=x, window=window, norm="backward", zero_pad=zero_pad)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the oly thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this frequency
     # It is useful in itself for time-limited signals (impulsions)
-    # if the unit of z(t) is [Z(s)], then the unit of $ESD(z)$ is [Z^2/Hz^2(Hz)]
+    # if the unit of z(t) is [V(s)], then the unit of $ESD(z)$ is [V^2/Hz^2(Hz)]
     esd = np.abs(z_ft)**2 * window_factor(window)
     esd[1:] *= 2 # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is periodic, then PSD = ESD / duration
-    # Thus if the unit of z(t) is [Z(s)], then the unit of PSD(z)$ is [Z^2/Hz(Hz)]
+    # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
     return esd / span(x)
 
-def psd2d(z, x, y, window:str= 'hann') -> np.ndarray:
+def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str='hann', zero_pad=None) -> np.ndarray:
     ### Step 1 : do the dimensional Fourier transform
-    # if the unit of z(t, x) is [Z(s, mm)], then the unit of $\hat{z}$ is [Z/(Hz.mm^{-1})(Hz, mm-1)]
-    y_ft = ft2d(z, window=window, norm="backward") * step(x) * step(y) # x dt for units
+    # if the unit of z(t, x) is [V(s, mm)], then the unit of $\hat{z}$ is [V/(Hz.mm^{-1})(Hz, mm-1)]
+    y_ft = ft2d(z, x=x, y=y, window=window, norm="backward", zero_pad=zero_pad)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the oly thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this 2-frequency
     # It is useful in itself for space-time-limited signals (wavelets)
-    # if the unit of z(t, x) is [Z(s, mm)], then the unit of $ESD(z)$ is [Z^2/(Hz^2.mm^{-2})(Hz, mm-1)]
+    # if the unit of z(t, x) is [V(s, mm)], then the unit of $ESD(z)$ is [V^2/(Hz^2.mm^{-2})(Hz, mm-1)]
     esd = np.abs(y_ft)**2 * window_factor(window)**2
     esd[:, 1:] *= 2 # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is 2-D periodic, then PSD = ESD / (duration_1.duration_2)
-    # Thus if the unit of z(t, x) is [Z(s, mm)], then the unit of PSD(z)$ is [Z^2/(Hz.mm^{-1})(Hz, mm-1)]
+    # Thus if the unit of z(t, x) is [V(s, mm)], then the unit of PSD(z)$ is [V^2/(Hz.mm^{-1})(Hz, mm-1)]
     return esd / span(x) / span(y)
 
 #
-def estimatesignalfrequency(z, x=None, window:str= 'hann') -> float:
+def estimatesignalfrequency(z:np.ndarray, x:Optional[np.ndarray]=None, window:str='hann') -> float:
     if x is None:
         x = np.arange(len(z))
     fx:np.ndarray = rdual(x)
