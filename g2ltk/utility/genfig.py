@@ -22,7 +22,7 @@ figw_confort:Dict[str, float] = {'simple': 120*in_per_mm, 'wide': 190*in_per_mm,
 
 figw = {**figw_confort}
 
-def figsize(w:Optional[Union[float, int, str]], h:Optional[Union[float, int, str]]=None, unit='mm') ->Tuple[float, float]:
+def figsize(w:Optional[Union[float, int, str]], h:Optional[Union[float, int, str]]=None, ratio:Optional[float]=None, unit='mm') ->Tuple[float, float]:
     global in_per_mm
     default_width = 'simple'
     width_in = figw[default_width]
@@ -38,7 +38,15 @@ def figsize(w:Optional[Union[float, int, str]], h:Optional[Union[float, int, str
     elif w is not None:
         log_error('Unrecognized unit for figsize: {unit}'.format(unit=unit))
 
-    height_in = width_in / 1.618
+    if h is None:
+        if ratio is not None:
+            try:
+                ratio = float(ratio)
+            except:
+                log_error('This is not a ratio: {ratio}. Taking None instead.'.format(ratio=ratio))
+        if ratio is None:
+            ratio = 1.618
+    height_in = width_in / ratio # by default
     if h is not None:
         if isinstance(h, str):
             height_in = figw.get(h, None)
