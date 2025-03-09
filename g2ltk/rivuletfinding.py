@@ -22,7 +22,9 @@ Default value for finding functions parameters
  - white_tolerance      (float, 0 - 255):   Difference between the channel white background and the black borders
  - rivulet_size_factor  (float, 1. - 5.):   How much wider is the rivulet compared to the size occupied by low luminosity extremapoints
  - std_factor           (float, 1. - 5.):   How much of the noise to remove
- - borders_min_distance (float, 1. - 10.):  The distance, in px / resize_factor, between two consecutive maximums in the function find_extrema used to find the borders
+ - borders_min_distance (float, 1. - 100.):  The distance, in px / resize_factor, between two consecutive maximums in the function find_extrema used to find the borders
+ - borders_prominence (float, 1. - 100.):  prominence of menisci, given to scipy's find_peaks
+ - borders_width (float, 1. - 100.):  width of menisci in px, given to scipy's find_peaks
  - max_rivulet_width    (float, 1. - 1000.): Maximum authorized rivulet width, in pixels 
  - max_borders_luminosity_difference (float, 0 - 255): Maximum authorized luminosity difference between the rivulet borders
  - verbose (int, 0 - 5):                    Debug level
@@ -40,17 +42,17 @@ default_kwargs = {
     'white_tolerance': 70.,
     'rivulet_size_factor': 2.,
     'std_factor': 3.,
-    'borders_min_distance': 1.,
+    'borders_min_distance': None,
+    'borders_prominence': None,
+    'borders_width': None,
     'max_rivulet_width': 20.,
     'max_borders_luminosity_difference': 50.,
     'verbose': None
 }
 
 
-# COM : Center of Mass, center of the white zone -> Remove, replace by BOL
 # COS : Center of Shadow, center of mass of the shadows -> Rename BOS, Barycentre of Shadow
 # BOL : Barycentre of Light, center of mass of the light zone
-# MBP : Mean Borders Position, mean position of the shadows peaks
 pass
 ### CENTER OF RIVULET FINDING
 pass
@@ -110,13 +112,61 @@ def cos_linewise(x:np.ndarray, y:np.ndarray, **kwargs)-> float:
 
     return position
 
+def borders_linewise(z_line:np.ndarray, l_line:np.ndarray, **kwargs):
+    for key in default_kwargs.keys():
+        if not key in kwargs.keys():
+            kwargs[key] = default_kwargs[key]
 
-def mean_shadowmax_linewise(z:np.ndarray, y:np.ndarray, **kwargs)-> float:
+    ### Step 2: Obtain the shadow representation
+    height, = l_line.shape
+
+    # 2.2 discriminate the channel (white zone in the image)
+    max_l = np.percentile(l_line, 95, axis=0, keepdims=True) # the max luminosity (except outliers). we take the 95th percentile
+    threshold_l = max_l - kwargs['white_tolerance']
+    is_channel = l_line >= threshold_l
+
+    # 2.3 identify the channel borders
+    top = np.argmax(is_channel, axis=0).max()
+    bot = height - np.argmax(is_channel[::-1], axis=0).min()
+
+    # 2.4 Obtain the z and shadow image for the channel
+    s_channel = 255 - l_line[top:bot] # shadowisity (255 - luminosity)
+    z_channel = z_line[top:bot]           # z coordinate
+
+    ### Step 3: Find the borders
+    bmax = bimax_by_peakfinder(z_channel, s_channel,
+                               distance=kwargs['borders_min_distance'],
+                               width=kwargs['borders_width'],
+                               prominence=kwargs['borders_prominence'])
+
+    z1, y1, z2, y2 = bmax
+
+    zdiff:float = np.abs(z1 - z2)
+    space_ok = zdiff < kwargs['max_rivulet_width']
+    utility.log_trace(f"space_ok (Dz < {kwargs['max_rivulet_width']}): {space_ok}")
+
+    ydiff:float = np.abs(y1 - y2)
+    ydiff_ok = ydiff < kwargs['max_borders_luminosity_difference']
+    utility.log_trace(f"ydiff_ok (Ds < {kwargs['max_borders_luminosity_difference']}): {ydiff_ok}")
+
+    if space_ok * ydiff_ok: # There are 2 peaks
+        if z1 < z2:
+            zinf, zsup = z1, z2
+        else:
+            zinf, zsup = z2, z1
+    else: # Il y a qu'un seul max...
+        if y1 > y2:
+            zinf, zsup = z1, z1
+        else:
+            zinf, zsup = z2, z2
+    return np.array([zinf, zsup])
+
+def bol_linewise(z_line:np.ndarray, l_line:np.ndarray, borders_for_this_line=None, **kwargs)-> float:
     """
     This function locates the rivulet by computing the center of mass of the light part of the rivulet.
 
-    :param z:
-    :param y:
+    :param z_line:
+    :param l_line:
     :param kwargs: white_tolerance (whiteness of the rivulet, 0-256) ; rivulet_size_factor (width of the rivulet, 1.-5.)
     :return:
     """
@@ -124,19 +174,41 @@ def mean_shadowmax_linewise(z:np.ndarray, y:np.ndarray, **kwargs)-> float:
         if not key in kwargs.keys():
             kwargs[key] = default_kwargs[key]
 
-    # Step 1: get the roi i.e. the channel (white-ish zone)
-    white_threshold = np.max(y) - kwargs['white_tolerance']
-    is_white = y >= white_threshold
+    ### Step 3: Find the borders
+    if borders_for_this_line is None:
+        borders_for_this_line = borders_linewise(z_line, l_line, **kwargs)
 
-    left = z[np.argmax(is_white)]
-    right = z[len(z) - np.argmax(is_white[::-1]) - 1]
+    ### Step 2: Obtain the shadow representation
+    height, = l_line.shape
 
-    z_roi = z[(z > left) & (z < right)]
-    y_roi = 255 - y[(z > left) & (z < right)]
+    # 2.2 discriminate the channel (white zone in the image)
+    max_l = np.percentile(l_line, 95, axis=0, keepdims=True) # the max luminosity (except outliers). we take the 95th percentile
+    threshold_l = max_l - kwargs['white_tolerance']
+    is_channel = l_line >= threshold_l
 
-    z1, z2 = borders_linewise(z_roi, y_roi, **kwargs)
+    # 2.3 identify the channel borders
+    top = np.argmax(is_channel, axis=0).max()
+    bot = height - np.argmax(is_channel[::-1], axis=0).min()
 
-    position = (z1+z2)/2
+    # 2.4 Obtain the z and shadow image for the channel
+    s_channel = 255 - l_line[top:bot] # shadowisity (255 - luminosity)
+    z_channel = z_line[top:bot]           # z coordinate
+
+    ### Step 4: Compute the BOL
+    zbot, ztop = borders_for_this_line
+
+    rivulet_zone = (z_channel >= zbot) * (z_channel <= ztop)
+
+    if np.sum(rivulet_zone) == 0:
+        return zbot
+
+    z_rivulet_zone = z_channel[rivulet_zone]
+    l_rivulet_zone = 255 - s_channel[rivulet_zone]
+
+    # Center of mass
+    weights_offset = np.min(l_rivulet_zone) - 1e-5
+    weights = np.maximum(l_rivulet_zone - weights_offset, 0)
+    position = np.sum(z_rivulet_zone * weights) / np.sum(weights)
 
     return position
 
@@ -245,6 +317,197 @@ def cos_framewise(frame:np.ndarray, **kwargs)->np.ndarray:
 
     # take into account the resizing
     rivulet /= kwargs['resize_factor']
+
+    return rivulet
+
+def borders_framewise(frame:np.ndarray, prominence:float = 1, do_fit:bool=False, **kwargs) -> np.ndarray:
+    """
+
+    kwargs resize_factor (resizing of the frame, 1-4) ; max_rivulet_width (maximum authorized rivulet with, in pixels, 1-100)  ; max_borders_luminosity_difference (maximum authorized luminosity difference between the rivulet borders, 0-255)
+
+
+    Parameters
+    ----------
+    frame
+    prominence
+    do_fit
+    kwargs
+
+    Returns
+    -------
+
+    """
+    for key in default_kwargs.keys():
+        if not key in kwargs.keys():
+            kwargs[key] = default_kwargs[key]
+
+    ### Step 1: Alter the image
+    # 1.1 : resize (if needed)
+    l = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
+    l_origin = l.copy()
+    l_origin -= l_origin.min()
+
+    # 1.2 remove z median
+    if kwargs['remove_median_bckgnd_zwise']:
+        l = l - np.median(l, axis=(0), keepdims=True)
+    l_bckgnd_rmved = l.copy()
+    l_bckgnd_rmved -= l_bckgnd_rmved.min()
+
+    # 1.3 gaussian blur
+    if kwargs['gaussian_blur_kernel_size'] is not None:
+        sigma = kwargs['gaussian_blur_kernel_size']
+        l = gaussian_filter(l, sigma=sigma)
+    l_filtered = l.copy()
+    l_filtered -= l_filtered.min()
+
+    # 1.4 remove minimum
+    l -= l.min() # so that the min is at 0, i.e. the max of shadow is a 255
+
+    ### Step 2: Obtain the shadow representation
+    height, width = l.shape
+
+    # 2.1 build the z coordinate ('horizontal' in real life)
+    x1D = np.arange(width) / kwargs['resize_factor']
+    z1D = np.arange(height) / kwargs['resize_factor']
+    z2D = np.repeat(z1D, width).reshape((height, width))
+
+    # 2.2 discriminate the channel (white zone in the image)
+    max_l = np.percentile(l, 95, axis=0, keepdims=True) # the max luminosity (except outliers). we take the 95th percentile
+    threshold_l = max_l - kwargs['white_tolerance']
+    is_channel = l >= threshold_l
+
+    # 2.3 identify the channel borders
+    top = np.argmax(is_channel, axis=0).max()
+    bot = height - np.argmax(is_channel[::-1], axis=0).min()
+
+    # 2.4 Obtain the z and shadow image for the channel
+    s_channel = 255 - l[top:bot, :] # shadowisity (255 - luminosity)
+    z_channel = z2D[top:bot, :]           # z coordinate
+
+    ### Step 3 : find borders
+    bmax:np.ndarray = np.zeros((width, 4), dtype=float)
+
+    for i_l in range(width):
+        try:
+            if do_fit:
+                bmax[i_l] = bimax_fit_by_peakfinder(z_channel[:, i_l], s_channel[:, i_l],
+                                                    distance=kwargs['borders_min_distance'],
+                                                    width=kwargs['borders_width'],
+                                                    prominence=kwargs['borders_prominence'])
+            else:
+                bmax[i_l] = bimax_by_peakfinder(z_channel[:, i_l], s_channel[:, i_l],
+                                                distance=kwargs['borders_min_distance'],
+                                                width=kwargs['borders_width'],
+                                                prominence=kwargs['borders_prominence'])
+        except:
+            utility.log_error(f'Error in bimax line {i_l}')
+
+    z1, y1, z2, y2 = bmax[:,0], bmax[:,1], bmax[:,2], bmax[:,3]
+    x1, x2 = x1D.copy(), x1D.copy()
+
+    # remove too spaced away
+    zdiff:np.ndarray = np.abs(z1 - z2)
+    space_ok = zdiff < kwargs['max_rivulet_width']
+    if (1 - space_ok).sum() > 0:
+        utility.log_debug(f'Too spaced away (> {kwargs["max_rivulet_width"]} resized px): {(1 - space_ok).sum()} pts', verbose=kwargs['verbose'])
+
+    # remove too different peaks
+    ydiff:np.ndarray = np.abs(y1 - y2)
+    ydiff_ok = ydiff < kwargs['max_borders_luminosity_difference']
+    if (1 - ydiff_ok).sum() > 0:
+        utility.log_debug(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1 - ydiff_ok).sum()} pts', verbose=kwargs['verbose'])
+
+    # There are 2 peaks
+    deuxmax = space_ok * ydiff_ok
+
+    # si il y a qu'un seul max...
+    unmax = np.bitwise_not(deuxmax)
+    # On garde le plus grand
+    desacord = y1 > y2
+    ndesacord = np.bitwise_not(desacord)
+
+    zsup = np.concatenate((np.maximum(z1[deuxmax], z2[deuxmax]), z1[unmax * desacord], z2[unmax * ndesacord]))
+    x_zsup = np.concatenate((np.maximum(x1[deuxmax], x2[deuxmax]), x1[unmax * desacord], x2[unmax * ndesacord]))
+    suprightorder = x_zsup.argsort()
+    x_zsup, zsup = x_zsup[suprightorder], zsup[suprightorder]
+
+    zinf = np.concatenate((np.minimum(z1[deuxmax], z2[deuxmax]), z1[unmax * desacord], z2[unmax * ndesacord]))
+    x_zinf = np.concatenate((np.minimum(x1[deuxmax], x2[deuxmax]), x1[unmax * desacord], x2[unmax * ndesacord]))
+    infrightorder = x_zinf.argsort()
+    x_zinf, zinf = x_zinf[infrightorder], zinf[infrightorder]
+
+    return np.array([zinf, zsup])
+
+def bol_framewise(frame:np.ndarray, borders_for_this_frame = None, **kwargs)-> np.ndarray:
+    for key in default_kwargs.keys():
+        if not key in kwargs.keys():
+            kwargs[key] = default_kwargs[key]
+
+    ### Step 3 : find borders
+    if borders_for_this_frame is None:
+        borders_for_this_frame:np.ndarray = borders_framewise(frame, **kwargs)
+
+    ### Step 1: Alter the image
+    # 1.1 : resize (if needed)
+    l = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
+    l_origin = l.copy()
+    l_origin -= l_origin.min()
+
+    # 1.2 remove z median
+    if kwargs['remove_median_bckgnd_zwise']:
+        l = l - np.median(l, axis=(0), keepdims=True)
+    l_bckgnd_rmved = l.copy()
+    l_bckgnd_rmved -= l_bckgnd_rmved.min()
+
+    # 1.3 gaussian blur
+    if kwargs['gaussian_blur_kernel_size'] is not None:
+        sigma = kwargs['gaussian_blur_kernel_size']
+        l = gaussian_filter(l, sigma=sigma)
+    l_filtered = l.copy()
+    l_filtered -= l_filtered.min()
+
+    # 1.4 remove minimum
+    l -= l.min() # so that the min is at 0, i.e. the max of shadow is a 255
+
+    ### Step 2: Obtain the shadow representation
+    height, width = l.shape
+
+    # 2.1 build the z coordinate ('horizontal' in real life)
+    x1D = np.arange(width) / kwargs['resize_factor']
+    z1D = np.arange(height) / kwargs['resize_factor']
+    z2D = np.repeat(z1D, width).reshape((height, width))
+
+    # 2.2 discriminate the channel (white zone in the image)
+    max_l = np.percentile(l, 95, axis=0, keepdims=True) # the max luminosity (except outliers). we take the 95th percentile
+    threshold_l = max_l - kwargs['white_tolerance']
+    is_channel = l >= threshold_l
+
+    # 2.3 identify the channel borders
+    top = np.argmax(is_channel, axis=0).max()
+    bot = height - np.argmax(is_channel[::-1], axis=0).min()
+
+    # 2.4 Obtain the z and shadow image for the channel
+    l_channel = l[top:bot, :] # luminosity
+    z_channel = z2D[top:bot, :]           # z coordinate
+
+    ### Step 4: Compute the BOL
+    # the zone inside the rivulet
+    z_top = borders_for_this_frame[0,:]
+    z_bot = borders_for_this_frame[1,:]
+    inside_rivulet = (z_channel >= z_top) & (z_channel <= z_bot)
+
+    bckgnd_inside_rivulet = np.amin(l_channel, axis=0, where=inside_rivulet, initial=255, keepdims=True) - 1e-4
+
+    # the weights to compute the COM
+    weights = (l_channel - bckgnd_inside_rivulet) * inside_rivulet
+
+    # The BOL rivulet with sub-pixel resolution
+    # this handles the tricky size of 0-width rivulet (when the two borders are at the same point, it happens for some shitty videos
+    nonzerosum = np.sum(weights, axis=0) > 0
+
+    rivulet = np.empty(width, dtype=float)
+    rivulet[nonzerosum] = np.sum(z_channel * weights, axis=0)[nonzerosum] / np.sum(weights, axis=0)[nonzerosum]
+    rivulet[np.bitwise_not(nonzerosum)] = ((z_bot+z_top)/2)[np.bitwise_not(nonzerosum)]
 
     return rivulet
 
@@ -429,8 +692,8 @@ def bimax(x, y, do_fit:bool = False, w0:float = 1., **kwargs):
 
 from scipy.signal import find_peaks
 
-def bimax_by_peakfinder(z, y, distance:float = 1, prominence:float = 1):
-    peaks, _ = find_peaks(y, distance = distance, prominence = prominence)
+def bimax_by_peakfinder(z, y, distance:Optional[float]=None, width:Optional[float]=None, prominence:Optional[float]=None):
+    peaks, _ = find_peaks(y, distance=distance, prominence=prominence, width=width)
 
     # take the 2 bigger maxs
     maxs_sorted = y[peaks].argsort()
@@ -441,8 +704,8 @@ def bimax_by_peakfinder(z, y, distance:float = 1, prominence:float = 1):
 
     return x1, y1, x2, y2
 
-def bimax_fit_by_peakfinder(z, y, distance:float = 1, prominence:float = 1):
-    x10, y10, x20, y20 = bimax_by_peakfinder(z, y, distance=distance, prominence=prominence)
+def bimax_fit_by_peakfinder(z, y, distance:Optional[float]=None, width:Optional[float]=None, prominence:Optional[float]=None):
+    x10, y10, x20, y20 = bimax_by_peakfinder(z, y, distance=distance, width=width, prominence=prominence)
 
     w0 = np.abs(x20-x10)/4
 
@@ -470,34 +733,6 @@ def bimax_fit_by_peakfinder(z, y, distance:float = 1, prominence:float = 1):
     y1, y2 = utility.double_gauss(x1, *popt), utility.double_gauss(x2, *popt)
 
     return x1, y1, x2, y2
-
-def borders_linewise(z:np.ndarray, y:np.ndarray, do_fit:bool = False, w0:float = 1., **kwargs):
-    for key in default_kwargs.keys():
-        if not key in kwargs.keys():
-            kwargs[key] = default_kwargs[key]
-
-    z1, y1, z2, y2 = bimax(z, y, do_fit=do_fit, w0=w0)
-
-    # remove too spaced away
-    zdiff = np.abs(z1 - z2)
-    space_ok = zdiff < kwargs['max_rivulet_width']
-
-    # remove too different peaks
-    ydiff = np.abs(y1 - y2)
-    ydiff_ok = ydiff < kwargs['max_borders_luminosity_difference']
-
-
-    if space_ok * ydiff_ok: # There are 2 peaks
-        if z1 < z2:
-            zinf, zsup = z1, z2
-        else:
-            zinf, zsup = z2, z1
-    else: # Il y a qu'un seul max...
-        if y1 > y2:
-            zinf, zsup = z1, z1
-        else:
-            zinf, zsup = z2, z2
-    return np.array([zinf, zsup])
 
 def borders(frame:np.ndarray, do_fit:bool = False, w0:float = 1., **kwargs) -> np.ndarray:
     """
@@ -560,78 +795,6 @@ def borders(frame:np.ndarray, do_fit:bool = False, w0:float = 1., **kwargs) -> n
 
     return np.array([zinf, zsup])
 
-def borders_via_peakfinder(frame:np.ndarray, prominence:float = 1, do_fit:bool=False, **kwargs) -> np.ndarray:
-    """
-
-    kwargs resize_factor (resizing of the frame, 1-4) ; max_rivulet_width (maximum authorized rivulet with, in pixels, 1-100)  ; max_borders_luminosity_difference (maximum authorized luminosity difference between the rivulet borders, 0-255)
-
-
-    Parameters
-    ----------
-    frame
-    prominence
-    do_fit
-    kwargs
-
-    Returns
-    -------
-
-    """
-    for key in default_kwargs.keys():
-        if not key in kwargs.keys():
-            kwargs[key] = default_kwargs[key]
-
-    frame_resized = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
-    height, width = frame_resized.shape
-
-    zz:np.ndarray = np.zeros((width, 4), dtype=float)
-
-    z = np.arange(height) / kwargs['resize_factor']
-
-    if do_fit:
-        for l in range(width):
-            zz[l] = bimax_fit_by_peakfinder(z, 255 - frame_resized[:, l], distance = kwargs['borders_min_distance'], prominence = prominence)
-    else:
-        for l in range(width):
-            zz[l] = bimax_by_peakfinder(z, 255 - frame_resized[:, l], distance = kwargs['borders_min_distance'], prominence = prominence)
-
-    z1, y1, z2, y2 = zz[:,0], zz[:,1], zz[:,2], zz[:,3]
-
-    x = np.linspace(0, width / kwargs['resize_factor'], width, endpoint=False)
-
-    x1, x2 = x.copy(), x.copy()
-
-    # remove too spaced away
-    zdiff:np.ndarray = np.abs(z1 - z2)
-    space_ok = zdiff < kwargs['max_rivulet_width']
-    utility.log_debug(f'Too spaced away (> {kwargs["max_rivulet_width"]} resized px): {(1 - space_ok).sum()} pts', verbose=kwargs['verbose'])
-
-    # remove too different peaks
-    ydiff:np.ndarray = np.abs(y1 - y2)
-    ydiff_ok = ydiff < kwargs['max_borders_luminosity_difference']
-    utility.log_debug(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1 - ydiff_ok).sum()} pts', verbose=kwargs['verbose'])
-
-    # There are 2 peaks
-    deuxmax = space_ok * ydiff_ok
-
-    # si il y a qu'un seul max...
-    unmax = np.bitwise_not(deuxmax)
-    # On garde le plus grand
-    desacord = y1 > y2
-    ndesacord = np.bitwise_not(desacord)
-
-    zsup = np.concatenate((np.maximum(z1[deuxmax], z2[deuxmax]), z1[unmax * desacord], z2[unmax * ndesacord]))
-    x_zsup = np.concatenate((np.maximum(x1[deuxmax], x2[deuxmax]), x1[unmax * desacord], x2[unmax * ndesacord]))
-    suprightorder = x_zsup.argsort()
-    x_zsup, zsup = x_zsup[suprightorder], zsup[suprightorder]
-
-    zinf = np.concatenate((np.minimum(z1[deuxmax], z2[deuxmax]), z1[unmax * desacord], z2[unmax * ndesacord]))
-    x_zinf = np.concatenate((np.minimum(x1[deuxmax], x2[deuxmax]), x1[unmax * desacord], x2[unmax * ndesacord]))
-    infrightorder = x_zinf.argsort()
-    x_zinf, zinf = x_zinf[infrightorder], zinf[infrightorder]
-
-    return np.array([zinf, zsup])
-
 ### GLOBAL METHOD
 
 def get_acquisition_path_from_parameters(**parameters) -> str:
@@ -668,7 +831,6 @@ def get_frames_from_parameters(**parameters):
 
     return frames
 
-
 def find_borders(**parameters):
     # Get the frames
     frames = get_frames_from_parameters(**parameters)
@@ -683,16 +845,15 @@ def find_borders(**parameters):
     np.seterr(all='raise')
     for framenumber in range(length):
         try:
-            brds[framenumber] = borders_via_peakfinder(frames[framenumber], **parameters)
+            brds[framenumber] = borders_framewise(frames[framenumber], **parameters)
         except:
             print(f'Error frame {framenumber}')
-        if framenumber%10 == 0:
+        if (framenumber+1)%5 == 0:
             display(f'Borders finding ({round(100*(framenumber+1)/length, 2)} %)', end = '\r')
     display(f'', end = '\r')
     utility.log_debug(f'Borders found', verbose=parameters['verbose'])
 
     return brds
-
 
 def find_cos(**parameters):
     # Dataset selection
@@ -739,129 +900,6 @@ def find_cos(**parameters):
 
     return rivs
 
-# BOL
-
-def bol_linewise(z:np.ndarray, y:np.ndarray, borders_for_this_line=None, **kwargs)-> float:
-    """
-    This function locates the rivulet by computing the center of mass of the light part of the rivulet.
-
-    :param z:
-    :param y:
-    :param kwargs: white_tolerance (whiteness of the rivulet, 0-256) ; rivulet_size_factor (width of the rivulet, 1.-5.)
-    :return:
-    """
-    for key in default_kwargs.keys():
-        if not key in kwargs.keys():
-            kwargs[key] = default_kwargs[key]
-
-    # Step 1: get the roi i.e. the channel (white-ish zone)
-    white_threshold = np.max(y) - kwargs['white_tolerance']
-    is_white = y >= white_threshold
-
-    left = z[np.argmax(is_white)]
-    right = z[len(z) - np.argmax(is_white[::-1]) - 1]
-
-    z_roi = z[(z > left) & (z < right)]
-    y_roi = 255 - y[(z > left) & (z < right)]
-
-    if borders_for_this_line is None:
-        borders_for_this_line = borders_linewise(z_roi, y_roi, **kwargs)
-
-    z1, z2 = borders_for_this_line
-
-    rivulet_zone = (z_roi >= z1) * (z_roi <= z2)
-
-    if np.sum(rivulet_zone) == 0:
-        # print(f'DEBUG: z1: {z1} ; z2: {z2}')
-        return z1
-
-    z_rivulet_zone = z_roi[rivulet_zone]
-    y_rivulet_zone = 255 - y_roi[rivulet_zone]
-
-    # Center of mass
-    weights_offset = np.min(y_rivulet_zone) - 1e5
-    weights = np.maximum(y_rivulet_zone - weights_offset, 0)
-    position = np.sum(z_rivulet_zone * weights) / np.sum(weights)
-
-    return position
-
-def bol_framewise(frame:np.ndarray, borders_for_this_frame = None, **kwargs)-> np.ndarray:
-    for key in default_kwargs.keys():
-        if not key in kwargs.keys():
-            kwargs[key] = default_kwargs[key]
-
-    if borders_for_this_frame is None:
-        borders_for_this_frame: np.ndarray = borders_via_peakfinder(frame, **kwargs)
-
-
-    frame = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
-
-    height, width = frame.shape
-    z = np.arange(height)
-
-    zz = np.empty(width, dtype=float)
-
-    for i_line in range(width):
-        borders_for_this_line = borders_for_this_frame[:,i_line] * kwargs['resize_factor']
-
-        zz[i_line] = bol_linewise(z, frame[:, i_line], borders_for_this_line=borders_for_this_line, **kwargs)
-
-    # take into account the resizing
-    zz /= kwargs['resize_factor']
-
-    return zz
-
-def bol_framewise_opti(frame:np.ndarray, borders_for_this_frame = None, **kwargs)-> np.ndarray:
-    for key in default_kwargs.keys():
-        if not key in kwargs.keys():
-            kwargs[key] = default_kwargs[key]
-
-    if borders_for_this_frame is None:
-        borders_for_this_frame: np.ndarray = borders_via_peakfinder(frame, **kwargs)
-
-    height, width = frame.shape
-
-    l = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor']).astype(float, copy=False)
-
-    height_resized, width_resized= l.shape
-
-    # the z coordinate ('horizontal' in real life)
-    z = np.linspace(0, height, height_resized, endpoint=False)
-    z = np.repeat(z, width_resized).reshape((height_resized, width_resized))
-
-    # select the channel (luminous zone in the image). This is to avoid detecting black borders as rivulets.
-    max_l = np.percentile(l, 95, axis=0, keepdims=True) # the max luminosiy (except outliers)
-    threshold_l = max_l - kwargs['white_tolerance']
-    is_channel = l >= threshold_l
-
-    # the channel borders
-    top = np.argmax(is_channel, axis=0).max()
-    bot = height_resized - np.argmax(is_channel[::-1], axis=0).min()
-
-    # the channel
-    l_channel = l[top:bot, :]           # luminosity
-    z_channel = z[top:bot, :]           # z coordinate
-
-    # the zone inside the rivulet
-    z_top = borders_for_this_frame[0,:]
-    z_bot = borders_for_this_frame[1,:]
-    inside_rivulet = (z_channel >= z_top) & (z_channel <= z_bot)
-
-    bckgnd_inside_rivulet = np.amin(l_channel, axis=0, where=inside_rivulet, initial=255, keepdims=True) - 1e-4
-
-    # the weights to compute the COM
-    weights = (l_channel - bckgnd_inside_rivulet) * inside_rivulet
-
-    # The BOL rivulet with sub-pixel resolution
-    # this handles the tricky size of 0-width rivulet (when the two borders are at the same point, it happens for some shitty videos
-    nonzerosum = np.sum(weights, axis=0) > 0
-
-    rivulet = np.empty(width_resized, dtype=float)
-    rivulet[nonzerosum] = np.sum(z_channel * weights, axis=0)[nonzerosum] / np.sum(weights, axis=0)[nonzerosum]
-    rivulet[np.bitwise_not(nonzerosum)] = ((z_bot+z_top)/2)[np.bitwise_not(nonzerosum)]
-
-    return rivulet
-
 def find_bol(verbose:int = 1, **parameters):
     # First we need the borders
     borders_for_this_video = datasaving.fetch_or_generate_data_from_parameters('borders', parameters, verbose=verbose)
@@ -879,110 +917,13 @@ def find_bol(verbose:int = 1, **parameters):
     np.seterr(all='raise')
     for framenumber in range(length):
         try:
-            rivs[framenumber] = bol_framewise_opti(frames[framenumber], borders_for_this_frame=borders_for_this_video[framenumber], **parameters)
+            rivs[framenumber] = bol_framewise(frames[framenumber], borders_for_this_frame=borders_for_this_video[framenumber], **parameters)
         except:
             print(f'Error frame {framenumber}')
-        if framenumber%10 == 0:
+        if (framenumbe+1)%5 == 0:
             display(f'BOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
     display(f'', end = '\r')
     utility.log_debug(f'BOL computed', verbose=parameters['verbose'])
 
     return rivs
-
-
-
-
-# BBS Barycontre of bridged shadow
-
-def bbs_linewise(z:np.ndarray, y:np.ndarray, borders=None, **kwargs)-> float:
-    """
-    This function locates the rivulet by computing the center of mass of the light part of the rivulet.
-
-    :param z:
-    :param y:
-    :param kwargs: white_tolerance (whiteness of the rivulet, 0-256) ; rivulet_size_factor (width of the rivulet, 1.-5.)
-    :return:
-    """
-    for key in default_kwargs.keys():
-        if not key in kwargs.keys():
-            kwargs[key] = default_kwargs[key]
-
-    # Step 1: get the roi i.e. the channel (white-ish zone)
-    white_threshold = np.max(y) - kwargs['white_tolerance']
-    is_white = y >= white_threshold
-
-    left = z[np.argmax(is_white)]
-    right = z[len(z) - np.argmax(is_white[::-1]) - 1]
-
-    z_roi = z[(z > left) & (z < right)]
-    y_roi = 255 - y[(z > left) & (z < right)]
-
-    # gets the max intensity (approx rivulet centre) and estimate the width of the rivulet
-    z_center = z_roi[np.argmax(y_roi)]
-    y_max = y_roi[np.argmax(y_roi)]
-    y_median = np.median(y_roi)
-    y_threshold: float = (y_max + y_median) / 2
-
-    approx_size = np.sum(y_roi >= y_threshold) * np.mean(z_roi[1:] - z_roi[:-1])
-
-    # get the rivulet zone border
-    z_left, z_right = z_center - kwargs['rivulet_size_factor'] * approx_size, z_center + kwargs['rivulet_size_factor'] * approx_size
-
-    # BRIDGE THE SHADOW BETWEEN THE 2 MAXES
-    if borders is None:
-        borders = borders_linewise(z_roi, y_roi, **kwargs)
-
-    z1, z2 = borders
-
-    rivulet_zone = (z_roi >= z1) * (z_roi <= z2)
-
-    if np.sum(rivulet_zone) != 0:
-
-        y1, y2 = np.interp([z1, z2], z_roi, y_roi)
-
-        # HERE WE ASSUME Z1 < Z2 ( same as a few instructions before
-        y_roi[rivulet_zone] = np.interp(z_roi[rivulet_zone], [z1, z2], [y1, y2])
-
-
-    # get the zone around the rivulet
-    criterion = (z_roi >= z_left) & (z_roi <= z_right)
-    z_ponderate = z_roi[criterion]
-    y_ponderate = y_roi[criterion]
-
-    # put the smallest weight when no rivulet. HOW TO DETERMINE THE WEIGHTS ?
-    weights_offset = np.min(y_ponderate)
-    # weights_offset = np.median(y_roi)
-    weights = np.maximum(y_ponderate - weights_offset, 0)
-
-    # get the COM
-    position = np.sum(z_ponderate * weights) / np.sum(weights)
-
-    return position
-
-def bbs_framewise(frame:np.ndarray, **kwargs)-> np.ndarray:
-    for key in default_kwargs.keys():
-        if not key in kwargs.keys():
-            kwargs[key] = default_kwargs[key]
-
-    all_borders: np.ndarray = borders_via_peakfinder(frame, **kwargs)
-
-    frame = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
-
-    height, width = frame.shape
-    z = np.arange(height)
-
-    zz = np.empty(width, dtype=float)
-
-    for i_line in range(width):
-        these_borders = all_borders[:,i_line] * kwargs['resize_factor']
-        # plt.scatter([i_line/2], these_borders[0], color='w')
-        # plt.scatter([i_line/2], these_borders[1], color='w')
-
-        zz[i_line] = bbs_linewise(z, frame[:, i_line], borders=these_borders, **kwargs)
-
-    # take into account the resizing
-    zz /= kwargs['resize_factor']
-
-    return zz
-
 

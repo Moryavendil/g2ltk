@@ -204,7 +204,7 @@ def correct_extent(arr_x:np.ndarray, arr_y:np.ndarray, origin='upper') -> Tuple[
 def attenuate_power(value, attenuation_factor_dB):
     return value / math.pow(10, attenuation_factor_dB / 20)
 
-def log_amplitude_range(maximum_amplitude, range_db):
+def log_amplitude_range(maximum_amplitude:float, range_db:Union[float, int]):
     return maximum_amplitude, attenuate_power(maximum_amplitude, range_db)
 
 def log_amplitude_cbticks(maximum_amplitude:float, range_db:Union[int, float]):
