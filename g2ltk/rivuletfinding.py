@@ -51,17 +51,18 @@ default_kwargs = {
 }
 
 """
-# COS : Center of Shadow, center of mass of the shadows -> Rename BOS, Barycentre of Shadow
-# BOL : Barycentre of Light, center of mass of the light zone
-# BORDERS : The two max of shadow on both the maenisci. This is very noisy.
-# FWHMOL : The Full Width et Half Max Of Light, the FWHM of the light zone.
+# BOS: Barycentre of Shadow, center of mass of the shadows
+(#COS: old name of BOS)
+# BOL: Barycentre of Light, center of mass of the light zone
+# BORDERS: The two max of shadow on both the maenisci. This is very noisy.
+# FWHMOL: The Full Width et Half Max Of Light, the FWHM of the light zone.
 """
 pass
 ### CENTER OF RIVULET FINDING
 pass
 
 ### LINEWISE METHODS
-def cos_linewise(x:np.ndarray, y:np.ndarray, **kwargs)-> float:
+def bos_linewise(x:np.ndarray, y:np.ndarray, **kwargs)-> float:
     """
     This function locates the rivulet by computing the center of mass of the shadow of the rivulet.
 
@@ -220,7 +221,7 @@ def bol_linewise(z_line:np.ndarray, l_line:np.ndarray, borders_for_this_line=Non
 
 
 ### FRAMEWISE METHODS
-def cos_framewise(frame:np.ndarray, **kwargs)->np.ndarray:
+def bos_framewise(frame:np.ndarray, **kwargs)->np.ndarray:
     """
 
     white_tolerance :
@@ -597,7 +598,7 @@ def fwhmol_framewise(frame:np.ndarray, borders_for_this_frame = None, **kwargs)-
 
 ### VIDEOWISE METHODS
 
-def cos_videowise(frames:np.ndarray, **kwargs)->np.ndarray: # WORK IN PROGRESS
+def bos_videowise(frames:np.ndarray, **kwargs)->np.ndarray: # WORK IN PROGRESS
     for key in default_kwargs.keys():
         if not key in kwargs.keys():
             kwargs[key] = default_kwargs[key]
@@ -907,7 +908,7 @@ def get_frames_from_parameters(**parameters):
 
     return frames
 
-def find_cos(**parameters):
+def find_bos(**parameters):
     # Dataset selection
     dataset = parameters.get('dataset', 'unspecified-dataset')
     dataset_path = '../' + dataset
@@ -941,14 +942,14 @@ def find_cos(**parameters):
     np.seterr(all='raise') # we are extra-careful because we do not want trash data
     try:
         # we first try the faster videowise
-        rivs = cos_videowise(frames, **parameters)
+        rivs = bos_videowise(frames, **parameters)
     except:
-        utility.log_error('cos_videowise failed. trying framewise to identify the problematic frame.')
+        utility.log_error('bos_videowise failed. trying framewise to identify the problematic frame.')
         for framenumber in range(length):
             try:
-                rivs[framenumber] = cos_framewise(frames[framenumber], **parameters)
+                rivs[framenumber] = bos_framewise(frames[framenumber], **parameters)
             except:
-                utility.log_error(f'Error doint cos_framewise on frame {framenumber}')
+                utility.log_error(f'Error doint bos_framewise on frame {framenumber}')
 
     return rivs
 
