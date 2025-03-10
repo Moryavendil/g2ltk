@@ -12,7 +12,8 @@ def generate_parser():
         description=f'{program_name} - python scriptsa to jupyter notebooks',
         epilog=f'', add_help=True)
     # parser.add_argument('-n', metavar='SCRIPTNAME', help='scriptname', type=argparse.FileType('r'))
-    parser.add_argument('-n', metavar='SCRIPTPATH', help='script or scipt dir path', type=pathlib.Path)
+    parser.add_argument('-d', metavar='OUTPUTDIR', help='script dir path', type=pathlib.Path)
+    parser.add_argument('-n', metavar='SCRIPT', help='script path', type=pathlib.Path)
     # parser.add_argument('-p', metavar='PXL_DENSITY', help='Pixel density (mm/px)', type=float)
     # parser.add_argument('-g', metavar='GRAVITY', help='Acceleration of gravity (typically 9.81)', type=float)
     # parser.add_argument('-d', metavar='DELTARHO', help='Density contrast, in kg/L (typically 1.00 for water/air)', type=float)
@@ -24,6 +25,7 @@ def generate_parser():
 parser = generate_parser()
 
 args = parser.parse_args()
+scriptdirpath = args.d
 scriptpath = args.n
 
 prefix = 'ipynb-'
@@ -35,7 +37,7 @@ if scriptpath is None:
     print('No file selected, converting default scripts')
     ipynb_names = [f[len(prefix):-3] for f in os.listdir(scriptsdir) if os.path.isfile(os.path.join(scriptsdir, f)) and f.endswith('.py') and f.startswith(prefix)]
 else:
-    if os.path.isdir(scriptpath):
+    if os.path.isdir(scriptdirpath):
         # print(f'Directory selected: {scriptpath}')
         scriptsdir = scriptpath
         ipynb_names = [f[len(prefix):-3] for f in os.listdir(scriptsdir) if os.path.isfile(os.path.join(scriptsdir, f)) and f.endswith('.py') and f.startswith(prefix)]
@@ -48,7 +50,8 @@ else:
         # print(f'File selected: {scriptpath}')
         ipynb_names = [scriptname[len(prefix):-3]]
     else:
-        print(f'ERROR - ISWHAT?: {scriptpath}')
+        print(f'ERROR - ISWHAT?: -n {scriptpath}')
+        print(f'ERROR - ISWHAT?: -d {scriptdirpath}')
         sys.exit(-100)
 
 ipynb_names.sort()
