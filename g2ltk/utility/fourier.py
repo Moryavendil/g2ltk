@@ -26,7 +26,7 @@ def dual(arr:np.ndarray, zero_pad:Optional[int]=None, zero_pad_factor:Optional[f
     n = arr.shape[0]
     if zero_pad_factor is not None:
         try:
-            n = int(arr.shape[0] * zero_pad_factor)
+            n = np.rint(arr.shape[0] * zero_pad_factor).astype(int)
         except:
             log_warning(f'What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
     if zero_pad is not None:
@@ -143,23 +143,30 @@ def ft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=Non
     -------
 
     """
+    log_trace('ft2d: Computing a 2-D FFT')
+    log_subtrace(f'ft2d: Using windowing | window={window}')
     Nt, Nx = arr.shape
     z_treated = arr * np.expand_dims(get_window(window, Nt), axis=1) * np.expand_dims(get_window(window, Nx), axis=0)
+    log_subtrace(f'ft2d: Removing (0,0)-freq component')
     # z_treated -= np.mean(z_treated) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
     z_treated -= np.mean(z_treated)
 
+    log_subtrace(f'ft2d: Taking into account padding. Native shape |{arr.shape}')
     s = None
     if zero_pad_factor is not None:
+        log_subtrace(f'ft2d: | zero_pad_factor={zero_pad_factor}')
         try:
-            s = [arr.shape[0] * float(zero_pad_factor[0]), arr.shape[1] * float(zero_pad_factor[0])]
+            s = np.rint([arr.shape[0] * float(zero_pad_factor[0]), arr.shape[1] * float(zero_pad_factor[1])]).astype(int)
         except:
-            log_warning(f'What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
+            log_warning(f'ft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
     if zero_pad is not None:
+        log_subtrace(f'ft2d: | zero_pad={zero_pad}')
         try:
             s = [arr.shape[0] + int(zero_pad[0]), arr.shape[1] + int(zero_pad[0])]
         except:
-            log_warning(f'What is this zero-padding "{zero_pad}" ? I made it None')
+            log_warning(f'ft2d: What is this zero-padding "{zero_pad}" ? I made it None')
 
+    log_subtrace(f'ft2d: When computing fft, norm={norm} | shape={s}')
     z_hat = fft.rfft2(z_treated, norm=norm, s=s)
     return fft.fftshift(z_hat, axes=0) * step(x) * step(y)
     # return np.concatenate((z_hat[(Nt+1)//2:,:], z_hat[:(Nt+1)//2,:])) # reorder bcz of the FT
@@ -202,6 +209,7 @@ def psd1d(z:np.ndarray, x:Optional[np.ndarray]=None, window:str='hann', zero_pad
     return esd / span(x)
 
 def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str='hann', zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None) -> np.ndarray:
+    log_trace('psd2d: Computing a 2-D PSD')
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $\hat{z}$ is [V/(Hz.mm^{-1})(Hz, mm-1)]
     y_ft = ft2d(z, x=x, y=y, window=window, norm="backward", zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)

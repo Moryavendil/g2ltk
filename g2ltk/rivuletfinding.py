@@ -50,17 +50,17 @@ default_kwargs = {
     'verbose': None
 }
 
-
+"""
 # COS : Center of Shadow, center of mass of the shadows -> Rename BOS, Barycentre of Shadow
 # BOL : Barycentre of Light, center of mass of the light zone
 # BORDERS : The two max of shadow on both the maenisci. This is very noisy.
 # FWHMOL : The Full Width et Half Max Of Light, the FWHM of the light zone.
+"""
 pass
 ### CENTER OF RIVULET FINDING
 pass
 
 ### LINEWISE METHODS
-# COS
 def cos_linewise(x:np.ndarray, y:np.ndarray, **kwargs)-> float:
     """
     This function locates the rivulet by computing the center of mass of the shadow of the rivulet.
@@ -591,8 +591,6 @@ def fwhmol_framewise(frame:np.ndarray, borders_for_this_frame = None, **kwargs)-
     return fwhm
 
 
-###
-
 ### VIDEOWISE METHODS
 
 def cos_videowise(frames:np.ndarray, **kwargs)->np.ndarray: # WORK IN PROGRESS
@@ -686,12 +684,6 @@ def cos_videowise(frames:np.ndarray, **kwargs)->np.ndarray: # WORK IN PROGRESS
     return rivulet
 
 ### GLOBAL METHOD
-
-# def find_mbp(**parameters):
-#     dataset = parameters.get('dataset', 'unspecified-dataset')
-#     acquisition = parameters.get('acquisition', 'unspecified-acquisition')
-#     fetch_or_generate_data(**parameters):
-#     borders =
 
 ### TOP - BOTTOM OF RIVULET FINDING
 
@@ -1006,6 +998,7 @@ def find_bol(verbose:int = 1, **parameters):
     utility.log_debug(f'BOL computed', verbose=parameters['verbose'])
 
     return rivs
+
 def find_fwhmol(verbose:int = 1, **parameters):
     # First we need the borders
     borders_for_this_video = datasaving.fetch_or_generate_data_from_parameters('borders', parameters, verbose=verbose)
