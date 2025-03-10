@@ -226,11 +226,32 @@ def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None
     return esd / span(x) / span(y)
 
 #
-def estimatesignalfrequency(z:np.ndarray, x:Optional[np.ndarray]=None, window:str='hann') -> float:
+def estimatesignalfrequency(z:np.ndarray, x:Optional[np.ndarray]=None,
+                            window:str='boxcar', zero_pad_factor:Optional[float]=10.,
+                            bounds=None) -> float:
+    """Estimates the frequency of a signal
+
+    Parameters
+    ----------
+    z
+    x
+    window
+        By default we use a rectangular ('boxcar') window since it is the most precise for single-frequency finding. But it is very sensitive to noise.
+    zero_pad_factor
+        By default we use zero-padding to have a 'more precise' frequency measurement.
+    bounds
+
+    Returns
+    -------
+
+    """
     if x is None:
         x = np.arange(len(z))
-    fx:np.ndarray = rdual(x)
-    pw:np.ndarray = psd1d(z, x, window=window)
+    fx:np.ndarray = rdual(x, zero_pad_factor=zero_pad_factor)
+    pw:np.ndarray = psd1d(z, x, window=window, zero_pad_factor=zero_pad_factor)
+    if bounds is not None:
+        pw = pw[(fx > bounds[0]) & (fx < bounds[1])]
+        fx = fx[(fx > bounds[0]) & (fx < bounds[1])]
     return find_global_max(fx, pw)
 
 
