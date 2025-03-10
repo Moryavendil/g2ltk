@@ -152,23 +152,5 @@ fig.canvas.mpl_connect('key_press_event', on_press)
 
 plt.show()
 
-
-# <codecell>
-
-    # <markdowncell>
-    
-    # If you can read this, reads_py() is no longer broken! 
-    
-
-
-    # <markdowncell>
-    
-    # If you can read this, reads_py() is no longer broken! 
-    
-
-
-    # <markdowncell>
-    
-    # If you can read this, reads_py() is no longer broken! 
     
 
