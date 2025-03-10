@@ -209,6 +209,8 @@ def data_generating_fn(parameters:Dict[str, Any], verbose:int=1):
         return rivuletfinding.find_cos(**parameters)
     elif datatype == 'borders':
         return rivuletfinding.find_borders(**parameters)
+    elif datatype == 'fwhmol':
+        return rivuletfinding.find_fwhmol(**parameters)
     elif datatype == 'bol':
         return rivuletfinding.find_bol(verbose=verbose, **parameters)
     else:

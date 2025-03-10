@@ -53,6 +53,8 @@ default_kwargs = {
 
 # COS : Center of Shadow, center of mass of the shadows -> Rename BOS, Barycentre of Shadow
 # BOL : Barycentre of Light, center of mass of the light zone
+# BORDERS : The two max of shadow on both the maenisci. This is very noisy.
+# FWHMOL : The Full Width et Half Max Of Light, the FWHM of the light zone.
 pass
 ### CENTER OF RIVULET FINDING
 pass
@@ -511,6 +513,84 @@ def bol_framewise(frame:np.ndarray, borders_for_this_frame = None, **kwargs)-> n
 
     return rivulet
 
+def fwhmol_framewise(frame:np.ndarray, borders_for_this_frame = None, **kwargs)-> np.ndarray:
+    for key in default_kwargs.keys():
+        if not key in kwargs.keys():
+            kwargs[key] = default_kwargs[key]
+
+    ### Step 3 : find borders
+    if borders_for_this_frame is None:
+        borders_for_this_frame:np.ndarray = borders_framewise(frame, **kwargs)
+
+    ### Step 1: Alter the image
+    # 1.1 : resize (if needed)
+    l = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
+    l_origin = l.copy()
+    l_origin -= l_origin.min()
+
+    # 1.2 remove z median
+    if kwargs['remove_median_bckgnd_zwise']:
+        l = l - np.median(l, axis=(0), keepdims=True)
+    l_bckgnd_rmved = l.copy()
+    l_bckgnd_rmved -= l_bckgnd_rmved.min()
+
+    # 1.3 gaussian blur
+    if kwargs['gaussian_blur_kernel_size'] is not None:
+        sigma = kwargs['gaussian_blur_kernel_size']
+        l = gaussian_filter(l, sigma=sigma)
+    l_filtered = l.copy()
+    l_filtered -= l_filtered.min()
+
+    # 1.4 remove minimum
+    l -= l.min() # so that the min is at 0, i.e. the max of shadow is a 255
+
+    ### Step 2: Obtain the shadow representation
+    height, width = l.shape
+
+    # 2.1 build the z coordinate ('horizontal' in real life)
+    x1D = np.arange(width) / kwargs['resize_factor']
+    z1D = np.arange(height) / kwargs['resize_factor']
+    z2D = np.repeat(z1D, width).reshape((height, width))
+
+    # 2.2 discriminate the channel (white zone in the image)
+    max_l = np.percentile(l, 95, axis=0, keepdims=True) # the max luminosity (except outliers). we take the 95th percentile
+    threshold_l = max_l - kwargs['white_tolerance']
+    is_channel = l >= threshold_l
+
+    # 2.3 identify the channel borders
+    top = np.argmax(is_channel, axis=0).max()
+    bot = height - np.argmax(is_channel[::-1], axis=0).min()
+
+    # 2.4 Obtain the z and shadow image for the channel
+    l_channel = l[top:bot, :] # luminosity
+    z_channel = z2D[top:bot, :]           # z coordinate
+
+    ### Step 4: Compute the BOL
+    # the zone inside the rivulet
+    z_top = borders_for_this_frame[0,:]
+    z_bot = borders_for_this_frame[1,:]
+    inside_rivulet = (z_channel >= z_top) & (z_channel <= z_bot)
+
+    bckgnd_inside_rivulet = np.amin(l_channel, axis=0, where=inside_rivulet, initial=255, keepdims=True) - 1e-4
+
+    # the weights to compute the COM
+    weights = (l_channel - bckgnd_inside_rivulet) * inside_rivulet
+
+    # The BOL rivulet with sub-pixel resolution
+    # this handles the tricky size of 0-width rivulet (when the two borders are at the same point, it happens for some shitty videos
+    nonzerosum = np.sum(weights, axis=0) > 0
+
+
+    # FWHM
+    threshold = np.max(weights, axis=0, keepdims=True) / 2
+
+    fwhm = np.empty(width, dtype=float)
+    fwhm[nonzerosum] = np.sum(weights > threshold, axis=0)[nonzerosum] * utility.step(z1D)
+    fwhm[np.bitwise_not(nonzerosum)] = ((z_bot+z_top)/2)[np.bitwise_not(nonzerosum)]
+
+    return fwhm
+
+
 ###
 
 ### VIDEOWISE METHODS
@@ -831,30 +911,6 @@ def get_frames_from_parameters(**parameters):
 
     return frames
 
-def find_borders(**parameters):
-    # Get the frames
-    frames = get_frames_from_parameters(**parameters)
-    length, height, width = frames.shape
-
-    for key in default_kwargs.keys():
-        if not key in parameters.keys():
-            parameters[key] = default_kwargs[key]
-
-    brds = np.zeros((length, 2, width * parameters['resize_factor']), float)
-
-    np.seterr(all='raise')
-    for framenumber in range(length):
-        try:
-            brds[framenumber] = borders_framewise(frames[framenumber], **parameters)
-        except:
-            print(f'Error frame {framenumber}')
-        if (framenumber+1)%5 == 0:
-            display(f'Borders finding ({round(100*(framenumber+1)/length, 2)} %)', end = '\r')
-    display(f'', end = '\r')
-    utility.log_debug(f'Borders found', verbose=parameters['verbose'])
-
-    return brds
-
 def find_cos(**parameters):
     # Dataset selection
     dataset = parameters.get('dataset', 'unspecified-dataset')
@@ -900,6 +956,30 @@ def find_cos(**parameters):
 
     return rivs
 
+def find_borders(**parameters):
+    # Get the frames
+    frames = get_frames_from_parameters(**parameters)
+    length, height, width = frames.shape
+
+    for key in default_kwargs.keys():
+        if not key in parameters.keys():
+            parameters[key] = default_kwargs[key]
+
+    brds = np.zeros((length, 2, width * parameters['resize_factor']), float)
+
+    np.seterr(all='raise')
+    for framenumber in range(length):
+        try:
+            brds[framenumber] = borders_framewise(frames[framenumber], **parameters)
+        except:
+            print(f'Error frame {framenumber}')
+        if (framenumber+1)%5 == 0:
+            display(f'Borders finding ({round(100*(framenumber+1)/length, 2)} %)', end = '\r')
+    display(f'', end = '\r')
+    utility.log_debug(f'Borders found', verbose=parameters['verbose'])
+
+    return brds
+
 def find_bol(verbose:int = 1, **parameters):
     # First we need the borders
     borders_for_this_video = datasaving.fetch_or_generate_data_from_parameters('borders', parameters, verbose=verbose)
@@ -920,10 +1000,36 @@ def find_bol(verbose:int = 1, **parameters):
             rivs[framenumber] = bol_framewise(frames[framenumber], borders_for_this_frame=borders_for_this_video[framenumber], **parameters)
         except:
             print(f'Error frame {framenumber}')
-        if (framenumbe+1)%5 == 0:
+        if (framenumber+1)%5 == 0:
             display(f'BOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
     display(f'', end = '\r')
     utility.log_debug(f'BOL computed', verbose=parameters['verbose'])
 
     return rivs
+def find_fwhmol(verbose:int = 1, **parameters):
+    # First we need the borders
+    borders_for_this_video = datasaving.fetch_or_generate_data_from_parameters('borders', parameters, verbose=verbose)
+
+    # Then the frames
+    frames = get_frames_from_parameters(**parameters)
+    length, height, width = frames.shape
+
+    for key in default_kwargs.keys():
+        if not key in parameters.keys():
+            parameters[key] = default_kwargs[key]
+
+    ws = np.zeros((length, width * parameters['resize_factor']), float)
+
+    np.seterr(all='raise')
+    for framenumber in range(length):
+        try:
+            ws[framenumber] = fwhmol_framewise(frames[framenumber], borders_for_this_frame=borders_for_this_video[framenumber], **parameters)
+        except:
+            print(f'Error frame {framenumber}')
+        if (framenumber+1)%5 == 0:
+            display(f'FWHMOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
+    display(f'', end = '\r')
+    utility.log_debug(f'FWHMOL computed', verbose=parameters['verbose'])
+
+    return ws
 
