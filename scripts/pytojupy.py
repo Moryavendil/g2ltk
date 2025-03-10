@@ -32,16 +32,18 @@ prefix = 'ipynb-'
 maindir = '.'
 scriptsdir = os.path.join(maindir, 'scripts')
 
-ipynb_names = []
-if scriptpath is None:
-    print('No file selected, converting default scripts')
-    ipynb_names = [f[len(prefix):-3] for f in os.listdir(scriptsdir) if os.path.isfile(os.path.join(scriptsdir, f)) and f.endswith('.py') and f.startswith(prefix)]
-else:
+ipynb_names = None
+if scriptdirpath is not None:
     if os.path.isdir(scriptdirpath):
         # print(f'Directory selected: {scriptpath}')
-        scriptsdir = scriptpath
+        scriptsdir = scriptdirpath
         ipynb_names = [f[len(prefix):-3] for f in os.listdir(scriptsdir) if os.path.isfile(os.path.join(scriptsdir, f)) and f.endswith('.py') and f.startswith(prefix)]
-    elif os.path.isfile(scriptpath):
+    else:
+        print(f'ERROR - ISWHAT?: -d {scriptdirpath}')
+        sys.exit(-101)
+
+if scriptpath is not None:
+    if os.path.isfile(scriptpath):
         scriptsdir = scriptpath.parent
         scriptname = scriptpath.name
         if not (scriptname.endswith('.py') & scriptname.startswith(prefix)):
@@ -51,8 +53,11 @@ else:
         ipynb_names = [scriptname[len(prefix):-3]]
     else:
         print(f'ERROR - ISWHAT?: -n {scriptpath}')
-        print(f'ERROR - ISWHAT?: -d {scriptdirpath}')
-        sys.exit(-100)
+        sys.exit(-102)
+
+if ipynb_names is None:
+    print('No file selected, converting default scripts')
+    ipynb_names = [f[len(prefix):-3] for f in os.listdir(scriptsdir) if os.path.isfile(os.path.join(scriptsdir, f)) and f.endswith('.py') and f.startswith(prefix)]
 
 ipynb_names.sort()
 
