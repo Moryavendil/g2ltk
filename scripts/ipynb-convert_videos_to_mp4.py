@@ -2,30 +2,26 @@
 # <nbformat>3.0</nbformat>
 # <codecell>
 
-import os
-
 from g2ltk import datareading
 
 
 # <codecell>
 
-# Datasets display
-root_path = '../'
-datasets = datareading.find_available_datasets(root_path)
-print('Available datasets:', datareading.find_available_datasets(root_path))
+### Datasets display
+datareading.set_default_root_path('../')
+datareading.describe_root_path()
 
 
 # <codecell>
 
-# Dataset selection & acquisitions display
-dataset = '-'
-if len(datasets) == 1:
-    dataset = datasets[0]
-    datareading.log_info(f'Auto-selected dataset {dataset}')
-dataset_path = os.path.join(root_path, dataset)
-datareading.describe_dataset(dataset_path, videotype='gcv', makeitshort=True)
+### Dataset selection & acquisitions display
+dataset = 'seuil2_manta'
+
+datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
+dataset_path = datareading.generate_dataset_path(dataset)
 
 
 # <codecell>
 
-datareading.save_all_gcv_videos(dataset, do_timestamp = True, fps = 20., filetype = 'mp4')
+datareading.save_all_gcv_videos(dataset=dataset, do_timestamp = True, fps = 20., filetype = 'mp4')
+

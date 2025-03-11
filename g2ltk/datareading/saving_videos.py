@@ -7,6 +7,7 @@ from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_de
 from .. import utility, datasaving
 
 from . import are_there_missing_frames, resize_frames, find_available_videos, get_frames, get_times
+from . import generate_acquisition_path
 from . import is_this_a_gcv, is_this_a_t16
 
 # save videos for easyvisualisation
@@ -108,13 +109,11 @@ def save_acquisition_to_video(acquisition_path:str, do_timestamp:bool = True, fp
 def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
     log_info(f'Saving all the gcv acquisition in the dataset: {dataset}')
 
-    dataset_path = '../' + dataset
-
-    available_acquisitions =  find_available_videos(dataset_path, videotype='gcv')
+    available_acquisitions =  find_available_videos(dataset=dataset, videotype='gcv')
     log_info(f'The following acquisition will be saved: {available_acquisitions}')
 
     for acquisition in available_acquisitions:
-        acquisition_path = os.path.join(dataset_path, acquisition)
+        acquisition_path = generate_acquisition_path(acquisition, dataset=dataset)
 
         if is_this_a_gcv(acquisition_path):
             save_acquisition_to_video(acquisition_path, do_timestamp=do_timestamp, fps=fps, filetype=filetype, codec=codec, resize_factor=resize_factor)

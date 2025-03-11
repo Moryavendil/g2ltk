@@ -2,7 +2,7 @@
 # <nbformat>3.0</nbformat>
 # <codecell>
 
-%matplotlib notebook
+# %matplotlib notebook
 
 import os
 import numpy as np
@@ -18,7 +18,7 @@ from g2ltk import datareading
 
 # <codecell>
 
-def convert_tiff_to_gcv(acquisition_path, acquisition_frequency, exposure_time, framenumbers=None, subregion=None, verbose=1):
+def convert_tiff_to_gcv(acquisition_path, acquisition_frequency, exposure_time, framenumbers=None, subregion=None):
     acquisition_gcv = acquisition_path + '_gcv'
 
     gcv_path = acquisition_gcv + '.gcv'
@@ -88,21 +88,18 @@ def convert_tiff_to_gcv(acquisition_path, acquisition_frequency, exposure_time, 
 
 # <codecell>
 
-# Datasets display
-root_path = '../'
-datasets = datareading.find_available_datasets(root_path)
-print('Available datasets:', datareading.find_available_datasets(root_path))
+### Datasets display
+datareading.set_default_root_path('../')
+datareading.describe_root_path()
 
 
 # <codecell>
 
-# Dataset selection & acquisitions display
-dataset = '-'
-if len(datasets) == 1:
-    dataset = datasets[0]
-    datareading.log_info(f'Auto-selected dataset {dataset}')
-dataset_path = os.path.join(root_path, dataset)
-datareading.describe_dataset(dataset_path, videotype='t8', makeitshort=True)
+### Dataset selection & acquisitions display
+dataset = 'seuil2_chronos'
+
+datareading.describe_dataset(dataset=dataset, videotype='t16', makeitshort=True)
+dataset_path = datareading.generate_dataset_path(dataset)
 
 
 # <codecell>
@@ -178,5 +175,4 @@ fig, axes = plt.subplots(3, 1)
 axes[0].imshow(frames[0])
 axes[1].imshow(frames[1])
 axes[2].imshow(frames[2])
-
 
