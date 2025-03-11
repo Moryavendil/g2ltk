@@ -110,7 +110,7 @@ def describe_root_path(root_path: Optional[str] = None) -> None:
 
 ### DATASET MANAGEMENT
 
-def is_a_dataset(dataset=None, root_path: Optional[str] = None) -> bool:
+def is_this_a_dataset(dataset=None, root_path: Optional[str] = None) -> bool:
     if root_path is None:
         global __ROOT_PATH__
         root_path = __ROOT_PATH__
@@ -118,11 +118,11 @@ def is_a_dataset(dataset=None, root_path: Optional[str] = None) -> bool:
         return False
     if not os.path.isdir(os.path.join(root_path, dataset)):
         log_trace(
-            f'is_a_dataset: {dataset} from root path {root_path} is not a dataset: {os.path.join(root_path, dataset)} is not a directory')
+            f'is_this_a_dataset: {dataset} from root path {root_path} is not a dataset: {os.path.join(root_path, dataset)} is not a directory')
         return False
     if len(find_available_videos(dataset=dataset, root_path=root_path)) < 1:
         log_trace(
-            f'is_a_dataset: {dataset} from root path {root_path} is not a dataset: {os.path.join(root_path, dataset)} contans no video')
+            f'is_this_a_dataset: {dataset} from root path {root_path} is not a dataset: {os.path.join(root_path, dataset)} contans no video')
         return False
     return True
 
@@ -131,7 +131,7 @@ def find_available_datasets(root_path: Optional[str] = None) -> List[str]:
         global __ROOT_PATH__
         root_path = __ROOT_PATH__
     log_trace(f'find_available_datasets: Possible datasets in {root_path}: {os.listdir(root_path)}')
-    available_datasets = [d for d in os.listdir(root_path) if is_a_dataset(d, root_path=root_path)]
+    available_datasets = [d for d in os.listdir(root_path) if is_this_a_dataset(d, root_path=root_path)]
     log_debug(f'Found {len(available_datasets)} dataset(s) in {root_path}')
     log_subtrace(f'find_available_datasets: Dataset found: {available_datasets} in {root_path}')
     return available_datasets
@@ -152,6 +152,13 @@ def find_default_dataset(root_path: Optional[str]):
         log_info(f'Auto-selected dataset {dataset}')
     else:
         log_error(f'No datasets available at path {root_path}')
+    return dataset
+
+def find_dataset(dataset: Optional[str] = None, root_path: Optional[str] = None):
+    if dataset is None:
+        dataset = find_default_dataset(root_path)
+    if not is_this_a_dataset(dataset, root_path=root_path):
+        log_warn(f'Is not a dataset: {dataset}')
     return dataset
 
 def generate_dataset_path(dataset: Optional[str] = None, root_path: Optional[str] = None):
@@ -176,7 +183,7 @@ def describe_dataset(dataset_path: Optional[str] = None, dataset: Optional[str] 
         dataset = find_default_dataset(root_path)
     log_info(f'Dataset: {dataset}')
     log_trace(f'Dataset: {dataset} (root path: {root_path})')
-    if not is_a_dataset(dataset, root_path=root_path):
+    if not is_this_a_dataset(dataset, root_path=root_path):
         log_warn(f'Does not seem to be a valid dataset!')
     available_acquisitions = find_available_videos(dataset_path=dataset_path, dataset=dataset, root_path=root_path,
                                                    videotype=videotype)

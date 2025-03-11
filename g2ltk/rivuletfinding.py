@@ -1,12 +1,12 @@
 from typing import Optional, Tuple, Dict
 import numpy as np
-import os
+# import os
 # import cv2 # to manipulate images and videos
 from scipy.ndimage import gaussian_filter
 from scipy.optimize import curve_fit # to fit functions
 
-from g2ltk import datareading, datasaving, utility
-from g2ltk import display
+from . import datareading, datasaving, utility
+from . import display
 
 # Custom typing
 Meta = Dict[str, str]
@@ -877,13 +877,12 @@ def borders(frame:np.ndarray, do_fit:bool = False, w0:float = 1., **kwargs) -> n
 def get_acquisition_path_from_parameters(**parameters) -> str:
     # Dataset selection
     dataset = parameters.get('dataset', 'unspecified-dataset')
-    dataset_path = '../' + dataset
-    if not(os.path.isdir(dataset_path)):
-        print(f'WARNING (RVFD): There is no dataset named {dataset}.')
+    if not datareading.is_this_a_dataset(dataset):
+        print(f'WARNING (RVFD): Is not a dataset: {dataset}.')
 
     # Acquisition selection
     acquisition = parameters.get('acquisition', 'unspecified-acquisition')
-    acquisition_path = os.path.join(dataset_path, acquisition)
+    acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
     if not(datareading.is_this_a_video(acquisition_path)):
         print(f'WARNING (RVFD): There is no acquisition named {acquisition} for the dataset {dataset}.')
 
@@ -911,15 +910,14 @@ def get_frames_from_parameters(**parameters):
 def find_bos(**parameters):
     # Dataset selection
     dataset = parameters.get('dataset', 'unspecified-dataset')
-    dataset_path = '../' + dataset
-    if not(os.path.isdir(dataset_path)):
-        utility.log_warning(f'(RVFD): There is no dataset named {dataset}.')
+    if not datareading.is_this_a_dataset(dataset):
+        print(f'WARNING (RVFD): Is not a dataset: {dataset}.')
 
     # Acquisition selection
     acquisition = parameters.get('acquisition', 'unspecified-acquisition')
-    acquisition_path = os.path.join(dataset_path, acquisition)
+    acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
     if not(datareading.is_this_a_video(acquisition_path)):
-        utility.log_warning(f'(RVFD): There is no acquisition named {acquisition} for the dataset {dataset}.')
+        print(f'WARNING (RVFD): There is no acquisition named {acquisition} for the dataset {dataset}.')
 
     # Parameters getting
     roi = parameters.get('roi', None)
