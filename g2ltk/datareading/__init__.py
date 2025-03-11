@@ -126,7 +126,6 @@ def is_a_dataset(dataset=None, root_path: Optional[str] = None) -> bool:
         return False
     return True
 
-
 def find_available_datasets(root_path: Optional[str] = None) -> List[str]:
     if root_path is None:
         global __ROOT_PATH__
@@ -163,8 +162,6 @@ def generate_dataset_path(dataset: Optional[str] = None, root_path: Optional[str
         dataset = find_default_dataset(root_path)
     dataset_path = os.path.join(root_path, dataset)
     return dataset_path
-
-
 
 
 def describe_dataset(dataset_path: Optional[str] = None, dataset: Optional[str] = None, root_path: Optional[str] = None,
@@ -446,7 +443,10 @@ def find_default_acquisition(dataset: Optional[str] = None, root_path:Optional[s
     return acquisition
 def generate_acquisition_path(acquisition: str, dataset: Optional[str] = None, root_path:Optional[str] = None):
     dataset_path = generate_dataset_path(dataset, root_path=root_path)
-    return os.path.join(dataset_path, acquisition)
+    acquisition_path = os.path.join(dataset_path, acquisition)
+    if not is_this_a_video(acquisition_path):
+        log_warn(f'There is not video at {acquisition_path}')
+    return acquisition_path
 
 def describe_acquisition(dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None,
                          framenumbers: Optional[np.ndarray] = None, subregion: Subregion = None,
