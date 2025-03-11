@@ -29,20 +29,12 @@ args = parser.parse_args()
 notebook_paths = args.n
 dirname = args.d
 
+print(f'JupyToPy: Converting .ipynb -> .py')
+if len(notebook_paths) == 0:
+    print(f'No script specified. Aborting.')
+    sys.exit(-10)
+
 prefix = 'ipynb-'
-
-### SELECTING WHERE WE WILL SAVE THE SCRIPTS
-maindir = '.'
-rootscriptsdir = os.path.join(maindir, 'scripts')
-if not os.path.isdir(rootscriptsdir):
-    os.mkdir(rootscriptsdir)
-
-scriptsdir = rootscriptsdir
-if dirname is not None:
-    scriptsdir = os.path.join(rootscriptsdir, dirname)
-
-    if not os.path.isdir(scriptsdir):
-        os.mkdir(scriptsdir)
 
 ### SELECTING WHICH NOTEBOOKS WE WILL CONVERT TO SCRIPTS
 ipynbs = []
@@ -57,11 +49,21 @@ if notebook_paths is not None: # case : a particular or several notebooks was sp
 else:
     ipynbs = [f[:-6] for f in os.listdir(maindir) if os.path.isfile(os.path.join(maindir, f)) and f.endswith('.ipynb')]
 ipynbs.sort()
+print(f'Scripts converted: {ipynbs}')
 
-#print(f'-d: {scriptsdir}')
-#print(f'n: {notebook_paths}')
-#print(f'ipynbs: {ipynbs}')
-# sys.exit(0) # debug exit
+### SELECTING WHERE WE WILL SAVE THE SCRIPTS
+maindir = '.'
+rootscriptsdir = os.path.join(maindir, 'scripts')
+if not os.path.isdir(rootscriptsdir):
+    os.mkdir(rootscriptsdir)
+
+scriptsdir = rootscriptsdir
+if dirname is not None:
+    scriptsdir = os.path.join(rootscriptsdir, dirname)
+
+    if not os.path.isdir(scriptsdir):
+        os.mkdir(scriptsdir)
+print(f'Writing directory: {scriptsdir}')
 
 for ipynb in ipynbs:
     infilename = os.path.join(maindir, ipynb + '.ipynb')
