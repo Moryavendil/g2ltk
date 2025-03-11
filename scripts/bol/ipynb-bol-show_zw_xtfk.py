@@ -15,26 +15,23 @@ utility.configure_mpl()
 # <codecell>
 
 ### Datasets display
-root_path = '../'
-datasets = datareading.find_available_datasets(root_path)
-print('Available datasets:', datareading.find_available_datasets(root_path))
+datareading.set_default_root_path('../')
+datareading.describe_root_path()
 
 
 # <codecell>
 
 ### Dataset selection & acquisitions display
-dataset = '-'
-if len(datasets) == 1:
-    dataset = datasets[0]
-    datareading.log_info(f'Auto-selected dataset {dataset}')
-dataset_path = os.path.join(root_path, dataset)
-datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
+dataset = 'meandersspeed_zoom'
+
+datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
+dataset_path = datareading.generate_dataset_path(dataset)
 
 
 # <codecell>
 
 ### Acquisition selection
-acquisition = 'a240'
+acquisition = 'm150'
 acquisition_path = os.path.join(dataset_path, acquisition)
 
 
@@ -60,7 +57,8 @@ rivfinding_params = {
 # portion of the video that is of interest to us
 framenumbers = np.arange(datareading.get_number_of_available_frames(acquisition_path))
 roi = None, None, None, None  #start_x, start_y, end_x, end_y
-
+if dataset=='cleandemomeandrage':
+    roi = None, 500, None, 700
 
 
 # <codecell>
@@ -77,7 +75,6 @@ z_raw = datasaving.fetch_or_generate_data('bol', dataset, acquisition, framenumb
 w_raw = datasaving.fetch_or_generate_data('fwhmol', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
 
 
-
 # <codecell>
 
 z_tmp = z_raw.copy()
@@ -87,9 +84,9 @@ w_tmp = w_raw.copy()
 # <codecell>
 
 from scipy.ndimage import gaussian_filter
-blur_t_frame = 2 # blur in time (frame).
+blur_t_frame = .5 # blur in time (frame).
 sigma_t = blur_t_frame
-blur_x_px = 5 # blur in space (px).
+blur_x_px = 10 # blur in space (px).
 sigma_x = blur_x_px
 
 
@@ -160,7 +157,7 @@ xcorrect can be 3 things
  * 'smoothed': we do a smoothing avec the average and remove that
  * 'total': total removal of the mean value
 """
-xcorrect = 'linear'
+xcorrect = 'smoothed'
 if xcorrect is None:
     utility.log_info('No spatial correction made')
 elif xcorrect == 'linear':
@@ -229,17 +226,18 @@ plt.tight_layout()
 Z = z_tmp.copy()
 W = w_tmp.copy()
 
-zero_pad_factor = (5,5)
+window='tukey'
+zero_pad_factor = (1,10)
 k, f = utility.fourier.dual2d(x, t, zero_pad_factor=zero_pad_factor)
-Z_pw = utility.fourier.psd2d(Z, x, t, window='tukey', zero_pad_factor=zero_pad_factor)
-W_pw = utility.fourier.psd2d(W, x, t, window='tukey', zero_pad_factor=zero_pad_factor)
+Z_pw = utility.fourier.psd2d(Z, x, t, window=window, zero_pad_factor=zero_pad_factor)
+W_pw = utility.fourier.psd2d(W, x, t, window=window, zero_pad_factor=zero_pad_factor)
 
 range_db = 80
 
 
 # <codecell>
 
-fig, axes = plt.subplots(2, 2)
+fig, axes = plt.subplots(2, 2, sharex='col', sharey='col')
 imshow_kw = {'origin':'upper', 
              'interpolation':'nearest', 
              'aspect':'auto'}
@@ -259,8 +257,8 @@ ax.set_ylabel(r'$f$ [frame$^{-1}$]')
 cb = plt.colorbar(im_zpw, ax=ax, label=r'$|\hat{z}|^2$ [px^2/(px-1.frame-1)]')
 utility.set_ticks_log_cb(cb, vmax, range_db=range_db)
 
-ax.set_xlim(0, 1/50)
-ax.set_ylim(-1/20, 1/20)
+ax.set_xlim(0, 1/10*1/20)
+ax.set_ylim(-1/20, 1/5)
 
 ax = axes[1,0]
 ax.set_title('W (normal)')
@@ -277,10 +275,13 @@ ax.set_ylabel(r'$f$ [frame$^{-1}$]')
 cb = plt.colorbar(im_zpw, ax=ax, label=r'$|\hat{w}|^2$ [px^2/(px-1.frame-1)]')
 utility.set_ticks_log_cb(cb, vmax, range_db=range_db)
 
-ax.set_xlim(0, 1/50)
-ax.set_ylim(-1/20, 1/20)
 
 # plt.tight_layout()
+
+
+# <codecell>
+
+# plt.close()
 
 
 # <codecell>
@@ -320,9 +321,4 @@ ax.set_ylim(-6, 6)
 cb = plt.colorbar(im_zpw, ax=ax, label=r'mm$^2$/(Hz.mm$^{-1}$)')
 cbticks, cbticklabels = get_cbticks(Z_pw_mm, range_db)
 cb.ax.set_yticks(cbticks) ; cb.ax.set_yticklabels(cbticklabels)
-
-
-# <codecell>
-
-
 

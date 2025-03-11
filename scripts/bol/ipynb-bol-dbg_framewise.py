@@ -16,26 +16,23 @@ utility.configure_mpl()
 # <codecell>
 
 ### Datasets display
-root_path = '../'
-datasets = datareading.find_available_datasets(root_path)
-print('Available datasets:', datareading.find_available_datasets(root_path))
+datareading.set_default_root_path('../')
+datareading.describe_root_path()
 
 
 # <codecell>
 
 ### Dataset selection & acquisitions display
-dataset = '-'
-if len(datasets) == 1:
-    dataset = datasets[0]
-    datareading.log_info(f'Auto-selected dataset {dataset}')
-dataset_path = os.path.join(root_path, dataset)
-datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
+dataset = 'meandersspeed_zoom'
+
+datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
+dataset_path = datareading.generate_dataset_path(dataset)
 
 
 # <codecell>
 
 ### Acquisition selection
-acquisition = 'a340'
+acquisition = 'meandrage_clean_demo'
 acquisition_path = os.path.join(dataset_path, acquisition)
 
 
@@ -58,6 +55,8 @@ rivfinding_params = {
 framenumbers = np.arange(datareading.get_number_of_available_frames(acquisition_path))
 roi = None, None, None, None  #start_x, start_y, end_x, end_y
 
+if dataset=='cleandemomeandrage':
+    roi = None, 500, None, 700
 
 
 # <codecell>
@@ -122,7 +121,6 @@ l -= l.min() # so that the min is at 0, i.e. the max of shadow is a 255
 
 # <codecell>
 
-
 fig, axes = plt.subplots(nrows=3, ncols=1, sharex=True, sharey=True)
 axes[0].imshow(l_origin, aspect='auto')
 axes[1].imshow(l_bckgnd_rmved, aspect='auto')
@@ -157,10 +155,10 @@ z_channel = z2D[top:bot, :]           # z coordinate
 # <codecell>
 
 fig, axes = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=True)
-axes[0].imshow(l, aspect='auto')
-axes[1].imshow(is_channel, aspect='auto')
-axes[2].imshow(z_channel, aspect='auto')
-axes[3].imshow(l_channel, aspect='auto')
+axes[0].imshow(l, aspect='auto', extent=utility.correct_extent(x1D,z1D))
+axes[1].imshow(is_channel, aspect='auto', extent=utility.correct_extent(x1D,z1D))
+axes[2].imshow(z_channel, aspect='auto', extent=utility.correct_extent(x1D,z1D))
+axes[3].imshow(l_channel, aspect='auto', extent=utility.correct_extent(x1D,z1D))
 plt.tight_layout()
 
 
@@ -182,7 +180,6 @@ ax.plot(x1D, z_bot, color='w')
 
 
 # <codecell>
-
 
 inside_rivulet = (z_channel >= z_top) & (z_channel <= z_bot)
 
@@ -231,7 +228,6 @@ ax.plot(x1D, z_bot, color='w', ls=':')
 ax = axes[2]
 ax.plot(x1D, z_bot-z_top)
 ax.plot(x1D, fwhm)
-
 
 
 # <codecell>

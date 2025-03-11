@@ -16,20 +16,17 @@ utility.configure_mpl()
 # <codecell>
 
 ### Datasets display
-root_path = '../'
-datasets = datareading.find_available_datasets(root_path)
-print('Available datasets:', datareading.find_available_datasets(root_path))
+datareading.set_default_root_path('../')
+datareading.describe_root_path()
 
 
 # <codecell>
 
 ### Dataset selection & acquisitions display
-dataset = '-'
-if len(datasets) == 1:
-    dataset = datasets[0]
-    datareading.log_info(f'Auto-selected dataset {dataset}')
-dataset_path = os.path.join(root_path, dataset)
-datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
+dataset = 'meandersspeed_zoom'
+
+datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
+dataset_path = datareading.generate_dataset_path(dataset)
 
 
 # <codecell>
@@ -56,7 +53,6 @@ rivfinding_params = {
 # portion of the video that is of interest to us
 framenumbers = np.arange(datareading.get_number_of_available_frames(acquisition_path))
 roi = None, None, None, None  #start_x, start_y, end_x, end_y
-
 
 
 # <codecell>
@@ -226,9 +222,4 @@ ax.plot(z_rivulet_zone, l_rivulet_zone, color='k')
 ax.axhline(weights_offset, color='gray', ls='--', alpha=.8)
 ax.axvline(position, color='r', ls='--', alpha=.8)
 ax.axvline(rivuletfinding.bol_linewise(z1D, l_line, **kwargs), color='k', ls=':', alpha=.8)
-
-
-# <codecell>
-
-
 
