@@ -66,7 +66,7 @@ def convert_tiff_to_gcv(acquisition_path, acquisition_frequency, exposure_time, 
 
     ### STAMPS FILE
     # make up for the stamps data
-    framenumbers = datareading.format_framenumbers(acquisition_path, framenumbers, verbose=verbose)
+    framenumbers = datareading.format_framenumbers(acquisition_path, framenumbers)
     fn = framenumbers.astype(int)
     camera_time = np.rint(framenumbers / acquisition_frequency * 1e9).astype(np.int64) # mock camera time
     computer_time = np.rint(framenumbers / acquisition_frequency * 1e6).astype(np.int64) # mock computer time
@@ -102,14 +102,14 @@ if len(datasets) == 1:
     dataset = datasets[0]
     datareading.log_info(f'Auto-selected dataset {dataset}')
 dataset_path = os.path.join(root_path, dataset)
-datareading.describe_dataset(dataset_path, type='t8', makeitshort=True)
+datareading.describe_dataset(dataset_path, videotype='t8', makeitshort=True)
 
 
 # <codecell>
 
 # # Acquisition selection
 # acquisition = 'ha_n140f000a000'
-# acquisition_path = os.path.join(dataset_path, acquisition)
+# acquisition_path = os.path.join(generate_dataset_path, acquisition)
 # datareading.is_this_a_video(acquisition_path)
 
 
