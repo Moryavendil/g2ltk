@@ -23,17 +23,16 @@ datareading.describe_root_path()
 # <codecell>
 
 ### Dataset selection & acquisitions display
-dataset = 'meandersspeed_zoom'
+dataset = 'seuil2_chronos'
 
 datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
-dataset_path = datareading.generate_dataset_path(dataset)
 
 
 # <codecell>
 
 ### Acquisition selection
-acquisition = 'meandrage_clean_demo'
-acquisition_path = os.path.join(dataset_path, acquisition)
+acquisition = 'seuil15_gcv'
+acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
 
 
 # <codecell>

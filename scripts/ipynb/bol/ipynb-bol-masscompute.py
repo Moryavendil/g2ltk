@@ -23,18 +23,17 @@ datareading.describe_root_path()
 # <codecell>
 
 ### Dataset selection & acquisitions display
-dataset = 'meandersspeed_zoom'
+dataset = 'seuil2_manta'
 
 datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
-dataset_path = datareading.generate_dataset_path(dataset)
 
 
 # <codecell>
 
-for acquisition in ['m120', 'm130', 'm140', 'm150']:
-# for acquisition in ['meandrage_clean_demo']:
+# for acquisition in ['s100_gcv', 's150_gcv', 's15vrai_gcv', 's200_gcv', 's20_gcv', 's300_gcv', 's30_gcv', 's40_gcv', 's65_gcv', 's_gcv', 'seuil15_gcv']:
+for acquisition in ['15seuil', '20seuil', '30seuil', '40seuil', 'straight', 'straightcrop']:
 
-    acquisition_path = os.path.join(dataset_path, acquisition)
+    acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
     ### Parameters definition
     
     # conversion factor
