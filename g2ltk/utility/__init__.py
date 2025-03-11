@@ -240,9 +240,9 @@ def set_ticks_log_cb(cb, maximum_amplitude:float, range_db:Union[int, float]):
     cbticklabels = ['0 dB' if att_db == 0 else f'-{att_db} dB' for att_db in att_db_major]
     cbticks_minor = [attenuate_power(maximum_amplitude, att_db) for att_db in att_db_minor]
 
-    cb.ax_z.set_yticks(cbticks_major, minor=False)
-    cb.ax_z.set_yticklabels(cbticklabels)
-    cb.ax_z.set_yticks(cbticks_minor, minor=True)
+    cb.ax.set_yticks(cbticks_major, minor=False)
+    cb.ax.set_yticklabels(cbticklabels)
+    cb.ax.set_yticks(cbticks_minor, minor=True)
 
 ### FFT AND PSD COMPUTATIONS
 
