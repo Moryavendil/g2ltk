@@ -4,11 +4,10 @@
 
 # %matplotlib notebook
 
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from g2ltk import set_verbose, datareading, datasaving, utility, rivuletfinding
+from g2ltk import datareading, datasaving, utility, rivuletfinding
 
 utility.configure_mpl()
 
@@ -23,15 +22,14 @@ datareading.describe_root_path()
 # <codecell>
 
 ### Dataset selection & acquisitions display
-dataset = 'seuil2_chronos'
-
+dataset = datareading.find_dataset(None)
 datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
 
 
 # <codecell>
 
 ### Acquisition selection
-acquisition = 'seuil15_gcv'
+acquisition = 'm150'
 acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
 
 
@@ -227,9 +225,4 @@ ax.plot(x1D, z_bot, color='w', ls=':')
 ax = axes[2]
 ax.plot(x1D, z_bot-z_top)
 ax.plot(x1D, fwhm)
-
-
-# <codecell>
-
-
 

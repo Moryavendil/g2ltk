@@ -4,7 +4,6 @@
 
 # %matplotlib notebook
 
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -23,8 +22,7 @@ datareading.describe_root_path()
 # <codecell>
 
 ### Dataset selection & acquisitions display
-dataset = 'seuil2_manta'
-
+dataset = datareading.find_dataset(None)
 datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
 
 
@@ -62,9 +60,4 @@ for acquisition in ['15seuil', '20seuil', '30seuil', '40seuil', 'straight', 'str
 
     z_raw = datasaving.fetch_or_generate_data('bol', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
     z_raw = datasaving.fetch_or_generate_data('fwhmol', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
-
-
-# <codecell>
-
-
 

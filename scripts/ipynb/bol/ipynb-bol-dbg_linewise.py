@@ -8,7 +8,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from g2ltk import set_verbose, datareading, datasaving, utility, rivuletfinding
+from g2ltk import datareading, datasaving, utility, rivuletfinding
 
 utility.configure_mpl()
 
@@ -23,17 +23,15 @@ datareading.describe_root_path()
 # <codecell>
 
 ### Dataset selection & acquisitions display
-dataset = 'meandersspeed_zoom'
-
+dataset = datareading.find_dataset(None)
 datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
-dataset_path = datareading.generate_dataset_path(dataset)
 
 
 # <codecell>
 
 ### Acquisition selection
-acquisition = 'a340'
-acquisition_path = os.path.join(dataset_path, acquisition)
+acquisition = 'm150'
+acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
 
 
 # <codecell>
