@@ -6,7 +6,7 @@ import os # to navigate in the directories
 from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace
 from .. import utility, datasaving
 
-from . import are_there_missing_frames
+from . import are_there_missing_frames, format_framenumbers
 
 Meta = Dict[str, str]
 Stamps = Dict[str, np.ndarray]
@@ -64,8 +64,8 @@ def get_acquisition_frequency_gcv(acquisition_path:str, unit = None, verbose:Opt
     if are_there_missing_frames(acquisition_path, verbose=verbose):
         return freq_meta
 
-    full_stamps = retrieve_stamps(acquisition_path, verbose=verbose)
-    camera_timestamps = get_camera_timestamps(full_stamps, unit='s', verbose=verbose)
+    full_stamps = retrieve_stamps(acquisition_path)
+    camera_timestamps = get_camera_timestamps(full_stamps, unit='s')
 
     freq_camera_timestamps = 1/np.mean(camera_timestamps[1:]-camera_timestamps[:-1])
 
@@ -76,15 +76,15 @@ def get_acquisition_frequency_gcv(acquisition_path:str, unit = None, verbose:Opt
 
     return freq_camera_timestamps
 
-def get_acquisition_duration_gcv(acquisition_path:str, framenumbers:np.ndarray, unit = None, verbose:Optional[int]=None) -> float:
+def get_acquisition_duration_gcv(acquisition_path:str, framenumbers:np.ndarray, unit = None) -> float:
     full_stamps = retrieve_stamps(acquisition_path)
-    camera_timestamps = get_camera_timestamps(full_stamps, unit=unit, verbose=verbose)
+    camera_timestamps = get_camera_timestamps(full_stamps, unit=unit)
 
     camera_timestamps = camera_timestamps[framenumbers]
 
     return np.max(camera_timestamps) - np.min(camera_timestamps)
 
-def get_times_gcv(acquisition_path:str, framenumbers:np.ndarray, unit=None, verbose:Optional[int]=None) -> Optional[np.ndarray]:
+def get_times_gcv(acquisition_path:str, framenumbers:np.ndarray, unit=None) -> Optional[np.ndarray]:
     full_stamps = retrieve_stamps(acquisition_path)
     camera_timestamps = get_camera_timestamps(full_stamps, unit=unit)
 
@@ -93,7 +93,7 @@ def get_times_gcv(acquisition_path:str, framenumbers:np.ndarray, unit=None, verb
     return times
 
 def get_frames_gcv(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
-    return get_frames_rawvideo(acquisition_path, framenumbers=framenumbers, verbose=verbose)
+    return get_frames_rawvideo(acquisition_path, framenumbers=framenumbers)
 
 ### META READING
 
@@ -121,7 +121,7 @@ def retrieve_meta(acquisition_path: str) -> Meta:
 
 ### STAMPS READING
 
-def retrieve_stamps(acquisition_path:str, verbose:Optional[int]=None) -> Stamps:
+def retrieve_stamps(acquisition_path:str) -> Stamps:
     """
     Gets all the stamps of a video
 
@@ -219,7 +219,7 @@ def identify_missing_framenumbers(framenumbers:np.ndarray, verbose:Optional[int]
 
     return MF
 
-def get_camera_timestamps(stamps:Stamps, unit:str = None, verbose:Optional[int]=None) -> np.ndarray:
+def get_camera_timestamps(stamps:Stamps, unit:str = None) -> np.ndarray:
     if unit is None: # default unit
         unit = 's'
     factor:np.int64 = 1 # Multiplication factor for the time unit
@@ -242,7 +242,7 @@ def get_camera_timestamps(stamps:Stamps, unit:str = None, verbose:Optional[int]=
 
     return camera_timestamps / factor
 
-def get_computer_timestamps(stamps:Stamps, unit:str = 's', verbose:Optional[int]=None) -> np.ndarray:
+def get_computer_timestamps(stamps:Stamps, unit:str='s') -> np.ndarray:
     # Multiplication factor for the time unit
     factor:np.int64 = 1
     # raw unit is ns
@@ -263,23 +263,15 @@ def get_computer_timestamps(stamps:Stamps, unit:str = 's', verbose:Optional[int]
 
     return computer_timestamps / factor
 
-def get_monotonic_timebound(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, unit = None, verbose:Optional[int]=None) -> Tuple[float, float]:
-    if framenumbers is None: # Default value for framenumbers
-        framenumbers = np.arange(get_number_of_available_frames_gcv(acquisition_path))
-    #Check that the demand is reasonable
-    if framenumbers.min() < 0:
-        log_error('Asked for negative framenumber ??', verbose=verbose)
-        return None
-    if framenumbers.max() >= get_number_of_available_frames_stamps(acquisition_path):
-        throw_G2L_warning(f'Requested framenumber {framenumbers.max()} while there are only {get_number_of_available_frames_gcv(acquisition_path)} frames for this dataset.')
-        framenumbers = framenumbers[framenumbers < get_number_of_available_frames_stamps(acquisition_path)]
+def get_monotonic_timebound(acquisition_path:str, framenumbers:Optional[np.ndarray]=None, unit=None) -> Tuple[float, float]:
+    framenumbers = format_framenumbers(acquisition_path, framenumbers)
 
     # Retrieve the frames
-    times = get_computer_timestamps(retrieve_stamps(acquisition_path, verbose), unit=unit, verbose=verbose)
+    times = get_computer_timestamps(retrieve_stamps(acquisition_path), unit=unit)
 
-    good_times = times[framenumbers]
+    good_times:np.ndarray = times[framenumbers]
 
-    return good_times[0], good_times[-1]
+    return float(good_times[0]), float(good_times[-1])
 
 def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, end_framenumber:int = -1, interval:int  = 1, verbose:Optional[int]=None) -> Optional[Stamps]:
     """
@@ -373,7 +365,7 @@ def get_number_of_available_frames_rawvideo(acquisition_path: str) -> int:
         throw_G2L_warning('Bad formatting of rawvideo file')
     return n_frames_tot
 
-def get_frames_rawvideo(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
+def get_frames_rawvideo(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
     meta = retrieve_meta(acquisition_path)
 
     width:int = int(meta.get('subRegionWidth', '0'))

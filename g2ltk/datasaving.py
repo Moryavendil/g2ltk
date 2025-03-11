@@ -205,8 +205,11 @@ def data_generating_fn(parameters:Dict[str, Any], verbose:int=1):
     if datatype is None:
         log_error('datatype is None ?!', verbose)
         return None
-    elif datatype == 'cos':
-        return rivuletfinding.find_cos(**parameters)
+    elif datatype == 'cos': # COS is the old name of BOS
+        log_warning(f"[DEPRECATED] 'cos' data is now called 'bos'")
+        return rivuletfinding.find_bos(**parameters)
+    elif datatype == 'bos':
+        return rivuletfinding.find_bos(**parameters)
     elif datatype == 'borders':
         return rivuletfinding.find_borders(**parameters)
     elif datatype == 'fwhmol':

@@ -110,7 +110,7 @@ def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., 
 
     dataset_path = '../' + dataset
 
-    available_acquisitions =  find_available_videos(dataset_path, type='gcv')
+    available_acquisitions =  find_available_videos(dataset_path, videotype='gcv')
     log_info(f'The following acquisition will be saved: {available_acquisitions}')
 
     for acquisition in available_acquisitions:

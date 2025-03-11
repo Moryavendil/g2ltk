@@ -23,7 +23,7 @@ if len(datasets) == 1:
     dataset = datasets[0]
     datareading.log_info(f'Auto-selected dataset {dataset}')
 dataset_path = os.path.join(root_path, dataset)
-datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
+datareading.describe_dataset(dataset_path, videotype='gcv', makeitshort=True)
 
 
 # <codecell>

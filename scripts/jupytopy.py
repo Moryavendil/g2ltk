@@ -2,6 +2,7 @@
 import os, sys, json
 
 import argparse
+import pathlib
 
 def generate_parser():
     program_name = 'jupytopy'
@@ -9,7 +10,7 @@ def generate_parser():
         prog='jupytopy',
         description=f'{program_name} - jupyter notebooks to python scripts',
         epilog=f'', add_help=True)
-    # parser.add_argument('-n', metavar='SCRIPTNAME', help='scriptname', type=argparse.FileType('r'))
+    parser.add_argument('-n', metavar='SCRIPTNAME', help='scriptname', type=pathlib.Path)
     parser.add_argument('-d', metavar='DIRNAME', help='Directory name', type=str)
     # parser.add_argument('-p', metavar='PXL_DENSITY', help='Pixel density (mm/px)', type=float)
     # parser.add_argument('-g', metavar='GRAVITY', help='Acceleration of gravity (typically 9.81)', type=float)
@@ -21,9 +22,12 @@ def generate_parser():
 parser = generate_parser()
 
 args = parser.parse_args()
+nbpath = args.n
 dirname = args.d
 
+prefix = 'ipynb-'
 
+### SELECTING WHERE WE WILL SAVE THE SCRIPTS
 maindir = '.'
 rootscriptsdir = os.path.join(maindir, 'scripts')
 if not os.path.isdir(rootscriptsdir):
@@ -36,9 +40,18 @@ if dirname is not None:
     if not os.path.isdir(scriptsdir):
         os.mkdir(scriptsdir)
 
+### SELECTING WHICH NOTEBOOKS WE WILL CONVERT TO SCRIPTS
+ipynbs = None
 
-prefix = 'ipynb-'
-ipynbs = [f[:-6] for f in os.listdir(maindir) if os.path.isfile(os.path.join(maindir, f)) and f.endswith('.ipynb')]
+if nbpath is not None:
+    if os.path.isfile(nbpath) and nbpath.name.endswith('.ipynb') and str(nbpath.parent)== '.':
+        ipynbs=  [str(nbpath.name)[:-6]]
+    else:
+        print(f'ERROR - ISWHAT?: -n {nbpath}')
+        sys.exit(-100)
+
+if ipynbs is None:
+    ipynbs = [f[:-6] for f in os.listdir(maindir) if os.path.isfile(os.path.join(maindir, f)) and f.endswith('.ipynb')]
 ipynbs.sort()
 
 for ipynb in ipynbs:
