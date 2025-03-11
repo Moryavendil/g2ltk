@@ -1,9 +1,9 @@
 from typing import Optional, Any, Tuple, Dict, List, Union
 import numpy as np
-import cv2 # to manipulate images and videos
+# import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 
-from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace
+from .. import throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace
 from .. import utility, datasaving
 
 from . import are_there_missing_frames, format_framenumbers
@@ -92,7 +92,7 @@ def get_times_gcv(acquisition_path:str, framenumbers:np.ndarray, unit=None) -> O
 
     return times
 
-def get_frames_gcv(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
+def get_frames_gcv(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
     return get_frames_rawvideo(acquisition_path, framenumbers=framenumbers)
 
 ### META READING
@@ -122,12 +122,7 @@ def retrieve_meta(acquisition_path: str) -> Meta:
 ### STAMPS READING
 
 def retrieve_stamps(acquisition_path:str) -> Stamps:
-    """
-    Gets all the stamps of a video
-
-    :param video_path:
-    :param verbose:
-    :return:
+    """Gets all the stamps of a video
     """
     # get the info in the .stamps file
     # camera time is in ns and computer time in ms
@@ -159,7 +154,7 @@ def get_number_of_available_frames_stamps(acquisition_path: str) -> int:
     n_frames_tot:int = len(full_stamps['framenumber'])
     return n_frames_tot
 
-def missing_framenumbers_gcv(acquisition_path: str, verbose:Optional[int]=None) -> List:
+def missing_framenumbers_gcv(acquisition_path: str) -> List:
     """
     Identifies missing frame in a GCV video using the timestamps.
 
@@ -178,8 +173,8 @@ def missing_framenumbers_gcv(acquisition_path: str, verbose:Optional[int]=None) 
         all_missing_chunks.append([])
         for j in range(missing_gaps[i]):
             all_missing_chunks[i].append(first_missing_frames[i] + j)
-    log_trace(f'Missing frames for {acquisition_path}:', verbose=verbose)
-    log_trace(f'{all_missing_chunks}', verbose=verbose)
+    log_trace(f'Missing frames for {acquisition_path}:')
+    log_trace(f'{all_missing_chunks}')
     return all_missing_chunks
 
 def identify_missing_framenumbers(framenumbers:np.ndarray, verbose:Optional[int]=None) -> np.ndarray:

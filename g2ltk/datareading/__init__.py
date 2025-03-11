@@ -312,7 +312,7 @@ def get_frames(acquisition_path: str, framenumbers: Framenumbers = None, subregi
 
     # Retrieve the frames
     if is_this_a_gcv(acquisition_path):
-        frames = get_frames_gcv(acquisition_path, framenumbers, verbose=verbose)
+        frames = get_frames_gcv(acquisition_path, framenumbers)
     elif is_this_a_t16(acquisition_path):
         frames = get_frames_t16(acquisition_path, framenumbers)
     elif is_this_a_t8(acquisition_path):
@@ -358,7 +358,7 @@ def get_times(acquisition_path: str, framenumbers: Optional[np.ndarray] = None, 
               verbose: Optional[int] = None) -> Optional[np.ndarray]:
     framenumbers = format_framenumbers(acquisition_path, framenumbers)
     if framenumbers is None:
-        log_error("ERROR Wrong framenumber, couldnt format it", verbose=verbose)
+        log_error("ERROR Wrong framenumber, couldnt format it")
         return None
 
     # Retrieve the frames
@@ -388,7 +388,7 @@ def missing_frames(acquisition_path: str, verbose: Optional[int] = None) -> List
     :return:
     """
     if is_this_a_gcv(acquisition_path):
-        return missing_framenumbers_gcv(acquisition_path, verbose=verbose)
+        return missing_framenumbers_gcv(acquisition_path)
     else:
         log_warn(f'Could not deduce the number of missing frames for video {acquisition_path}', verbose=verbose)
     return []
@@ -421,12 +421,11 @@ def are_there_missing_frames(acquisition_path: str, framenumbers: Optional[np.nd
     nbr_of_missing_frames = np.sum([len(chunk) for chunk in missing_chunks])
 
     if nbr_of_missing_chunks > 0:
-        log_trace(f'There are {nbr_of_missing_chunks} missing chunks ({nbr_of_missing_frames} frames total)',
-                  verbose=verbose)
-        log_trace(f'Missing chunks: {missing_chunks}', verbose=verbose)
+        log_trace(f'There are {nbr_of_missing_chunks} missing chunks ({nbr_of_missing_frames} frames total)')
+        log_trace(f'Missing chunks: {missing_chunks}')
         return True
 
-    log_trace('No missing frames', verbose=verbose)
+    log_trace('No missing frames')
     return False
 
 def find_default_acquisition(dataset: Optional[str] = None, root_path:Optional[str] = None):
