@@ -20,6 +20,20 @@ cmd_rmcurrentags = "git tag -l | xargs git tag -d"
 cmd_getgitstatus_machinereadable = "git status --porcelain"
 cmd_getgitstatus_humanreadable = "git status"
 
+gitversion = subprocess.check_output(cmd_getlatesttag, shell=True, text=True)[:-1]
+
+print(bcolors.HEADER + f"Current tagged version: '{gitversion or '[None]'}'" + bcolors.ENDC)
+
+
+# This is a dirty hack to avoid writing the proper "from .. import g2ltk" which ncessitates being in a package
+import os
+import sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+import g2ltk
+
+toolsversion = g2ltk.__version__
+print(bcolors.HEADER + f"Current g2ltk version: '{toolsversion}'" + bcolors.ENDC)
+
 gitstatus = subprocess.check_output(cmd_getgitstatus_machinereadable, shell=True, text=True)[:-1]
 if gitstatus != "":
     print(bcolors.FAIL + f"Cannot autotag: git status is unclean" + bcolors.ENDC)
@@ -28,15 +42,6 @@ if gitstatus != "":
 
 
 subprocess.run(f"git pull", shell=True)
-
-gitversion = subprocess.check_output(cmd_getlatesttag, shell=True, text=True)[:-1]
-
-print(bcolors.HEADER + f"Current tagged version: '{gitversion or '[None]'}'" + bcolors.ENDC)
-
-import g2ltk
-
-toolsversion = g2ltk.__version__
-print(bcolors.HEADER + f"Current g2ltk version: '{toolsversion}'" + bcolors.ENDC)
 
 if toolsversion == gitversion:
     print(bcolors.FAIL + "Cannot autotag: Current version is git's last version" + bcolors.ENDC)
