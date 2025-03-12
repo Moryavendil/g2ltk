@@ -256,18 +256,54 @@ def estimatesignalfrequency(z:np.ndarray, x:Optional[np.ndarray]=None,
 
 
 # find the edges of the peak (1D, everything is easy)
-def peak_contour1d(peak_x, z, peak_depth_dB, x=None):
+def peak_contour1d(peak_x, z, peak_depth_dB, x=None, peak_max_length:Optional[float]=None):
     if x is None:
         x = np.arange(z.shape[0])
+
     peak_index = np.argmin((x - peak_x) ** 2)
-    zintercept = attenuate_power(z[peak_index], peak_depth_dB)
-    x1_intercept = find_roots(x, z - zintercept)
-    x1_before = peak_x
-    x1_after = peak_x
-    if len(x1_intercept[x1_intercept < peak_x] > 0):
-        x1_before = x1_intercept[x1_intercept < peak_x].max()
-    if len(x1_intercept[x1_intercept > peak_x] > 0):
-        x1_after = x1_intercept[x1_intercept > peak_x].min()
+
+    min_peak_depth_dB = 10
+
+    while peak_depth_dB > 0: # infinite loop, return is in it
+        zintercept = attenuate_power(z[peak_index], peak_depth_dB)
+        x1_intercept = find_roots(x, z - zintercept)
+        x1_before = peak_x
+        x1_after = peak_x
+        if len(x1_intercept[x1_intercept < peak_x] > 0):
+            x1_before = x1_intercept[x1_intercept < peak_x].max()
+        if len(x1_intercept[x1_intercept > peak_x] > 0):
+            x1_after = x1_intercept[x1_intercept > peak_x].min()
+
+        length = x1_after - x1_before
+        isnottoobig = True if (peak_max_length is None) else length < peak_max_length
+
+        contour_is_valid = isnottoobig
+
+        if peak_max_length is not None:
+            log_trace(f'contour length: {length} | Not too big (< {peak_max_length}): {isnottoobig}')
+        log_trace(f'Valid contour: {contour_is_valid}')
+
+        # find the contour that contains the point
+        if contour_is_valid or peak_depth_dB == min_peak_depth_dB:
+            return x1_before, x1_after
+        else:
+            peak_depth_dB -= 10
+            if peak_depth_dB < min_peak_depth_dB: peak_depth_dB = min_peak_depth_dB
+            log_debug(f"Couldn't find any valid contour: Trying peak_depth={peak_depth_dB} dB")
+    if peak_depth_dB != min_peak_depth_dB:
+        peak_depth_dB = min_peak_depth_dB
+        log_debug(f"Couldn't find any valid contour: Trying peak_depth={peak_depth_dB} dB")
+
+
+    # peak_index = np.argmin((x - peak_x) ** 2)
+    # zintercept = attenuate_power(z[peak_index], peak_depth_dB)
+    # x1_intercept = find_roots(x, z - zintercept)
+    # x1_before = peak_x
+    # x1_after = peak_x
+    # if len(x1_intercept[x1_intercept < peak_x] > 0):
+    #     x1_before = x1_intercept[x1_intercept < peak_x].max()
+    # if len(x1_intercept[x1_intercept > peak_x] > 0):
+    #     x1_after = x1_intercept[x1_intercept > peak_x].min()
     return x1_before, x1_after
 def peak_vicinity1d(peak_x, z, peak_depth_dB, x=None):
     if x is None:
