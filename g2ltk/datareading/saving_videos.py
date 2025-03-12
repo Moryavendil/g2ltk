@@ -1,10 +1,9 @@
 from typing import Optional, Any, Tuple, Dict, List, Union
 import numpy as np
 import cv2 # to manipulate images and videos
-import os # to navigate in the directories
 
-from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace
-from .. import utility, datasaving
+from .. import force_print, throw_G2L_warning
+from .. import logging
 
 from . import are_there_missing_frames, resize_frames, find_available_videos, get_frames, get_times
 from . import generate_acquisition_path
@@ -38,7 +37,7 @@ def save_frames_to_video(video_rawpath:str, frames:np.ndarray, fps:float = 25., 
 
     # THE NEW WAY
 
-    display(f'Saving video {video_path}...', end='\r')
+    force_print(f'Saving video {video_path}...', end='\r')
 
     fourcc = cv2.VideoWriter_fourcc(*codec)
     writer= cv2.VideoWriter(video_path, fourcc, fps, (width, height))
@@ -48,12 +47,12 @@ def save_frames_to_video(video_rawpath:str, frames:np.ndarray, fps:float = 25., 
 
     writer.release()
 
-    display(f'Video {video_path} saved', end='\n')
+    force_print(f'Video {video_path} saved', end='\n')
 
 def save_acquisition_to_video(acquisition_path:str, do_timestamp:bool = True, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
     if not(is_this_a_gcv(acquisition_path)) and not(is_this_a_t16(acquisition_path)):
         # todo error ERROR here
-        log_error(f'WAW')
+        logging.log_error(f'WAW waow kois')
         return
 
     frames = get_frames(acquisition_path, framenumbers = None, subregion=None)
@@ -107,10 +106,10 @@ def save_acquisition_to_video(acquisition_path:str, do_timestamp:bool = True, fp
                          fps = fps, filetype=filetype, codec=codec, resize_factor=resize_factor)
 
 def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
-    log_info(f'Saving all the gcv acquisition in the dataset: {dataset}')
+    logging.log_info(f'Saving all the gcv acquisition in the dataset: {dataset}')
 
     available_acquisitions =  find_available_videos(dataset=dataset, videotype='gcv')
-    log_info(f'The following acquisition will be saved: {available_acquisitions}')
+    logging.log_info(f'The following acquisition will be saved: {available_acquisitions}')
 
     for acquisition in available_acquisitions:
         acquisition_path = generate_acquisition_path(acquisition, dataset=dataset)

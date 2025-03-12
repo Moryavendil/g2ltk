@@ -3,8 +3,7 @@ import numpy as np
 import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 
-from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace
-from .. import utility, datasaving
+from .. import logging
 
 ###### TIFF 16-BITS VIDEO (t16) READING
 from PIL import Image
@@ -112,7 +111,7 @@ def get_frames_t16(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np
         # frames[i_frame] = np.array(Image.open(os.path.join(acquisition_path, all_images[framenumber]))) # this is the 3rd fastest
 
     frames = (frames // 2**8).astype(np.uint8, copy=False)
-    log_info('Quality was degraded from 16-bits to 8-bits depth')
+    logging.log_info('Quality was degraded from 16-bits to 8-bits depth')
 
     return frames
 
@@ -232,11 +231,11 @@ def get_acquisition_frequency_t16(acquisition_path: str, unit = None) -> float:
             return 3000
         if 'f400breakuptiff' in acquisition_path:
             return 3000
-    log_warn(f'Trying to get the acquition frequency of a t16 acquisition ({acquisition_path}). Returning 1, which is probably false.')
+    logging.log_warn(f'Trying to get the acquisition frequency of a t16 acquisition ({acquisition_path}). Returning 1, which is probably false.')
     return 1.
 
 def get_acquisition_frequency_t8(acquisition_path: str, unit = None) -> float:
-    log_warn(f'Trying to get the acquition frequency of a t8 acquisition ({acquisition_path}). Returning 1, which is probably false.')
+    logging.log_warn(f'Trying to get the acquisition frequency of a t8 acquisition ({acquisition_path}). Returning 1, which is probably false.')
     return 1.
 
 def get_acquisition_duration_t16(acquisition_path: str, framenumbers:np.ndarray, unit = None) -> float:
