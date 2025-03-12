@@ -13,7 +13,7 @@ Stamps = Dict[str, np.ndarray]
 
 ###### GEVCAPTURE VIDEO (gcv) READING
 
-def find_available_gcv(dataset_path: str) ->List[str]:
+def find_available_gcv(dataset_path:str) ->List[str]:
     available_acquisitions = [f[:-4] for f in os.listdir(dataset_path) if f.endswith('.gcv') and is_this_a_gcv(os.path.join(dataset_path, f[:-4]))]
     available_acquisitions.sort()
     return available_acquisitions
@@ -48,7 +48,7 @@ def get_number_of_available_frames_gcv(acquisition_path:str) -> int:
         throw_G2L_warning(f'The stamps file mentions {n_frames_stamps} frames while there are {n_frames_rawvideo} frames availables in the raw video file.')
     return n_frames_rawvideo
 
-def get_acquisition_frequency_gcv(acquisition_path:str, unit = None, verbose:Optional[int]=None) -> float:
+def get_acquisition_frequency_gcv(acquisition_path:str, unit = None) -> float:
     if unit is None: # default unit
         unit = 'Hz'
     factor:np.int64 = 1 # Multiplication factor for the time unit
@@ -61,7 +61,7 @@ def get_acquisition_frequency_gcv(acquisition_path:str, unit = None, verbose:Opt
     meta_info = retrieve_meta(acquisition_path)
     freq_meta = float(meta_info['captureFrequency']) # Hz
 
-    if are_there_missing_frames(acquisition_path, verbose=verbose):
+    if are_there_missing_frames(acquisition_path):
         return freq_meta
 
     full_stamps = retrieve_stamps(acquisition_path)

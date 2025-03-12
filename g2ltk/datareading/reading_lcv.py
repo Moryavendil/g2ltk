@@ -63,7 +63,7 @@ def get_number_of_available_frames_lcv(acquisition_path: str) -> Optional[int]:
     lcv.release()
     return n_framenumbers_tot
 
-def get_frames_lcv(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
+def get_frames_lcv(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
 
     # Capture the video
     lcv = capture_lcv(acquisition_path)

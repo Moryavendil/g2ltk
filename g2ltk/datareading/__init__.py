@@ -42,7 +42,7 @@ def is_this_a_video(acquisition_path: str) -> bool:
     elif is_this_a_mov(acquisition_path):
         return True
     else:
-        log_warn(f"There is no video at {acquisition_path}.")
+        log_debug(f"There is no video at {acquisition_path}.")
         return False
 
 
@@ -222,27 +222,26 @@ def get_number_of_available_frames(acquisition_path: str) -> Optional[int]:
     return None
 
 
-def get_acquisition_frequency(acquisition_path: str, unit=None, verbose: Optional[int] = None) -> float:
+def get_acquisition_frequency(acquisition_path: str, unit=None) -> float:
     if not is_this_a_video(acquisition_path):
         log_error(f"There is no video at {acquisition_path}. Could not get acquisition frequency.")
         return -1.
     if is_this_a_gcv(acquisition_path):
-        return get_acquisition_frequency_gcv(acquisition_path, unit=unit, verbose=verbose)
+        return get_acquisition_frequency_gcv(acquisition_path, unit=unit)
     if is_this_a_t16(acquisition_path):
         return get_acquisition_frequency_t16(acquisition_path, unit=unit)
     if is_this_a_t8(acquisition_path):
         return get_acquisition_frequency_t8(acquisition_path, unit=unit)
     if is_this_a_mov(acquisition_path):
-        return get_acquisition_frequency_mov(acquisition_path, unit=unit, verbose=verbose)
+        return get_acquisition_frequency_mov(acquisition_path, unit=unit)
     if is_this_a_mp4(acquisition_path):
-        return get_acquisition_frequency_mp4(acquisition_path, unit=unit, verbose=verbose)
+        return get_acquisition_frequency_mp4(acquisition_path, unit=unit)
     else:
         log_error(f"Could not get acquisition frequency for {acquisition_path}: returning -1.")
         return -1.
 
 
-def get_acquisition_duration(acquisition_path: str, framenumbers: Optional[np.ndarray], unit=None,
-                             verbose: Optional[int] = None) -> Optional[float]:
+def get_acquisition_duration(acquisition_path: str, framenumbers: Optional[np.ndarray], unit=None) -> Optional[float]:
     log_subtrace('func:get_acquisition_duration')
     framenumbers = format_framenumbers(acquisition_path, framenumbers)
     if framenumbers is None:
@@ -255,7 +254,7 @@ def get_acquisition_duration(acquisition_path: str, framenumbers: Optional[np.nd
         return get_acquisition_duration_t16(acquisition_path, framenumbers=framenumbers, unit=unit)
     else:
         fns = len(framenumbers)
-        freq_hz = get_acquisition_frequency(acquisition_path, unit='Hz', verbose=verbose)
+        freq_hz = get_acquisition_frequency(acquisition_path, unit='Hz')
         try:
             duration_s = fns / freq_hz
             return duration_s
@@ -287,8 +286,7 @@ def format_framenumbers(acquisition_path: str, framenumbers: Framenumbers = None
     return framenumbers
 
 
-def get_geometry(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None,
-                 verbose: Optional[int] = None) -> Optional[Tuple]:
+def get_geometry(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None) -> Optional[Tuple]:
     log_subtrace('func:get_geometry')
     if not is_this_a_video(acquisition_path):
         log_error(f"There is no video at {acquisition_path}. Could not get geometry.")
@@ -298,7 +296,7 @@ def get_geometry(acquisition_path: str, framenumbers: Framenumbers = None, subre
 
     length = formatted_fns.size
 
-    frame = get_frame(acquisition_path, int(formatted_fns[0]), subregion=subregion, verbose=verbose)
+    frame = get_frame(acquisition_path, int(formatted_fns[0]), subregion=subregion)
 
     if frame is None: return None
 
@@ -307,8 +305,7 @@ def get_geometry(acquisition_path: str, framenumbers: Framenumbers = None, subre
     return length, height, width
 
 
-def get_frames(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None,
-               verbose: Optional[int] = None) -> Optional[np.ndarray]:
+def get_frames(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None) -> Optional[np.ndarray]:
     if not is_this_a_video(acquisition_path):
         log_error(f"There is no video at {acquisition_path}. Could not get frames")
         return None
@@ -325,11 +322,11 @@ def get_frames(acquisition_path: str, framenumbers: Framenumbers = None, subregi
     elif is_this_a_t8(acquisition_path):
         frames = get_frames_t8(acquisition_path, framenumbers)
     elif is_this_a_lcv(acquisition_path):
-        frames = get_frames_lcv(acquisition_path, framenumbers, verbose=verbose)
+        frames = get_frames_lcv(acquisition_path, framenumbers)
     elif is_this_a_mp4(acquisition_path):
-        frames = get_frames_mp4(acquisition_path, framenumbers, verbose=verbose)
+        frames = get_frames_mp4(acquisition_path, framenumbers)
     elif is_this_a_mov(acquisition_path):
-        frames = get_frames_mov(acquisition_path, framenumbers, verbose=verbose)
+        frames = get_frames_mov(acquisition_path, framenumbers)
     else:
         log_error(f'Cannot get frames: there is no video at {acquisition_path}')
         return None
@@ -346,23 +343,21 @@ def get_frames(acquisition_path: str, framenumbers: Framenumbers = None, subregi
     return frames
 
 
-def get_frame(acquisition_path: str, framenumber: Optional[int], subregion: Subregion = None,
-              verbose: Optional[int] = None) -> Optional[np.ndarray]:
+def get_frame(acquisition_path: str, framenumber: Optional[int], subregion: Subregion = None) -> Optional[np.ndarray]:
     if not is_this_a_video(acquisition_path):
         log_error(f"There is no video at {acquisition_path}. Could not get frame {framenumber}.")
         return None
     if framenumber is None:
         log_warn(f"No framenumber specified: could not get frame for {acquisition_path}")
         return None
-    frames = get_frames(acquisition_path, np.array([framenumber]), subregion=subregion, verbose=verbose)
+    frames = get_frames(acquisition_path, np.array([framenumber]), subregion=subregion)
     if frames is None:
         log_warn(f"Could not get frame {framenumber} for {acquisition_path}")
         return None
     return frames[0]
 
 
-def get_times(acquisition_path: str, framenumbers: Optional[np.ndarray] = None, unit=None,
-              verbose: Optional[int] = None) -> Optional[np.ndarray]:
+def get_times(acquisition_path: str, framenumbers: Optional[np.ndarray] = None, unit=None) -> Optional[np.ndarray]:
     framenumbers = format_framenumbers(acquisition_path, framenumbers)
     if framenumbers is None:
         log_error("ERROR Wrong framenumber, couldnt format it")
@@ -374,7 +369,7 @@ def get_times(acquisition_path: str, framenumbers: Optional[np.ndarray] = None, 
     elif is_this_a_t16(acquisition_path):
         times = (np.arange(framenumbers.max() + 1) / get_acquisition_frequency_t16(acquisition_path))[framenumbers]
     else:
-        freq_hz = get_acquisition_frequency(acquisition_path, unit='Hz', verbose=verbose)
+        freq_hz = get_acquisition_frequency(acquisition_path, unit='Hz')
         try:
             times = framenumbers / freq_hz
             return times
@@ -386,25 +381,23 @@ def get_times(acquisition_path: str, framenumbers: Optional[np.ndarray] = None, 
     return times
 
 
-def missing_frames(acquisition_path: str, verbose: Optional[int] = None) -> List:
+def missing_frames(acquisition_path: str) -> List:
     """
     Identifies missing frame in a video.
 
     :param acquisition_path:
-    :param verbose:
     :return:
     """
     if is_this_a_gcv(acquisition_path):
         return missing_framenumbers_gcv(acquisition_path)
     else:
-        log_warn(f'Could not deduce the number of missing frames for video {acquisition_path}', verbose=verbose)
+        log_warn(f'Could not deduce the number of missing frames for video {acquisition_path}')
     return []
 
 
-def missing_frames_in_framenumbers(acquisition_path: str, framenumbers: Optional[np.ndarray] = None,
-                                   verbose: Optional[int] = None) -> List:
+def missing_frames_in_framenumbers(acquisition_path: str, framenumbers: Optional[np.ndarray] = None) -> List:
     log_subtrace('func:get_acquisition_duration')
-    all_missing_chunks = missing_frames(acquisition_path, verbose=verbose)
+    all_missing_chunks = missing_frames(acquisition_path)
     explicit_framenumbers = format_framenumbers(acquisition_path, framenumbers)
 
     # get the missing frames which are in the requested framenumbers
@@ -420,9 +413,8 @@ def missing_frames_in_framenumbers(acquisition_path: str, framenumbers: Optional
     return missing_chunks_in_framenumbers
 
 
-def are_there_missing_frames(acquisition_path: str, framenumbers: Optional[np.ndarray] = None,
-                             verbose: Optional[int] = None) -> bool:
-    missing_chunks = missing_frames_in_framenumbers(acquisition_path, framenumbers=framenumbers, verbose=verbose)
+def are_there_missing_frames(acquisition_path: str, framenumbers: Optional[np.ndarray] = None) -> bool:
+    missing_chunks = missing_frames_in_framenumbers(acquisition_path, framenumbers=framenumbers)
 
     nbr_of_missing_chunks = len(missing_chunks)
     nbr_of_missing_frames = np.sum([len(chunk) for chunk in missing_chunks])
@@ -451,7 +443,7 @@ def generate_acquisition_path(acquisition: str, dataset: Optional[str] = None, r
     dataset_path = generate_dataset_path(dataset, root_path=root_path)
     acquisition_path = os.path.join(dataset_path, acquisition)
     if not is_this_a_video(acquisition_path):
-        log_warn(f'There is not video at {acquisition_path}')
+        log_warn(f'There is no video named {acquisition} in {dataset}')
     return acquisition_path
 
 def describe_acquisition(dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None,
@@ -470,34 +462,31 @@ def describe_acquisition(dataset: Optional[str] = None, acquisition: Optional[st
 
     acquisition_path = generate_acquisition_path(acquisition, dataset=dataset, root_path=root_path)
     if not (is_this_a_video(acquisition_path)):
-        log_debug(f'Videos in {dataset} are {find_available_videos(dataset=dataset, root_path=root_path)}',
-                  verbose=verbose)
-        log_error(f'No video named {acquisition} in dataset {dataset}', verbose=verbose)
+        log_debug(f'Videos in {dataset} are {find_available_videos(dataset=dataset, root_path=root_path)}')
+        log_error(f'No video named {acquisition} in dataset {dataset}')
         return
 
     # general
-    frequency = get_acquisition_frequency(acquisition_path, unit="Hz", verbose=verbose)
+    frequency = get_acquisition_frequency(acquisition_path, unit="Hz")
 
-    log_info(f'  Acquisition frequency: {round(frequency, 2)} Hz', verbose=verbose)
+    log_info(f'  Acquisition frequency: {round(frequency, 2)} Hz')
 
     # raw video file
     maxlength, maxheight, maxwidth = get_geometry(acquisition_path, framenumbers=None, subregion=None)
     maxsize = maxlength * maxheight * maxwidth
     maxduration = get_acquisition_duration(acquisition_path, framenumbers=None, unit="s")
-    maxmissing_chunks = missing_frames_in_framenumbers(acquisition_path, framenumbers=None, verbose=verbose)
+    maxmissing_chunks = missing_frames_in_framenumbers(acquisition_path, framenumbers=None)
     nbr_of_missing_chunks = len(maxmissing_chunks)
     nbr_of_missing_frames = np.sum([len(chunk) for chunk in maxmissing_chunks])
 
-    log_debug(f'  Acquisition information:', verbose=verbose)
-    log_debug(f'  Frames dimension: {maxheight}x{maxwidth}', verbose=verbose)
-    log_debug(f'  Length: {maxlength} frames ({round(maxduration, 2)} s - {round(maxsize / 10 ** 6, 0)} MB)',
-              verbose=verbose)
+    log_debug(f'  Acquisition information:')
+    log_debug(f'  Frames dimension: {maxheight}x{maxwidth}')
+    log_debug(f'  Length: {maxlength} frames ({round(maxduration, 2)} s - {round(maxsize / 10 ** 6, 0)} MB)')
     if nbr_of_missing_chunks > 0:
-        log_debug(f'  There are {nbr_of_missing_chunks} missing chunks ({nbr_of_missing_frames} frames total)',
-                  verbose=verbose)
-        log_debug(f'  Missing chunks: {maxmissing_chunks}', verbose=verbose)
+        log_debug(f'  There are {nbr_of_missing_chunks} missing chunks ({nbr_of_missing_frames} frames total)')
+        log_debug(f'  Missing chunks: {maxmissing_chunks}')
     else:
-        log_debug('  No missing frames for this acquisition', verbose=verbose)
+        log_debug('  No missing frames for this acquisition')
 
     # chosen data chunk
     length, height, width = get_geometry(acquisition_path, framenumbers=framenumbers, subregion=subregion)
@@ -506,20 +495,18 @@ def describe_acquisition(dataset: Optional[str] = None, acquisition: Optional[st
     framessize = length * framesize
     framessize_MB = int(np.rint(framessize / 10 ** 6))
     duration = get_acquisition_duration(acquisition_path, framenumbers=framenumbers, unit="s")
-    missing_chunks = missing_frames_in_framenumbers(acquisition_path, framenumbers=framenumbers, verbose=verbose)
+    missing_chunks = missing_frames_in_framenumbers(acquisition_path, framenumbers=framenumbers)
     nbr_of_missing_chunks = len(missing_chunks)
     nbr_of_missing_frames = np.sum([len(chunk) for chunk in missing_chunks])
 
-    log_info(f'  Frames dimension: {height}x{width} ({framesize_kB} kB each)', verbose=verbose)
+    log_info(f'  Frames dimension: {height}x{width} ({framesize_kB} kB each)')
     log_info(
-        f'  Length: {length} frames ({round(duration, 2)} s - {f"{framessize_MB} MB" if framessize_MB < 1000 else f"{round(framessize_MB / 1000, 3)} GB"})',
-        verbose=verbose)
+        f'  Length: {length} frames ({round(duration, 2)} s - {f"{framessize_MB} MB" if framessize_MB < 1000 else f"{round(framessize_MB / 1000, 3)} GB"})')
     if nbr_of_missing_chunks > 0:
-        log_info(f'  There are {nbr_of_missing_chunks} missing chunks ({nbr_of_missing_frames} frames total)',
-                 verbose=verbose)
-        log_info(f'  Missing chunks: {missing_chunks}', verbose=verbose)
+        log_info(f'  There are {nbr_of_missing_chunks} missing chunks ({nbr_of_missing_frames} frames total)')
+        log_info(f'  Missing chunks: {missing_chunks}')
     else:
-        # log_info('  No missing frames in chosen framenumbers', verbose=verbose)
+        # log_info('  No missing frames in chosen framenumbers')
         pass
 
 
@@ -621,18 +608,17 @@ def get_t_frames(acquisition_path: str, framenumbers: Framenumbers = None) -> Op
 
 def get_t_s(acquisition_path: str, framenumbers: Framenumbers = None, verbose: Optional[int] = None) -> Optional[
     np.ndarray]:
-    return get_times(acquisition_path, framenumbers=framenumbers, unit='s', verbose=verbose)
+    return get_times(acquisition_path, framenumbers=framenumbers, unit='s')
 
 
 def get_t_ms(acquisition_path: str, framenumbers: Framenumbers = None, verbose: Optional[int] = None) -> Optional[
     np.ndarray]:
-    return get_times(acquisition_path, framenumbers=framenumbers, unit='ms', verbose=verbose)
+    return get_times(acquisition_path, framenumbers=framenumbers, unit='ms')
 
 
 def get_x_px(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None,
              resize_factor: int = 1, verbose: Optional[int] = None) -> Optional[np.ndarray]:
-    length, height, width = get_geometry(acquisition_path, framenumbers=framenumbers, subregion=subregion,
-                                         verbose=verbose)
+    length, height, width = get_geometry(acquisition_path, framenumbers=framenumbers, subregion=subregion)
     return np.arange(width * resize_factor) / resize_factor
 
 

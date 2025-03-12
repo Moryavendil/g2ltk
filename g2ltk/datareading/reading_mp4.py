@@ -62,7 +62,7 @@ def get_number_of_available_frames_mp4(acquisition_path: str) -> Optional[int]:
     return n_framenumbers_tot
 
 
-def get_acquisition_frequency_mp4(acquisition_path, unit='Hz', verbose=1):
+def get_acquisition_frequency_mp4(acquisition_path, unit='Hz'):
     video = capture_mp4(acquisition_path)
     if video is not None:
         fps = video.get(cv2.CAP_PROP_FPS)
@@ -78,7 +78,7 @@ def get_frame_geometry_mp4(acquisition_path):
         return height, width
     return None
 
-def get_frames_mp4(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
+def get_frames_mp4(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
 
     # Capture the video
     mp4video = capture_mp4(acquisition_path)
