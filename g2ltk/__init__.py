@@ -17,7 +17,6 @@ VIOLET = '#4f0e51'
 JAUNE = '#eaac3f'
 
 __version__ = '1.1.2'
-VERSION = __version__
 
 import warnings
 _warn_skips = (os.path.dirname(__file__),)
