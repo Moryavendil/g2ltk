@@ -3,8 +3,7 @@ import numpy as np
 import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 
-from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace
-from .. import utility, datasaving
+from .. import utility
 
 ###### LOSSLESSLY COMPRESSED VIDEO (lcv) READING
 
