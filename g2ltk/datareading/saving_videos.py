@@ -1,11 +1,12 @@
 from typing import Optional, Any, Tuple, Dict, List, Union
 import numpy as np
+import os
 import cv2 # to manipulate images and videos
 
 from .. import force_print, throw_G2L_warning
 from .. import logging
 
-from . import are_there_missing_frames, resize_frames, find_available_videos, get_frames, get_times
+from . import are_there_missing_frames, resize_frames, find_available_videos, get_frames, get_times, format_framenumbers
 from . import generate_acquisition_path
 from . import is_this_a_gcv, is_this_a_t16
 
@@ -118,3 +119,68 @@ def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., 
             save_acquisition_to_video(acquisition_path, do_timestamp=do_timestamp, fps=fps, filetype=filetype, codec=codec, resize_factor=resize_factor)
         else:
             throw_G2L_warning(f'GCV acquisition {acquisition} is found but does not exist ?')
+
+
+def convert_tiff_to_gcv(acquisition_path, acquisition_frequency, exposure_time, framenumbers=None, subregion=None):
+    gcv_path = acquisition_path + '_gcv' + '.gcv'
+    if os.path.isdir(gcv_path):
+        logging.log_warn(f'FILE "{gcv_path}" ALREADY EXISTS. Aborting.')
+        return
+    os.makedirs(gcv_path)
+    metafilepath = os.path.join(gcv_path, 'metainfo.meta')
+    rawvideofilepath = os.path.join(gcv_path, 'rawvideo.raw')
+    stampsfilepath = os.path.join(gcv_path, 'timestamps.stamps')
+
+    ### META FILE
+
+    # The dictonary that will contain the info
+    metainfo = {}
+
+    # retreive the TIFF metadata
+    from PIL import Image
+    from PIL.TiffTags import TAGS
+
+    all_images = os.listdir(acquisition_path)
+    all_images.sort()
+    img_metaprobe = Image.open(os.path.join(acquisition_path, all_images[0]))
+    tiff_meta_dict = {TAGS[key] : img_metaprobe.tag[key] for key in img_metaprobe.tag_v2}
+
+    # convert the tiff metadata to our kind of metadata
+    for key in tiff_meta_dict:
+        metainfo[key] = str(tiff_meta_dict[key][0])
+
+    # add our own info, formatted in our own style
+    metainfo['usingROI'] = 'false'
+    metainfo['subRegionX'] = '0'
+    metainfo['subRegionY'] = '0'
+    metainfo['subRegionWidth'] = metainfo['ImageWidth']
+    metainfo['subRegionHeight'] = metainfo['ImageLength']
+    metainfo['captureCameraName'] = metainfo['UniqueCameraModel']
+    metainfo['captureFrequency'] = str(acquisition_frequency) # cahier de manip
+    metainfo['captureExposureTime'] = str(exposure_time) # in us. RIGHT CLIC ON A .TIFF AND GO TO PROPERTIES -> IMAGE
+    metainfo['captureProg'] = metainfo['UniqueCameraModel']
+
+    # write that in the meta file
+    with open(metafilepath, 'w') as metafile:
+        for key in metainfo:
+            metafile.write(key+'='+metainfo[key]+'\n')
+
+    ### STAMPS FILE
+    # make up for the stamps data
+    framenumbers = format_framenumbers(acquisition_path, framenumbers)
+    fn = framenumbers.astype(int)
+    camera_time = np.rint(framenumbers / acquisition_frequency * 1e9).astype(np.int64) # mock camera time
+    computer_time = np.rint(framenumbers / acquisition_frequency * 1e6).astype(np.int64) # mock computer time
+
+    # write that in the meta file
+    with open(stampsfilepath, 'w') as stampsfile:
+        for i_pt in range(len(fn)):
+            stampsfile.write(str(fn[i_pt])+'\t'+str(camera_time[i_pt])+'\t'+str(computer_time[i_pt])+'\n')
+
+    ### DATA FILE
+
+    # Data fetching
+    frames = get_frames(acquisition_path, framenumbers=framenumbers, subregion=subregion)
+
+    #bytesToWrite = frames.flatten().tobytes()
+    frames.flatten().tofile(rawvideofilepath)

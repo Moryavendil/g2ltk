@@ -51,28 +51,23 @@ roi = None, None, None, None  #start_x, start_y, end_x, end_y
 ### parameters to find the rivulet
 rivfinding_params = {
     'resize_factor': 2,
+    'white_tolerance': 70,
+    'rivulet_size_factor': 1.,
     'remove_median_bckgnd_zwise': True,
     'gaussian_blur_kernel_size': (1, 1), # (sigma_z, sigma_x)
-    'white_tolerance': 70,
-    'borders_min_distance': 5.,
-    'borders_width': 6.,
-    'max_rivulet_width': 150.,
 }
 
 
 # <codecell>
 
 # take a few framenumbers, we just want to do a test
-i_frametest = 354
-
-i_line_test = 3947
-
-framenumbers = np.arange(400)
+framenumbers = np.arange(200)
 
 
 # <codecell>
 
 # Data fetching
+datareading.describe_acquisition(dataset, acquisition, framenumbers = framenumbers, subregion=roi)
 length, height, width = datareading.get_geometry(acquisition_path, framenumbers = framenumbers, subregion=roi)
 acquisition_frequency = datareading.get_acquisition_frequency(acquisition_path, unit="Hz")
 
@@ -83,6 +78,8 @@ frames = datareading.get_frames(acquisition_path, framenumbers = framenumbers, s
 
 
 # <codecell>
+
+i_frametest = 100
 
 frame = frames[i_frametest].copy()
 frame -= frame.min()
@@ -131,16 +128,13 @@ plt.tight_layout()
 
 # <codecell>
 
-l_line = l_filtered[:, i_line_test]
-
-
-# <codecell>
-
 ### Step 2: Obtain the shadow representation
-height, = l_line.shape
+height, width = l.shape
 
 # 2.1 build the z coordinate ('horizontal' in real life)
+x1D = np.arange(width)
 z1D = np.arange(height)
+z2D = np.repeat(z1D, width).reshape((height, width))
 
 # 2.2 discriminate the channel (white zone in the image)
 max_l = np.percentile(l, 95, axis=0, keepdims=True) # the max luminosity (except outliers). we take the 95th percentile
@@ -152,79 +146,94 @@ top = np.argmax(is_channel, axis=0).max()
 bot = height - np.argmax(is_channel[::-1], axis=0).min()
 
 # 2.4 Obtain the z and shadow image for the channel
-s_channel = 255 - l_line[top:bot] # shadowisity (255 - luminosity)
-z_channel = z1D[top:bot]           # z coordinate
+s_channel = 255 - l[top:bot, :] # shadowisity (255 - luminosity)
+z_channel = z2D[top:bot, :]           # z coordinate
 
 
 # <codecell>
 
-fig, axes = plt.subplots(nrows=1, ncols=1, sharex=True, sharey=False)
-
-ax = axes
-ax.plot(z1D, l_line)
-ax.axvline(z1D[top], color='k', ls=':', alpha=.8)
-ax.axvline(z1D[bot-1]+utility.step(z1D), color='k', ls=':', alpha=.8)
-
+fig, axes = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=True)
+axes[0].imshow(l, aspect='auto')
+axes[1].imshow(is_channel, aspect='auto')
+axes[2].imshow(z_channel, aspect='auto')
+axes[3].imshow(s_channel, aspect='auto')
 plt.tight_layout()
 
 
 # <codecell>
 
-### Step 3: Find the borders
-bmax = rivuletfinding.bimax_by_peakfinder(z_channel, s_channel, distance=kwargs['borders_min_distance'], prominence=1)
+### Step 3: Obtain the border of the rivulet
+# 3.1 get a threshold to know where is the reivulet
+s_channel_max = np.amax(s_channel, axis=0, keepdims=True)
+s_channel_median = np.median(s_channel, axis=0, keepdims=True)
+# The threshold above which we count the rivulet
+# This should be ap[prox. the half-max of the rivulet shadow
+s_channel_threshold = (s_channel_max + s_channel_median) / 2
 
-z1, y1, z2, y2 = bmax
+# 3.2 compute the upper-approximate the half-width of the rivulet
+approx_rivulet_size = np.sum(s_channel >= s_channel_threshold, axis=0) * kwargs['rivulet_size_factor']
 
-zdiff:np.ndarray = np.abs(z1 - z2)
-space_ok = zdiff < kwargs['max_rivulet_width']
-utility.log_info(f"space_ok (Dz < {kwargs['max_rivulet_width']}): {space_ok}")
+# 3.3 the approximate position (resolution = size of the rivulet, a minima 1 pixel)
+riv_pos_approx = np.argmax(s_channel, axis=0, keepdims=True) + z_channel[0, :]
 
-ydiff:np.ndarray = np.abs(y1 - y2)
-ydiff_ok = ydiff < kwargs['max_borders_luminosity_difference']
-utility.log_info(f"ydiff_ok (Ds < {kwargs['max_borders_luminosity_difference']}): {ydiff_ok}")
+# 3.4 identify the zone around the rivulet
+z_top = np.maximum(riv_pos_approx - approx_rivulet_size, np.zeros_like(riv_pos_approx))
+z_bot = np.minimum(riv_pos_approx + approx_rivulet_size, s_channel.shape[0] * np.ones_like(riv_pos_approx))
+around_the_rivulet = (z_channel >= z_top) & (z_channel <= z_bot)
 
-
-# <codecell>
-
-fig, axes = plt.subplots(nrows=1, ncols=1, sharex=True, sharey=False)
-
-ax = axes
-ax.plot(z_channel, s_channel, color='k')
-ax.scatter(z1, y1, color='b')
-ax.axvline(z1, color='b', ls='--', alpha=.8)
-ax.scatter(z2, y2, color='g')
-ax.axvline(z2, color='g', ls='--', alpha=.8)
-
-
-# <codecell>
-
-### Step 4: Compute the BOL
-
-rivulet_zone = (z_channel >= z1) * (z_channel <= z2)
-
-# if np.sum(rivulet_zone) == 0:
-#     return z1
-
-z_rivulet_zone = z_channel[rivulet_zone]
-l_rivulet_zone = 255 - s_channel[rivulet_zone]
-
-# Center of mass
-weights_offset = np.min(l_rivulet_zone) - 1e-5
-weights = np.maximum(l_rivulet_zone - weights_offset, 0)
-position = np.sum(z_rivulet_zone * weights) / np.sum(weights)
-
-# FWHM
-threshold = weights.max() / 2
-fwhm = np.sum(weights > threshold) * utility.step(z1D)
+print(np.argmax(s_channel, axis=0, keepdims=True).shape)
+print(z_channel[0, :].shape)
+print(riv_pos_approx.shape)
+print(z_top.shape)
+print(z_channel.shape)
 
 
 # <codecell>
 
-fig, axes = plt.subplots(nrows=1, ncols=1, sharex=True, sharey=False)
+fig, axes = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=False)
+ax = axes[0]
+ax.imshow(s_channel, aspect='auto')
+ax = axes[1]
+ax.plot(x1D, s_channel_max[0], color='r', ls='--', label='max')
+ax.plot(x1D, s_channel_median[0], color='b', ls=':', label='median')
+ax.plot(x1D, s_channel_threshold[0], color='k', ls='-', label='threshold')
 
-ax = axes
-ax.plot(z_rivulet_zone, l_rivulet_zone, color='k')
-ax.axhline(weights_offset, color='gray', ls='--', alpha=.8)
-ax.axvline(position, color='r', ls='--', alpha=.8)
-ax.axvline(rivuletfinding.bol_linewise(z1D, l_line, **kwargs), color='k', ls=':', alpha=.8)
+ax = axes[2]
+ax.imshow(s_channel >= s_channel_threshold, aspect='auto')
+axwidth = ax.twinx()
+axwidth.plot(x1D, np.sum(s_channel >= s_channel_threshold, axis=0), color='w', ls='-', label='threshold')
+axwidth.set_ylim(0, np.sum(s_channel >= s_channel_threshold, axis=0).max()*1.2)
+
+ax = axes[3]
+ax.imshow(s_channel * (around_the_rivulet), aspect='auto')
+plt.tight_layout()
+
+
+# <codecell>
+
+### Step 4: compute the center fo mass
+# the background near the rivulet
+s_bckgnd_near_rivulet = np.amin(s_channel, axis=0, where=around_the_rivulet, initial=255, keepdims=True) * (1-1e-5)
+
+# the weights to compute the COM
+weights = (s_channel - s_bckgnd_near_rivulet) * around_the_rivulet
+
+# The COM rivulet with sub-pixel resolution
+rivulet = np.sum(z_channel * weights, axis=0) / np.sum(weights, axis=0)
+
+
+# <codecell>
+
+fig, axes = plt.subplots(nrows=3, ncols=1, sharex=True, sharey=False)
+ax = axes[0]
+ax.imshow(weights, aspect='auto')
+
+ax = axes[1]
+# ax.plot(x1D, s_bckgnd_near_rivulet[0], color='r', ls='--', label='max')
+# ax.plot(x1D, s_channel_median[0], color='b', ls=':', label='median')
+ax.plot(x1D, s_bckgnd_near_rivulet[0], color='k', ls='-', label='threshold')
+
+ax = axes[2]
+ax.imshow(weights, aspect='auto')
+ax.plot(x1D, rivulet, color='k')
 

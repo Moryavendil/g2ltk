@@ -29,15 +29,26 @@ datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
 # <codecell>
 
 ### Acquisition selection
-acquisition = 'm150'
+acquisition = None
 acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
 
 
 # <codecell>
 
-### Parameters definition
+# Parameters definition
+# =====================
 
-# parameters to find the rivulet
+# Data gathering
+# --------------
+
+### portion of the video that is of interest to us
+framenumbers = np.arange(datareading.get_number_of_available_frames(acquisition_path))
+roi = None, None, None, None  #start_x, start_y, end_x, end_y
+
+# Rivulet detection
+# -----------------
+
+### parameters to find the rivulet
 rivfinding_params = {
     'resize_factor': 2,
     'remove_median_bckgnd_zwise': True,
@@ -47,13 +58,6 @@ rivfinding_params = {
     'borders_width': 6.,
     'max_rivulet_width': 150.,
 }
-
-# portion of the video that is of interest to us
-framenumbers = np.arange(datareading.get_number_of_available_frames(acquisition_path))
-roi = None, None, None, None  #start_x, start_y, end_x, end_y
-
-if dataset=='cleandemomeandrage':
-    roi = None, 500, None, 700
 
 
 # <codecell>

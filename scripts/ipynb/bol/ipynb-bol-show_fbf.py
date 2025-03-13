@@ -224,8 +224,3 @@ plt.show()
 
     
 
-
-# <codecell>
-
-
-

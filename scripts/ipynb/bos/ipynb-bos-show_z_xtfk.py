@@ -54,9 +54,7 @@ rivfinding_params = {
     'remove_median_bckgnd_zwise': True,
     'gaussian_blur_kernel_size': (1, 1), # (sigma_z, sigma_x)
     'white_tolerance': 70,
-    'borders_min_distance': 5.,
-    'borders_width': 6.,
-    'max_rivulet_width': 150.,
+    'rivulet_size_factor': 1.,
 }
 
 # Data cleaning
@@ -96,13 +94,11 @@ t = datareading.get_t_frames(acquisition_path, framenumbers=framenumbers)
 x = datareading.get_x_px(acquisition_path, framenumbers = framenumbers, subregion=roi, resize_factor=rivfinding_params['resize_factor'])
 
 z_raw = datasaving.fetch_or_generate_data('bol', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
-w_raw = datasaving.fetch_or_generate_data('fwhmol', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
 
 
 # <codecell>
 
 z_tmp = z_raw.copy()
-w_tmp = w_raw.copy()
 
 
 # <codecell>
@@ -112,18 +108,16 @@ sigma_t = blur_t_frame
 sigma_x = blur_x_px
 
 z_filtered = gaussian_filter(z_tmp, sigma=(sigma_t, sigma_x))
-w_filtered = gaussian_filter(w_tmp, sigma=(sigma_t, sigma_x))
 
 if apply_gaussianfiler:
     z_tmp = z_filtered.copy()
-    w_tmp = w_filtered.copy()
     utility.log_info('Gaussian filtering correction made')
 else:
     utility.log_info('No gaussian filtering correction made')
 
 ### plot
 
-fig, axes = plt.subplots(2, 2, sharex=True, sharey=True, squeeze=False)
+fig, axes = plt.subplots(1, 2, sharex=True, sharey=True, squeeze=False)
 imshow_kw = {'aspect': 'auto', 'origin': 'upper'}
 
 ax = axes[0, 0]
@@ -136,20 +130,6 @@ plt.colorbar(imz, ax=ax, label='$z$ [px]')
 ax = axes[0, 1]
 ax.set_title('Z (smoothed)')
 imz = ax.imshow(z_filtered, extent=utility.correct_extent(x, t), cmap='viridis', **imshow_kw)
-ax.set_xlabel('$x$ [px]')
-ax.set_ylabel('$t$ [frame]')
-plt.colorbar(imz, ax=ax, label='$z$ [px]')
-
-ax = axes[1, 0]
-ax.set_title('W (normal)')
-imz = ax.imshow(w_raw, extent=utility.correct_extent(x, t), cmap='viridis', **imshow_kw)
-ax.set_xlabel('$x$ [px]')
-ax.set_ylabel('$t$ [frame]')
-plt.colorbar(imz, ax=ax, label='$z$ [px]')
-
-ax = axes[1, 1]
-ax.set_title('W (smoothed)')
-imz = ax.imshow(w_filtered, extent=utility.correct_extent(x, t), cmap='viridis', **imshow_kw)
 ax.set_xlabel('$x$ [px]')
 ax.set_ylabel('$t$ [frame]')
 plt.colorbar(imz, ax=ax, label='$z$ [px]')
@@ -245,18 +225,16 @@ plt.tight_layout()
 # <codecell>
 
 Z = z_tmp.copy()
-W = w_tmp.copy()
 
 k_visu, f_visu = utility.fourier.dual2d(x, t, zero_pad_factor=zero_pad_factor_visu)
 Z_pw = utility.fourier.psd2d(Z, x, t, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
-W_pw = utility.fourier.psd2d(W, x, t, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
 
 
 # <codecell>
 
-fig, axes = plt.subplots(2, 2, figsize=utility.figsize('double'), sharex='col', sharey='col', squeeze=False)
-imshow_kw = {'origin':'upper', 
-             'interpolation':'nearest', 
+fig, axes = plt.subplots(1, 2, sharex='col', sharey='col', squeeze=False)
+imshow_kw = {'origin':'upper',
+             'interpolation':'nearest',
              'aspect':'auto'}
 
 ax = axes[0,0]
@@ -277,21 +255,6 @@ utility.set_ticks_log_cb(cb, vmax, range_db=range_dB_visu)
 ax.set_xlim(0, 1/10*1/20)
 ax.set_ylim(-1/20, 1/5)
 
-ax = axes[1,0]
-ax.set_title('W (normal)')
-imz = ax.imshow(W, extent=utility.correct_extent(x, t), cmap='viridis', **imshow_kw)
-ax.set_xlabel('$x$ [px]')
-ax.set_ylabel('$t$ [frame]')
-plt.colorbar(imz, ax=ax, label='$w$ [px]')
-
-ax = axes[1,1]
-vmax, vmin = utility.log_amplitude_range(W_pw.max(), range_db=range_dB_visu)
-im_zpw = ax.imshow(W_pw, extent=utility.correct_extent(k_visu, f_visu), norm='log', vmax=vmax, vmin=vmin, cmap='viridis', **imshow_kw)
-ax.set_xlabel(r'$k$ [px$^{-1}$]')
-ax.set_ylabel(r'$f$ [frame$^{-1}$]')
-cb = plt.colorbar(im_zpw, ax=ax, label=r'$|\hat{w}|^2$ [px^2/(px-1.frame-1)]')
-utility.set_ticks_log_cb(cb, vmax, range_db=range_dB_visu)
-
 
 # <codecell>
 
@@ -301,19 +264,17 @@ t_s = datareading.get_t_s(acquisition_path, framenumbers)
 x_mm = datareading.get_x_mm(acquisition_path, framenumbers, subregion=roi, resize_factor=rivfinding_params['resize_factor'], px_per_mm=px_per_mm)
 
 Z_mm = Z / px_per_mm
-W_mm = W / px_per_mm
 
 
 # <codecell>
 
 k_visu_mm, f_visu_mm = utility.fourier.dual2d(x_mm, t_s, zero_pad_factor=zero_pad_factor_visu)
 Z_pw_mm = utility.fourier.psd2d(Z_mm, x_mm, t_s, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
-W_pw_mm = utility.fourier.psd2d(W_mm, x_mm, t_s, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
 
 
 # <codecell>
 
-fig, axes = plt.subplots(2, 2, figsize=utility.figsize('double'), sharex='col', sharey='col', squeeze=False)
+fig, axes = plt.subplots(1, 2, figsize=utility.figsize('double'), sharex='col', sharey='col', squeeze=False)
 imshow_kw = {'origin':'upper',
              'interpolation':'nearest',
              'aspect':'auto'}
@@ -326,19 +287,6 @@ plt.colorbar(imz, ax=ax, label='$z$ [mm]')
 
 ax = axes[0,1]
 im_zpw = ax.imshow(Z_pw_mm, extent=utility.correct_extent(k_visu_mm, f_visu_mm), norm='log', vmax=Z_pw_mm.max(), vmin = Z_pw_mm.max()/10**(range_dB_visu / 10), cmap='viridis', **imshow_kw)
-ax.set_xlabel(r'$k$ [mm$^{-1}$]')
-ax.set_ylabel(r'$f$ [Hz]')
-cb = plt.colorbar(im_zpw, ax=ax, label=r'mm$^2$/(Hz.mm$^{-1}$)')
-utility.set_ticks_log_cb(cb, vmax, range_db=range_dB_visu)
-
-ax = axes[1,0]
-imz = ax.imshow(W_mm, extent=utility.correct_extent(x_mm, t_s), cmap='viridis', **imshow_kw)
-ax.set_xlabel('$x$ [mm]')
-ax.set_ylabel('$t$ [s]')
-plt.colorbar(imz, ax=ax, label='$z$ [mm]')
-
-ax = axes[1,1]
-im_zpw = ax.imshow(W_pw_mm, extent=utility.correct_extent(k_visu_mm, f_visu_mm), norm='log', vmax=Z_pw_mm.max(), vmin = Z_pw_mm.max()/10**(range_dB_visu / 10), cmap='viridis', **imshow_kw)
 ax.set_xlabel(r'$k$ [mm$^{-1}$]')
 ax.set_ylabel(r'$f$ [Hz]')
 cb = plt.colorbar(im_zpw, ax=ax, label=r'mm$^2$/(Hz.mm$^{-1}$)')

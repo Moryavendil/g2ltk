@@ -64,6 +64,10 @@ def find_available_videos(dataset_path: Optional[str] = None, dataset: Optional[
         available_acquisitions = []
         for subtype in all_types:
             available_acquisitions += find_available_videos(dataset=dataset, root_path=root_path, videotype=subtype)
+    elif videotype == 'tiff':
+        available_acquisitions = []
+        for subtype in ['t8', 't16']:
+            available_acquisitions += find_available_videos(dataset=dataset, root_path=root_path, videotype=subtype)
     elif videotype == 'gcv':
         available_acquisitions = find_available_gcv(dataset_path)
     elif videotype == 't16':

@@ -15,10 +15,8 @@ datareading.describe_root_path()
 # <codecell>
 
 ### Dataset selection & acquisitions display
-dataset = 'seuil2_manta'
-
+dataset = datareading.find_dataset(None)
 datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
-dataset_path = datareading.generate_dataset_path(dataset)
 
 
 # <codecell>

@@ -7,7 +7,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from g2ltk import datareading, datasaving, utility
+from g2ltk import datareading, datasaving, utility, logging
 
 utility.configure_mpl()
 
@@ -33,7 +33,7 @@ for acquisition in []:
     acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
 
     #%%
-    
+
     # Parameters definition
     # =====================
     
@@ -53,19 +53,14 @@ for acquisition in []:
         'remove_median_bckgnd_zwise': True,
         'gaussian_blur_kernel_size': (1, 1), # (sigma_z, sigma_x)
         'white_tolerance': 70,
-        'borders_min_distance': 5.,
-        'borders_width': 6.,
-        'max_rivulet_width': 150.,
+        'rivulet_size_factor': 1.,
     }
     
     #%%
-    
-    datareading.describe_acquisition(dataset, acquisition, subregion=roi)
 
-    #%%
+    datareading.describe_acquisition(dataset, acquisition, subregion=roi)
     
-    z_raw = datasaving.fetch_or_generate_data('bol', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
-    w_raw = datasaving.fetch_or_generate_data('fwhmol', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
+    z_raw = datasaving.fetch_or_generate_data('cos', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
     
 utility.log_info('TERMINÉ')
 
