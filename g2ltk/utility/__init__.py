@@ -246,9 +246,11 @@ def set_ticks_log_cb(cb, maximum_amplitude:float, range_db:Union[int, float]):
 
 from .fourier import *
 
-########## SAVE GRAPHE
+########## SAVE GRAPHE & FIG SIZE
 
 from .genfig import *
+
+from .plotting import *
 
 ########### DISPLAYS THE TIME
 def convert_time(time:Any, origin_unit:str, target_unit:str):
