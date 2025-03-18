@@ -80,6 +80,22 @@ def dual2d(x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None,
             zero_pad_factor_x, zero_pad_factor_y = float(zero_pad_factor[0]), float(zero_pad_factor[1])
         except:
             log_warning(f'What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
+    return (dual(x, zero_pad=zero_pad_x, zero_pad_factor=zero_pad_factor_x), dual(y, zero_pad=zero_pad_y, zero_pad_factor=zero_pad_factor_y))
+
+def rdual2d(x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None,
+            zero_pad:Optional[Tuple[int, int]]=None, zero_pad_factor:Optional[Tuple[float, float]]=None) -> Tuple[np.ndarray, np.ndarray]:
+    zero_pad_x, zero_pad_y = None, None
+    if zero_pad is not None:
+        try:
+            zero_pad_x, zero_pad_y = int(zero_pad[0]), int(zero_pad[1])
+        except:
+            log_warning(f'What is this zero-padding "{zero_pad}" ? I made it None')
+    zero_pad_factor_x, zero_pad_factor_y = None, None
+    if zero_pad_factor is not None:
+        try:
+            zero_pad_factor_x, zero_pad_factor_y = float(zero_pad_factor[0]), float(zero_pad_factor[1])
+        except:
+            log_warning(f'What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
     return (rdual(x, zero_pad=zero_pad_x, zero_pad_factor=zero_pad_factor_x), dual(y, zero_pad=zero_pad_y, zero_pad_factor=zero_pad_factor_y))
 
 from scipy.signal.windows import get_window # FFT windowing
