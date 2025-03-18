@@ -10,7 +10,9 @@ from . import generate_dataset_path, find_available_videos
 # a worksheet is part of an excel workbook
 __dataworkbook_name_default__ = 'dataworkbook'
 __dataworkbook_metasheet_name_default__ = 'metainfo'
-__dataworkbook_acquisition_title_column_name_default__ = 'acquisition_title'
+__dataworkbook_acquisition_column_name_default__ = 'acquisition'
+
+possible_acquisition_column_name = ['title', 'acquisition_title']
 
 def generate_dataworkbook_path(dataset:str) -> Optional[str]:
     dataset_path = generate_dataset_path(dataset)
@@ -70,13 +72,15 @@ def obtain_acquisition_titles(dataset:str) -> Optional[np.ndarray]:
 
     meaningful_keys = [key for key in metainfo.keys() if 'unnamed' not in key.lower()]
 
-    acquisition_title_key = __dataworkbook_acquisition_title_column_name_default__
-    if not __dataworkbook_acquisition_title_column_name_default__ in meaningful_keys:
-        if 'title' in meaningful_keys:
-            acquisition_title_key = 'title'
-            logging.log_warning(f"Name of the acquisition_title column is '{acquisition_title_key}', consider changing to '{__dataworkbook_acquisition_title_column_name_default__}' for consistency.")
-        else:
-            logging.log_error(f"Did not find the column corresponding to 'acquisition_title' in the datasheet")
+    acquisition_title_key = __dataworkbook_acquisition_column_name_default__
+    if not __dataworkbook_acquisition_column_name_default__ in meaningful_keys:
+        for colname in possible_acquisition_column_name:
+            if colname in meaningful_keys:
+                acquisition_title_key = colname
+                logging.log_warning(f"Name of the acquisition_title column is '{acquisition_title_key}', consider changing to '{__dataworkbook_acquisition_column_name_default__}' for consistency.")
+                break
+        if acquisition_title_key not in possible_acquisition_column_name:
+            logging.log_error(f"Did not find the column corresponding to '{__dataworkbook_acquisition_column_name_default__}' in the datasheet")
             return None
     valid = metainfo[acquisition_title_key].astype(str) != 'nan'
 
@@ -128,7 +132,7 @@ def load_or_create_worksheet(dataset:str, sheet_name:str, columns:Optional[List[
     else:
         # We must create the sheet ourselves
         acquisition_titles = obtain_acquisition_titles(dataset)
-        datadict = {__dataworkbook_acquisition_title_column_name_default__: acquisition_titles}
+        datadict = {__dataworkbook_acquisition_column_name_default__: acquisition_titles}
         for column in columns:
             datadict[column] = np.full(len(acquisition_titles), np.nan)
 
