@@ -422,7 +422,10 @@ def borders_framewise(frame:np.ndarray, prominence:float = 1, do_fit:bool=False,
     ydiff:np.ndarray = np.abs(y1 - y2)
     ydiff_ok = ydiff < kwargs['max_borders_luminosity_difference']
     if (1 - ydiff_ok).sum() > 0:
-        logging.log_warning(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1 - ydiff_ok).sum()} pts', verbose=kwargs['verbose'])
+        logging.log_warning(f'Border framewise collapse: max_borders_luminosity_difference not respected', verbose=kwargs['verbose'])
+        logging.log_subinfo(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1 - ydiff_ok).sum()} pts', verbose=kwargs['verbose'])
+        logging.log_debug(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): min = {ydiff.min()} | median = {np.median(ydiff)} |  max = {ydiff.max()} ', verbose=kwargs['verbose'])
+        logging.log_subtrace(f'Bad values: {ydiff[~ydiff_ok]}', verbose=kwargs['verbose'])
 
     # There are 2 peaks
     deuxmax = space_ok * ydiff_ok
