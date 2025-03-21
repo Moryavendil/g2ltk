@@ -90,8 +90,8 @@ def get_items(parameters: dict, total_match:bool = False, verbose:Optional[int]=
                 same_parameters_values = np.prod(np.array(same_parameters_values))
             if same_parameters_values: # here the file is the one we search
                 items.append(candidate_file_name)
-    logging.log_debug(f'Found {len(items)} item(s) with {"totally" if total_match else "partially"} matching parameter.', verbose)
-    logging.log_trace(f'Items: {items}', verbose)
+    logging.log_trace(f'Found {len(items)} item(s) with {"totally" if total_match else "partially"} matching parameter.', verbose)
+    logging.log_subtrace(f'Items: {items}', verbose)
     return items
 
 def framenumbers_available(parameters: dict, verbose:Optional[int]=None) -> Optional[np.ndarray]:
@@ -213,7 +213,7 @@ def data_generating_fn(parameters:Dict[str, Any], verbose:int=1):
     elif datatype == 'borders':
         return rivuletfinding.find_borders(**parameters)
     elif datatype == 'fwhmol':
-        return rivuletfinding.find_fwhmol(**parameters)
+        return rivuletfinding.find_fwhmol(verbose=verbose, **parameters)
     elif datatype == 'bol':
         return rivuletfinding.find_bol(verbose=verbose, **parameters)
     else:
@@ -227,12 +227,12 @@ def fetch_or_generate_data(datatype:str, dataset:str, acquisition:str, verbose:O
 
 def fetch_or_generate_data_from_parameters(datatype:str, parameters:dict, verbose:int = None):
     logging.log_subinfo(f'Fetching or generating data: {datatype}', verbose)
-    logging.log_trace(f'Parameters: {parameters}', verbose)
+    logging.log_subtrace(f'Parameters: {parameters}', verbose)
 
     parameters['datatype'] = datatype
 
     # petite rustine ponctuelle pour gagner du temps
-    if datatype == 'bol':
+    if datatype == 'bol' or datatype == 'fwhmol':
         fetch_or_generate_data_from_parameters('borders', {**parameters}, verbose=verbose)
 
     parameters['framenumbers'] = parameters.get('framenumbers', None)

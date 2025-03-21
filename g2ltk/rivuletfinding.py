@@ -980,6 +980,7 @@ def find_borders(**parameters):
 
 def find_bol(verbose:int = 1, **parameters):
     # First we need the borders
+    logging.log_debug('find_bol: fetching borders')
     borders_for_this_video = datasaving.fetch_or_generate_data_from_parameters('borders', parameters, verbose=verbose)
 
     # Then the frames
