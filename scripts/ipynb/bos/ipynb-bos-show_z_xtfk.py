@@ -70,15 +70,15 @@ xcorrect = 'linear'
 do_tcorrect= False
 
 ### 2D FFT parameters
-fft_window_visu = 'tukey'
-zero_pad_factor_visu = (5, 5)
+fft_window_visu = 'hann'
+zero_pad_factor_visu = (4, 4)
 range_dB_visu = 80
 
 # Data display
 # ------------
 
 # conversion factor
-frames_per_s = datareading.get_acquisition_frequency(acquisition_path)
+fr_per_s = datareading.get_acquisition_frequency(acquisition_path)
 px_per_mm = 0.
 px_per_um = px_per_mm * 1e3
 
