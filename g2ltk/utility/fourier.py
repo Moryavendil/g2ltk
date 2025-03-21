@@ -282,9 +282,9 @@ def rft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=No
     if zero_pad_factor is not None:
         log_subtrace(f'rft2d: | zero_pad_factor={zero_pad_factor}')
         try:
-            halfpad_t = np.rint(Nt * (zero_pad_factor[0]-1)/2).astype(int)
-            halfpad_x = np.rint(Nx * (zero_pad_factor[1]-1)/2).astype(int)
-            pad_width = ((halfpad_t, halfpad_t), (halfpad_x, halfpad_x))
+            halfpad_t = np.rint(Nt * (zero_pad_factor[0]-1)).astype(int)
+            halfpad_x = np.rint(Nx * (zero_pad_factor[1]-1)).astype(int)
+            pad_width = ((halfpad_t//2, halfpad_t//2+halfpad_t%2), (halfpad_x//2, halfpad_x//2+halfpad_x%2))
         except:
             log_warning(f'rft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
             pad_width = None
