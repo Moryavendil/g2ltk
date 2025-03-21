@@ -71,7 +71,7 @@ do_tcorrect= False
 
 ### 2D FFT parameters
 fft_window_visu = 'hann'
-zero_pad_factor_visu = (4, 4)
+zero_pad_factor_visu = (1, 1)
 range_dB_visu = 80
 
 # Data display
@@ -226,7 +226,7 @@ plt.tight_layout()
 
 Z = z_tmp.copy()
 
-k_visu, f_visu = utility.fourier.dual2d(x, t, zero_pad_factor=zero_pad_factor_visu)
+k_visu, f_visu = utility.fourier.rdual2d(x, t, zero_pad_factor=zero_pad_factor_visu)
 Z_pw = utility.fourier.psd2d(Z, x, t, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
 
 
@@ -268,7 +268,7 @@ Z_mm = Z / px_per_mm
 
 # <codecell>
 
-k_visu_mm, f_visu_mm = utility.fourier.dual2d(x_mm, t_s, zero_pad_factor=zero_pad_factor_visu)
+k_visu_mm, f_visu_mm = utility.fourier.rdual2d(x_mm, t_s, zero_pad_factor=zero_pad_factor_visu)
 Z_pw_mm = utility.fourier.psd2d(Z_mm, x_mm, t_s, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
 
 
