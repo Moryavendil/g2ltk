@@ -25,7 +25,7 @@ def find_available_t8(dataset_path: str) ->List[str]:
     available_acquisitions.sort()
     return available_acquisitions
 
-def is_this_a_t16(acquisition_path: str) -> bool:
+def is_this_a_tiff(acquisition_path: str) -> bool:
     """
     Checks if there is a Tiff 16-bits video (t16) for the given dataset.
 
@@ -33,13 +33,31 @@ def is_this_a_t16(acquisition_path: str) -> bool:
     :return:
     """
     if not os.path.isdir(acquisition_path):
+        # Not a directory
+        return False
+
+    if len(os.listdir(acquisition_path)) == 0:
+        # Empty directory
         return False
 
     try:
         all_files_in_folder_are_tiff = np.prod([tifffile.endswith('.tiff') for tifffile in os.listdir(acquisition_path)])
         if not(all_files_in_folder_are_tiff):
+            # There are non-tiff files in the folder
             return False
     except:
+        return False
+    return True
+
+def is_this_a_t16(acquisition_path: str) -> bool:
+    """
+    Checks if there is a Tiff 16-bits video (t16) for the given dataset.
+
+    :param acquisition_path:
+    :return:
+    """
+    if not is_this_a_tiff(acquisition_path):
+        # Not a tiif
         return False
 
     img_metaprobe = Image.open(os.path.join(acquisition_path, os.listdir(acquisition_path)[0]))
@@ -54,14 +72,8 @@ def is_this_a_t8(acquisition_path: str) -> bool:
     :param acquisition_path:
     :return:
     """
-    if not os.path.isdir(acquisition_path):
-        return False
-
-    try:
-        all_files_in_folder_are_tiff = np.prod([tifffile.endswith('.tiff') for tifffile in os.listdir(acquisition_path)])
-        if not(all_files_in_folder_are_tiff):
-            return False
-    except:
+    if not is_this_a_tiff(acquisition_path):
+        # Not a tiif
         return False
 
     img_metaprobe = Image.open(os.path.join(acquisition_path, os.listdir(acquisition_path)[0]))
