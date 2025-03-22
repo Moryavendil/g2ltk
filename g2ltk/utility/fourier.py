@@ -96,14 +96,14 @@ def dual2d(x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None,
     if zero_pad is not None:
         try:
             int(zero_pad[0]) ; int(zero_pad[1])
-            zero_pad_x, zero_pad_y = zero_pad
+            zero_pad_y, zero_pad_x = zero_pad
         except:
             log_warning(f'What is this zero-padding "{zero_pad}" ? I made it None')
     zero_pad_factor_x, zero_pad_factor_y = None, None
     if zero_pad_factor is not None:
         try:
             float(zero_pad_factor[0]) ; float(zero_pad_factor[1])
-            zero_pad_factor_x, zero_pad_factor_y = zero_pad_factor
+            zero_pad_factor_y, zero_pad_factor_x = zero_pad_factor
         except:
             log_warning(f'What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
     return (dual(x, zero_pad=zero_pad_x, zero_pad_factor=zero_pad_factor_x), dual(y, zero_pad=zero_pad_y, zero_pad_factor=zero_pad_factor_y))
@@ -115,14 +115,14 @@ def rdual2d(x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None,
     if zero_pad is not None:
         try:
             int(zero_pad[0]) ; int(zero_pad[1])
-            zero_pad_x, zero_pad_y = zero_pad
+            zero_pad_y, zero_pad_x = zero_pad
         except:
             log_warning(f'What is this zero-padding "{zero_pad}" ? I made it None')
     zero_pad_factor_x, zero_pad_factor_y = None, None
     if zero_pad_factor is not None:
         try:
             float(zero_pad_factor[0]) ; float(zero_pad_factor[1])
-            zero_pad_factor_x, zero_pad_factor_y = zero_pad_factor
+            zero_pad_factor_y, zero_pad_factor_x = zero_pad_factor
         except:
             log_warning(f'What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
     return (rdual(x, zero_pad=zero_pad_x, zero_pad_factor=zero_pad_factor_x), dual(y, zero_pad=zero_pad_y, zero_pad_factor=zero_pad_factor_y))
@@ -151,8 +151,6 @@ def rft1d(arr:np.ndarray, x:Optional[np.ndarray]=None, window:str= 'hann', norm=
     N = arr.shape[0]
 
     z_win = arr * get_window(window, N)
-    # z_treated -= np.mean(z_treated) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
-    z_clean = z_win - np.mean(z_win)
 
     pad_width = None
     if zero_pad_factor is not None:
@@ -174,10 +172,13 @@ def rft1d(arr:np.ndarray, x:Optional[np.ndarray]=None, window:str= 'hann', norm=
     log_subtrace(f'rft2d: Padding (artificially better resolution) | pad={pad_width}')
     if pad_width is None:
         pad_width = (0,0)
-    z_pad = np.pad(z_clean, pad_width=pad_width, mode='constant', constant_values=0)
+    z_pad = np.pad(z_win, pad_width=pad_width, mode='constant', constant_values=0)
+
+    # z_treated -= np.mean(z_treated) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
+    z_clean = z_pad - np.mean(z_pad)
 
     log_subtrace(f'rft2d: Rolling (restoring phase) | pad={pad_width}')
-    z_roll = np.roll(z_pad, pad_width[0]+N//2)
+    z_roll = np.roll(z_clean, pad_width[0]+N//2)
 
     z_hat = fft.rfft(z_roll, norm=norm, n=z_roll.shape[0])
 
@@ -212,10 +213,6 @@ def ft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=Non
     log_subtrace(f'rft2d: Using windowing | window={window}')
     z_win = arr * np.expand_dims(get_window(window, Nt), axis=1) * np.expand_dims(get_window(window, Nx), axis=0)
 
-    log_subtrace(f'rft2d: Removing (0,0)-freq component | {True}')
-    # z_clean -= np.mean(z_win) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
-    z_clean = z_win - np.mean(z_win)
-
     pad_width = None
     if zero_pad_factor is not None:
         log_subtrace(f'rft2d: | zero_pad_factor={zero_pad_factor}')
@@ -237,10 +234,14 @@ def ft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=Non
     log_subtrace(f'rft2d: Padding (artificially better resolution) | pad={pad_width}')
     if pad_width is None:
         pad_width = ((0,0), (0,0))
-    z_pad = np.pad(z_clean, pad_width=pad_width, mode='constant', constant_values=0)
+    z_pad = np.pad(z_win, pad_width=pad_width, mode='constant', constant_values=0)
+
+    log_subtrace(f'rft2d: Removing (0,0)-freq component | {True}')
+    # z_clean -= np.mean(z_win) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
+    z_clean = z_pad - np.mean(z_pad)
 
     log_subtrace(f'rft2d: Rolling (restoring phase) | pad={pad_width}')
-    z_roll = np.roll(z_pad, (pad_width[0][0]+Nt//2, pad_width[1][0]+Nx//2), axis = (0, 1))
+    z_roll = np.roll(z_clean, (pad_width[0][0]+Nt//2, pad_width[1][0]+Nx//2), axis = (0, 1))
 
     log_subtrace(f'rft2d: Computing fft, norm={norm} | shape={z_roll.shape}')
     z_hat = fft.fft2(z_roll, norm=norm, s=z_roll.shape)
@@ -274,10 +275,6 @@ def rft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=No
     log_subtrace(f'rft2d: Using windowing | window={window}')
     z_win = arr * np.expand_dims(get_window(window, Nt), axis=1) * np.expand_dims(get_window(window, Nx), axis=0)
 
-    log_subtrace(f'rft2d: Removing (0,0)-freq component | {True}')
-    # z_clean -= np.mean(z_win) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
-    z_clean = z_win - np.mean(z_win)
-
     pad_width = None
     if zero_pad_factor is not None:
         log_subtrace(f'rft2d: | zero_pad_factor={zero_pad_factor}')
@@ -299,11 +296,15 @@ def rft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=No
     if pad_width is None:
         pad_width = ((0,0), (0,0))
     log_subtrace(f'rft2d: Padding (artificially better resolution) | pad={pad_width}')
-    z_pad = np.pad(z_clean, pad_width=pad_width, mode='constant', constant_values=0)
+    z_pad = np.pad(z_win, pad_width=pad_width, mode='constant', constant_values=0)
+
+    log_subtrace(f'rft2d: Removing (0,0)-freq component | {True}')
+    # z_clean = z_pad - np.mean(z_pad) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
+    z_clean = z_pad - np.mean(z_pad)
 
     shift = (pad_width[0][0]+Nt//2, pad_width[1][0]+Nx//2)
     log_subtrace(f'rft2d: Rolling (restoring phase) | shift={shift}')
-    z_roll = np.roll(z_pad, shift, axis = (0, 1))
+    z_roll = np.roll(z_clean, shift, axis = (0, 1))
 
     log_subtrace(f'rft2d: Computing fft, norm={norm} | shape={z_roll.shape}')
     z_hat = fft.rfft2(z_roll, norm=norm, s=z_roll.shape)
