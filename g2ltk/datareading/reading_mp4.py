@@ -3,8 +3,7 @@ import numpy as np
 import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 
-from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace
-from .. import utility, datasaving
+from .. import datasaving, logging
 
 ###### LOSSY COMPRESSED VIDEO (mp4) READING
 
@@ -34,14 +33,14 @@ def capture_mp4(acquisition_path:str) -> Optional[Any]:
     video_path = acquisition_path + '.mp4'
 
     if not os.path.isfile(video_path):
-        log_debug(f'No mov video named {video_path}')
+        logging.log_debug(f'No mov video named {video_path}')
         return None
 
     # Open video
     video = cv2.VideoCapture(video_path)
 
     if video.isOpened()== False:
-        log_error(f'Error opening video file {video_path}')
+        logging.log_error(f'Error opening video file {video_path}')
         return None
 
     #Check codec
@@ -50,7 +49,7 @@ def capture_mp4(acquisition_path:str) -> Optional[Any]:
 
     if codec != 'avc1':
         video.release()
-        log_error(f"Codec is {codec}. Cannot read frames from video that is not lossy compressed with codec avc1")
+        logging.log_error(f"Codec is {codec}. Cannot read frames from video that is not lossy compressed with codec avc1")
         return None
 
     return video
@@ -62,7 +61,7 @@ def get_number_of_available_frames_mp4(acquisition_path: str) -> Optional[int]:
     return n_framenumbers_tot
 
 
-def get_acquisition_frequency_mp4(acquisition_path, unit='Hz', verbose=1):
+def get_acquisition_frequency_mp4(acquisition_path, unit='Hz'):
     video = capture_mp4(acquisition_path)
     if video is not None:
         fps = video.get(cv2.CAP_PROP_FPS)
@@ -78,7 +77,7 @@ def get_frame_geometry_mp4(acquisition_path):
         return height, width
     return None
 
-def get_frames_mp4(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
+def get_frames_mp4(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
 
     # Capture the video
     mp4video = capture_mp4(acquisition_path)

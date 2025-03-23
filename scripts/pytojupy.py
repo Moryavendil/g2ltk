@@ -5,18 +5,16 @@ from nbformat import v3, v4
 import argparse
 import pathlib
 
+prefix = 'ipynb-'
+maindir = '.'
+rootscriptsdir = os.path.join(maindir, 'scripts')
 def generate_parser():
     program_name = 'pytojupy'
     parser = argparse.ArgumentParser(
         prog='pytojupy',
         description=f'{program_name} - python scriptsa to jupyter notebooks',
         epilog=f'', add_help=True)
-    # parser.add_argument('-n', metavar='SCRIPTNAME', help='scriptname', type=argparse.FileType('r'))
-    parser.add_argument('-d', metavar='OUTPUTDIR', help='script dir path', type=pathlib.Path)
-    parser.add_argument('-n', metavar='SCRIPT', help='script path', type=pathlib.Path)
-    # parser.add_argument('-p', metavar='PXL_DENSITY', help='Pixel density (mm/px)', type=float)
-    # parser.add_argument('-g', metavar='GRAVITY', help='Acceleration of gravity (typically 9.81)', type=float)
-    # parser.add_argument('-d', metavar='DELTARHO', help='Density contrast, in kg/L (typically 1.00 for water/air)', type=float)
+    parser.add_argument('n', metavar='PYNAMES', help=f'Scripts (.py) to convert (ex: `scripts/{prefix}foo.py`)', nargs='*', type=pathlib.Path, action='extend')
     # parser.add_argument('-o', metavar='OUTPUTFILE', help='Generate graphs [optional:file prefix]', type=str, nargs='?', const='drop', default = None)
     # parser.add_argument('-v', help='Verbosity (-v: info, -vv: logger.debug, -vvv: trace)', action="count", default=0)
     return parser
@@ -25,50 +23,28 @@ def generate_parser():
 parser = generate_parser()
 
 args = parser.parse_args()
-scriptdirpath = args.d
-scriptpath = args.n
+scripts_paths = args.n
 
-prefix = 'ipynb-'
-maindir = '.'
-scriptsdir = os.path.join(maindir, 'scripts')
+print(f'PyToJupy: Converting .py -> .ipynb')
+if len(scripts_paths) == 0:
+    print(f'No script specified. Aborting.')
+    sys.exit(-11)
 
-ipynb_names = None
-if scriptdirpath is not None:
-    if os.path.isdir(scriptdirpath):
-        # print(f'Directory selected: {scriptpath}')
-        scriptsdir = scriptdirpath
-        ipynb_names = [f[len(prefix):-3] for f in os.listdir(scriptsdir) if os.path.isfile(os.path.join(scriptsdir, f)) and f.endswith('.py') and f.startswith(prefix)]
+targets = {}
+for script_path in scripts_paths:
+    if os.path.isfile(script_path) and script_path.name.endswith('.py'):
+        targets[str(script_path.name)[len(prefix):-3]] = script_path
     else:
-        print(f'ERROR - ISWHAT?: -d {scriptdirpath}')
-        sys.exit(-101)
+        pass
+        #print(f'ERROR - NOTEBOOK IS NOT CORRECT ? {notebook_path}')
 
-if scriptpath is not None:
-    if os.path.isfile(scriptpath):
-        scriptsdir = scriptpath.parent
-        scriptname = scriptpath.name
-        if not (scriptname.endswith('.py') & scriptname.startswith(prefix)):
-            print(f'Invalid script name: {scriptname} (path: {scriptpath})')
-            sys.exit(-101)
-        # print(f'File selected: {scriptpath}')
-        ipynb_names = [scriptname[len(prefix):-3]]
-    else:
-        print(f'ERROR - ISWHAT?: -n {scriptpath}')
-        sys.exit(-102)
+# print(f'Scripts directory is: {scriptsdir}')
+print(f'Scripts to convert are: {[target for target in targets]}')
 
-if ipynb_names is None:
-    print('No file selected, converting default scripts')
-    ipynb_names = [f[len(prefix):-3] for f in os.listdir(scriptsdir) if os.path.isfile(os.path.join(scriptsdir, f)) and f.endswith('.py') and f.startswith(prefix)]
+for target in targets:
+    infilename = targets[target]
 
-ipynb_names.sort()
-
-print(f'Scripts directory is: {scriptsdir}')
-print(f'Scripts to convert are: {ipynb_names}')
-
-
-for ipynb_name in ipynb_names:
-    infilename = os.path.join(scriptsdir, prefix + ipynb_name + '.py')
-
-    outfilename = os.path.join(maindir, ipynb_name + '.ipynb')
+    outfilename = os.path.join(maindir, target + '.ipynb')
 
     try:
         with open(infilename) as fin:

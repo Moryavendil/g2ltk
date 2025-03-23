@@ -1,12 +1,13 @@
 from typing import Optional, Any, Tuple, Dict, List, Union
 import numpy as np
+import os
 import cv2 # to manipulate images and videos
-import os # to navigate in the directories
 
-from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace
-from .. import utility, datasaving
+from .. import force_print, throw_G2L_warning
+from .. import logging
 
-from . import are_there_missing_frames, resize_frames, find_available_videos, get_frames, get_times
+from . import are_there_missing_frames, resize_frames, find_available_videos, get_frames, get_times, format_framenumbers
+from . import generate_acquisition_path
 from . import is_this_a_gcv, is_this_a_t16
 
 # save videos for easyvisualisation
@@ -37,7 +38,7 @@ def save_frames_to_video(video_rawpath:str, frames:np.ndarray, fps:float = 25., 
 
     # THE NEW WAY
 
-    display(f'Saving video {video_path}...', end='\r')
+    force_print(f'Saving video {video_path}...', end='\r')
 
     fourcc = cv2.VideoWriter_fourcc(*codec)
     writer= cv2.VideoWriter(video_path, fourcc, fps, (width, height))
@@ -47,12 +48,12 @@ def save_frames_to_video(video_rawpath:str, frames:np.ndarray, fps:float = 25., 
 
     writer.release()
 
-    display(f'Video {video_path} saved', end='\n')
+    force_print(f'Video {video_path} saved', end='\n')
 
 def save_acquisition_to_video(acquisition_path:str, do_timestamp:bool = True, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
     if not(is_this_a_gcv(acquisition_path)) and not(is_this_a_t16(acquisition_path)):
         # todo error ERROR here
-        log_error(f'WAW')
+        logging.log_error(f'WAW waow kois')
         return
 
     frames = get_frames(acquisition_path, framenumbers = None, subregion=None)
@@ -106,17 +107,80 @@ def save_acquisition_to_video(acquisition_path:str, do_timestamp:bool = True, fp
                          fps = fps, filetype=filetype, codec=codec, resize_factor=resize_factor)
 
 def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
-    log_info(f'Saving all the gcv acquisition in the dataset: {dataset}')
+    logging.log_info(f'Saving all the gcv acquisition in the dataset: {dataset}')
 
-    dataset_path = '../' + dataset
-
-    available_acquisitions =  find_available_videos(dataset_path, type='gcv')
-    log_info(f'The following acquisition will be saved: {available_acquisitions}')
+    available_acquisitions =  find_available_videos(dataset=dataset, videotype='gcv')
+    logging.log_info(f'The following acquisition will be saved: {available_acquisitions}')
 
     for acquisition in available_acquisitions:
-        acquisition_path = os.path.join(dataset_path, acquisition)
+        acquisition_path = generate_acquisition_path(acquisition, dataset=dataset)
 
         if is_this_a_gcv(acquisition_path):
             save_acquisition_to_video(acquisition_path, do_timestamp=do_timestamp, fps=fps, filetype=filetype, codec=codec, resize_factor=resize_factor)
         else:
             throw_G2L_warning(f'GCV acquisition {acquisition} is found but does not exist ?')
+
+
+def convert_tiff_to_gcv(acquisition_path, acquisition_frequency, exposure_time, framenumbers=None, subregion=None):
+    gcv_path = acquisition_path + '_gcv' + '.gcv'
+    if os.path.isdir(gcv_path):
+        logging.log_warn(f'FILE "{gcv_path}" ALREADY EXISTS. Aborting.')
+        return
+    os.makedirs(gcv_path)
+    metafilepath = os.path.join(gcv_path, 'metainfo.meta')
+    rawvideofilepath = os.path.join(gcv_path, 'rawvideo.raw')
+    stampsfilepath = os.path.join(gcv_path, 'timestamps.stamps')
+
+    ### META FILE
+
+    # The dictonary that will contain the info
+    metainfo = {}
+
+    # retreive the TIFF metadata
+    from PIL import Image
+    from PIL.TiffTags import TAGS
+
+    all_images = os.listdir(acquisition_path)
+    all_images.sort()
+    img_metaprobe = Image.open(os.path.join(acquisition_path, all_images[0]))
+    tiff_meta_dict = {TAGS[key] : img_metaprobe.tag[key] for key in img_metaprobe.tag_v2}
+
+    # convert the tiff metadata to our kind of metadata
+    for key in tiff_meta_dict:
+        metainfo[key] = str(tiff_meta_dict[key][0])
+
+    # add our own info, formatted in our own style
+    metainfo['usingROI'] = 'false'
+    metainfo['subRegionX'] = '0'
+    metainfo['subRegionY'] = '0'
+    metainfo['subRegionWidth'] = metainfo['ImageWidth']
+    metainfo['subRegionHeight'] = metainfo['ImageLength']
+    metainfo['captureCameraName'] = metainfo['UniqueCameraModel']
+    metainfo['captureFrequency'] = str(acquisition_frequency) # cahier de manip
+    metainfo['captureExposureTime'] = str(exposure_time) # in us. RIGHT CLIC ON A .TIFF AND GO TO PROPERTIES -> IMAGE
+    metainfo['captureProg'] = metainfo['UniqueCameraModel']
+
+    # write that in the meta file
+    with open(metafilepath, 'w') as metafile:
+        for key in metainfo:
+            metafile.write(key+'='+metainfo[key]+'\n')
+
+    ### STAMPS FILE
+    # make up for the stamps data
+    framenumbers = format_framenumbers(acquisition_path, framenumbers)
+    fn = framenumbers.astype(int)
+    camera_time = np.rint(framenumbers / acquisition_frequency * 1e9).astype(np.int64) # mock camera time
+    computer_time = np.rint(framenumbers / acquisition_frequency * 1e6).astype(np.int64) # mock computer time
+
+    # write that in the meta file
+    with open(stampsfilepath, 'w') as stampsfile:
+        for i_pt in range(len(fn)):
+            stampsfile.write(str(fn[i_pt])+'\t'+str(camera_time[i_pt])+'\t'+str(computer_time[i_pt])+'\n')
+
+    ### DATA FILE
+
+    # Data fetching
+    frames = get_frames(acquisition_path, framenumbers=framenumbers, subregion=subregion)
+
+    #bytesToWrite = frames.flatten().tobytes()
+    frames.flatten().tofile(rawvideofilepath)

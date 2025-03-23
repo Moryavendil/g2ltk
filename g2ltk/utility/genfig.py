@@ -1,7 +1,7 @@
 from typing import Optional, Any, Tuple, Dict, List, Union
 import numpy as np
 
-from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
+from .. import log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
 
 ########## SAVE GRAPHE
 import os

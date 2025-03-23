@@ -4,55 +4,64 @@ import os, sys, json
 import argparse
 import pathlib
 
+prefix = 'ipynb-'
+maindir = '.'
+rootscriptsdir = os.path.join(maindir, 'scripts/ipynb')
 def generate_parser():
     program_name = 'jupytopy'
     parser = argparse.ArgumentParser(
         prog='jupytopy',
-        description=f'{program_name} - jupyter notebooks to python scripts',
-        epilog=f'', add_help=True)
-    parser.add_argument('-n', metavar='SCRIPTNAME', help='scriptname', type=pathlib.Path)
-    parser.add_argument('-d', metavar='DIRNAME', help='Directory name', type=str)
-    # parser.add_argument('-p', metavar='PXL_DENSITY', help='Pixel density (mm/px)', type=float)
-    # parser.add_argument('-g', metavar='GRAVITY', help='Acceleration of gravity (typically 9.81)', type=float)
-    # parser.add_argument('-d', metavar='DELTARHO', help='Density contrast, in kg/L (typically 1.00 for water/air)', type=float)
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=f'{program_name} - Translate jupyter notebooks to python scripts for easy versioning',
+        epilog=f'Examples:' '\n'
+               f' * To save the script a.ipynb to the directory `scripts`, call' '\n'
+               f'    jupytopy.py a.ipynb' '\n'
+               f' * To save the all scripts of type foo in a dedicated folder, call' '\n'
+               f'    jupytopy.py foo-* -d foo' '\n'
+        ,
+        add_help=True)
+    parser.add_argument('n', metavar='IPYNBNAMES', help='Notebooks (.ipynb) to convert (ex: `foo.ipynb`)', nargs='*', type=pathlib.Path, action='extend')
+    parser.add_argument('-d', metavar='TARGETDIR', help='Target directory name, in ./scripts/ipynb (ex: `-d bar` for ./scripts/ipynb/bar)', type=str)
     # parser.add_argument('-o', metavar='OUTPUTFILE', help='Generate graphs [optional:file prefix]', type=str, nargs='?', const='drop', default = None)
-    # parser.add_argument('-v', help='Verbosity (-v: info, -vv: logger.debug, -vvv: trace)', action="count", default=0)
+    # parser.add_argument('-v', help='Verbosity (-v: info, -vv: debug, -vvv: trace)', action="count", default=0)
     return parser
 
 parser = generate_parser()
 
 args = parser.parse_args()
-nbpath = args.n
-dirname = args.d
+notebook_paths = args.n
+targetdirname = args.d
 
-prefix = 'ipynb-'
+print(f'JupyToPy: Converting .ipynb -> .py')
+if len(notebook_paths) == 0:
+    print(f'No notebook specified. Aborting.')
+    sys.exit(-10)
+
+### SELECTING WHICH NOTEBOOKS WE WILL CONVERT TO SCRIPTS
+ipynbs = []
+if notebook_paths is not None: # case : a particular or several notebooks was specified
+    for notebook_path in notebook_paths:
+        if os.path.isfile(notebook_path) and notebook_path.name.endswith('.ipynb') and str(notebook_path.parent)== '.':
+            ipynbs.append(str(notebook_path.name)[:-6])
+        else:
+            pass
+            #print(f'ERROR - NOTEBOOK IS NOT CORRECT ? {notebook_path}')
+else:
+    ipynbs = [f[:-6] for f in os.listdir(maindir) if os.path.isfile(os.path.join(maindir, f)) and f.endswith('.ipynb')]
+ipynbs.sort()
+print(f'Notebook converted: {ipynbs}')
 
 ### SELECTING WHERE WE WILL SAVE THE SCRIPTS
-maindir = '.'
-rootscriptsdir = os.path.join(maindir, 'scripts')
 if not os.path.isdir(rootscriptsdir):
     os.mkdir(rootscriptsdir)
 
 scriptsdir = rootscriptsdir
-if dirname is not None:
-    scriptsdir = os.path.join(rootscriptsdir, dirname)
+if targetdirname is not None:
+    scriptsdir = os.path.join(rootscriptsdir, targetdirname)
 
     if not os.path.isdir(scriptsdir):
         os.mkdir(scriptsdir)
-
-### SELECTING WHICH NOTEBOOKS WE WILL CONVERT TO SCRIPTS
-ipynbs = None
-
-if nbpath is not None:
-    if os.path.isfile(nbpath) and nbpath.name.endswith('.ipynb') and str(nbpath.parent)== '.':
-        ipynbs=  [str(nbpath.name)[:-6]]
-    else:
-        print(f'ERROR - ISWHAT?: -n {nbpath}')
-        sys.exit(-100)
-
-if ipynbs is None:
-    ipynbs = [f[:-6] for f in os.listdir(maindir) if os.path.isfile(os.path.join(maindir, f)) and f.endswith('.ipynb')]
-ipynbs.sort()
+print(f'Writing directory: {scriptsdir}')
 
 for ipynb in ipynbs:
     infilename = os.path.join(maindir, ipynb + '.ipynb')

@@ -2,41 +2,31 @@
 # <nbformat>3.0</nbformat>
 # <codecell>
 
-%matplotlib qt # use this line if in a Jupyter notebook
+# %matplotlib qt
 # import matplotlib ; matplotlib.use('Qt5Agg') # use this line if in a Python script
 
 import os
-import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-plt.rcParams["figure.figsize"] = (12, 8)
-plt.rcParams["figure.max_open_warning"] = 50
-plt.rcParams['pgf.texsystem'] = 'pdflatex'
-plt.rcParams.update({'font.family': 'serif', 'font.size': 12,
-                     'figure.titlesize' : 12,
-                     'axes.labelsize': 12,'axes.titlesize': 12,
-                     'legend.fontsize': 12})
-
 from matplotlib.colors import Normalize # colormaps
 
-from g2ltk import set_verbose, datareading, utility
+from g2ltk import set_verbose, datareading, datasaving, utility, rivuletfinding
 
-# Datasets display
-root_path = '../'
-datasets = datareading.find_available_datasets(root_path)
-print('Available datasets:', datareading.find_available_datasets(root_path))
+utility.configure_mpl()
+
+### Datasets display
+datareading.set_default_root_path('../')
+datareading.describe_root_path()
 
 
 # <codecell>
 
-# Dataset selection & acquisitions display
-dataset = '-'
-if len(datasets) == 1:
-    dataset = datasets[0]
-    datareading.log_info(f'Auto-selected dataset {dataset}')
-dataset_path = os.path.join(root_path, dataset)
-datareading.describe_dataset(dataset_path, type='gcv', makeitshort=True)
+### Dataset selection & acquisitions display
+dataset = 'meandersspeed_zoom'
+
+datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
+dataset_path = datareading.generate_dataset_path(dataset)
 
 
 # <codecell>

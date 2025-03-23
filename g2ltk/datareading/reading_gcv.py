@@ -1,19 +1,17 @@
 from typing import Optional, Any, Tuple, Dict, List, Union
 import numpy as np
-import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 
-from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace
-from .. import utility, datasaving
+from .. import utility
 
-from . import are_there_missing_frames
+from . import are_there_missing_frames, format_framenumbers
 
 Meta = Dict[str, str]
 Stamps = Dict[str, np.ndarray]
 
 ###### GEVCAPTURE VIDEO (gcv) READING
 
-def find_available_gcv(dataset_path: str) ->List[str]:
+def find_available_gcv(dataset_path:str) ->List[str]:
     available_acquisitions = [f[:-4] for f in os.listdir(dataset_path) if f.endswith('.gcv') and is_this_a_gcv(os.path.join(dataset_path, f[:-4]))]
     available_acquisitions.sort()
     return available_acquisitions
@@ -45,10 +43,10 @@ def get_number_of_available_frames_gcv(acquisition_path:str) -> int:
     n_frames_rawvideo = get_number_of_available_frames_rawvideo(acquisition_path)
 
     if n_frames_stamps != n_frames_rawvideo:
-        throw_G2L_warning(f'The stamps file mentions {n_frames_stamps} frames while there are {n_frames_rawvideo} frames availables in the raw video file.')
+        utility.throw_G2L_warning(f'The stamps file mentions {n_frames_stamps} frames while there are {n_frames_rawvideo} frames availables in the raw video file.')
     return n_frames_rawvideo
 
-def get_acquisition_frequency_gcv(acquisition_path:str, unit = None, verbose:Optional[int]=None) -> float:
+def get_acquisition_frequency_gcv(acquisition_path:str, unit = None) -> float:
     if unit is None: # default unit
         unit = 'Hz'
     factor:np.int64 = 1 # Multiplication factor for the time unit
@@ -56,16 +54,16 @@ def get_acquisition_frequency_gcv(acquisition_path:str, unit = None, verbose:Opt
     if unit == 'Hz':
         factor  = 1
     else:
-        log_warn(f'Unrecognized frequency unit : {unit}')
+        utility.log_warning(f'Unrecognized frequency unit : {unit}')
 
     meta_info = retrieve_meta(acquisition_path)
     freq_meta = float(meta_info['captureFrequency']) # Hz
 
-    if are_there_missing_frames(acquisition_path, verbose=verbose):
+    if are_there_missing_frames(acquisition_path):
         return freq_meta
 
-    full_stamps = retrieve_stamps(acquisition_path, verbose=verbose)
-    camera_timestamps = get_camera_timestamps(full_stamps, unit='s', verbose=verbose)
+    full_stamps = retrieve_stamps(acquisition_path)
+    camera_timestamps = get_camera_timestamps(full_stamps, unit='s')
 
     freq_camera_timestamps = 1/np.mean(camera_timestamps[1:]-camera_timestamps[:-1])
 
@@ -76,15 +74,15 @@ def get_acquisition_frequency_gcv(acquisition_path:str, unit = None, verbose:Opt
 
     return freq_camera_timestamps
 
-def get_acquisition_duration_gcv(acquisition_path:str, framenumbers:np.ndarray, unit = None, verbose:Optional[int]=None) -> float:
+def get_acquisition_duration_gcv(acquisition_path:str, framenumbers:np.ndarray, unit = None) -> float:
     full_stamps = retrieve_stamps(acquisition_path)
-    camera_timestamps = get_camera_timestamps(full_stamps, unit=unit, verbose=verbose)
+    camera_timestamps = get_camera_timestamps(full_stamps, unit=unit)
 
     camera_timestamps = camera_timestamps[framenumbers]
 
     return np.max(camera_timestamps) - np.min(camera_timestamps)
 
-def get_times_gcv(acquisition_path:str, framenumbers:np.ndarray, unit=None, verbose:Optional[int]=None) -> Optional[np.ndarray]:
+def get_times_gcv(acquisition_path:str, framenumbers:np.ndarray, unit=None) -> Optional[np.ndarray]:
     full_stamps = retrieve_stamps(acquisition_path)
     camera_timestamps = get_camera_timestamps(full_stamps, unit=unit)
 
@@ -92,8 +90,8 @@ def get_times_gcv(acquisition_path:str, framenumbers:np.ndarray, unit=None, verb
 
     return times
 
-def get_frames_gcv(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
-    return get_frames_rawvideo(acquisition_path, framenumbers=framenumbers, verbose=verbose)
+def get_frames_gcv(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
+    return get_frames_rawvideo(acquisition_path, framenumbers=framenumbers)
 
 ### META READING
 
@@ -108,12 +106,12 @@ def retrieve_meta(acquisition_path: str) -> Meta:
             for line in meta_file.readlines():
                 if '=' in line:
                     if line.count('=') > 1:
-                        throw_G2L_warning(f'Ambiguity when parsing the {acquisition_path} meta file: is there a rogue "=" somewhere in it?.')
+                        utility.throw_G2L_warning(f'Ambiguity when parsing the {acquisition_path} meta file: is there a rogue "=" somewhere in it?.')
                     variable = line[:-1].split('=')[0]
                     value = '='.join( line[:-1].split('=')[1:] )
                     meta[variable] = value
                 else:
-                    throw_G2L_warning(f'Could not parse correctly the {acquisition_path} meta file.')
+                    utility.throw_G2L_warning(f'Could not parse correctly the {acquisition_path} meta file.')
     except:
         raise(Exception(f'ERROR: Problem with the {acquisition_path} meta file (probably it could not be opened).'))
 
@@ -121,13 +119,8 @@ def retrieve_meta(acquisition_path: str) -> Meta:
 
 ### STAMPS READING
 
-def retrieve_stamps(acquisition_path:str, verbose:Optional[int]=None) -> Stamps:
-    """
-    Gets all the stamps of a video
-
-    :param video_path:
-    :param verbose:
-    :return:
+def retrieve_stamps(acquisition_path:str) -> Stamps:
+    """Gets all the stamps of a video
     """
     # get the info in the .stamps file
     # camera time is in ns and computer time in ms
@@ -145,7 +138,7 @@ def retrieve_stamps(acquisition_path:str, verbose:Optional[int]=None) -> Stamps:
                     camera_time.append(line[:-1].split('\t')[1])     # The time given by the camera, in ns (int)
                     computer_time.append(line[:-1].split('\t')[2])   # The time given by the computer, in ms (int)
                 else:
-                    throw_G2L_warning(f'Could not parse correctly the {acquisition_path} stamps file.')
+                    utility.throw_G2L_warning(f'Could not parse correctly the {acquisition_path} stamps file.')
     except:
         raise(Exception(f'ERROR: Problem with the {acquisition_path} stamps file (probably it could not be opened).'))
     #Todo: check if a typecasting error can happen here ?
@@ -159,7 +152,7 @@ def get_number_of_available_frames_stamps(acquisition_path: str) -> int:
     n_frames_tot:int = len(full_stamps['framenumber'])
     return n_frames_tot
 
-def missing_framenumbers_gcv(acquisition_path: str, verbose:Optional[int]=None) -> List:
+def missing_framenumbers_gcv(acquisition_path: str) -> List:
     """
     Identifies missing frame in a GCV video using the timestamps.
 
@@ -178,8 +171,8 @@ def missing_framenumbers_gcv(acquisition_path: str, verbose:Optional[int]=None) 
         all_missing_chunks.append([])
         for j in range(missing_gaps[i]):
             all_missing_chunks[i].append(first_missing_frames[i] + j)
-    log_trace(f'Missing frames for {acquisition_path}:', verbose=verbose)
-    log_trace(f'{all_missing_chunks}', verbose=verbose)
+    utility.log_trace(f'Missing frames for {acquisition_path}:')
+    utility.log_trace(f'{all_missing_chunks}')
     return all_missing_chunks
 
 def identify_missing_framenumbers(framenumbers:np.ndarray, verbose:Optional[int]=None) -> np.ndarray:
@@ -219,7 +212,7 @@ def identify_missing_framenumbers(framenumbers:np.ndarray, verbose:Optional[int]
 
     return MF
 
-def get_camera_timestamps(stamps:Stamps, unit:str = None, verbose:Optional[int]=None) -> np.ndarray:
+def get_camera_timestamps(stamps:Stamps, unit:str = None) -> np.ndarray:
     if unit is None: # default unit
         unit = 's'
     factor:np.int64 = 1 # Multiplication factor for the time unit
@@ -242,7 +235,7 @@ def get_camera_timestamps(stamps:Stamps, unit:str = None, verbose:Optional[int]=
 
     return camera_timestamps / factor
 
-def get_computer_timestamps(stamps:Stamps, unit:str = 's', verbose:Optional[int]=None) -> np.ndarray:
+def get_computer_timestamps(stamps:Stamps, unit:str='s') -> np.ndarray:
     # Multiplication factor for the time unit
     factor:np.int64 = 1
     # raw unit is ns
@@ -263,23 +256,15 @@ def get_computer_timestamps(stamps:Stamps, unit:str = 's', verbose:Optional[int]
 
     return computer_timestamps / factor
 
-def get_monotonic_timebound(acquisition_path:str, framenumbers:Optional[np.ndarray] = None, unit = None, verbose:Optional[int]=None) -> Tuple[float, float]:
-    if framenumbers is None: # Default value for framenumbers
-        framenumbers = np.arange(get_number_of_available_frames_gcv(acquisition_path))
-    #Check that the demand is reasonable
-    if framenumbers.min() < 0:
-        log_error('Asked for negative framenumber ??', verbose=verbose)
-        return None
-    if framenumbers.max() >= get_number_of_available_frames_stamps(acquisition_path):
-        throw_G2L_warning(f'Requested framenumber {framenumbers.max()} while there are only {get_number_of_available_frames_gcv(acquisition_path)} frames for this dataset.')
-        framenumbers = framenumbers[framenumbers < get_number_of_available_frames_stamps(acquisition_path)]
+def get_monotonic_timebound(acquisition_path:str, framenumbers:Optional[np.ndarray]=None, unit=None) -> Tuple[float, float]:
+    framenumbers = format_framenumbers(acquisition_path, framenumbers)
 
     # Retrieve the frames
-    times = get_computer_timestamps(retrieve_stamps(acquisition_path, verbose), unit=unit, verbose=verbose)
+    times = get_computer_timestamps(retrieve_stamps(acquisition_path), unit=unit)
 
-    good_times = times[framenumbers]
+    good_times:np.ndarray = times[framenumbers]
 
-    return good_times[0], good_times[-1]
+    return float(good_times[0]), float(good_times[-1])
 
 def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, end_framenumber:int = -1, interval:int  = 1, verbose:Optional[int]=None) -> Optional[Stamps]:
     """
@@ -313,21 +298,21 @@ def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, e
         print('End frame < 0')
         return None
     if end_framenumber > last_framenumber:
-        log_warn(f'The requested end frame ({end_framenumber}) is after the last recorded frame ({last_framenumber}).', verbose=verbose)
-        log_warn(f'Changing the end frame to {last_framenumber}. You might get less frames than expected.', verbose=verbose)
+        utility.log_warning(f'The requested end frame ({end_framenumber}) is after the last recorded frame ({last_framenumber}).', verbose=verbose)
+        utility.log_warning(f'Changing the end frame to {last_framenumber}. You might get less frames than expected.', verbose=verbose)
         end_framenumber = last_framenumber
 
     ### Check for missing frames
     missing_framenumbers = identify_missing_framenumbers(all_framenumbers, verbose=verbose)
     if not len(missing_framenumbers) == 0:
-        log_warn(f'There are missing frames ! Frames {list(missing_framenumbers)} are missing.', verbose=verbose)
+        utility.log_warning(f'There are missing frames ! Frames {list(missing_framenumbers)} are missing.', verbose=verbose)
     # here MF means missing frame (abbreviated for code lisibility)
     MFs_after_start = missing_framenumbers >= start_framenumber
     MFs_before_end = missing_framenumbers <= end_framenumber
     MFs_in_requested_interval = MFs_after_start * MFs_before_end
     there_are_MFs_in_the_request_interval:bool = 1 in MFs_in_requested_interval
     if there_are_MFs_in_the_request_interval:
-        log_warn(f'There are missing frames in the requested interval. The returned frames will not be evenly spaced.', verbose=verbose)
+        utility.log_warning(f'There are missing frames in the requested interval. The returned frames will not be evenly spaced.', verbose=verbose)
 
     frames_correctly_spaced = (all_framenumbers - start_framenumber) % interval == 0
     frames_after_start = all_framenumbers >= start_framenumber
@@ -348,7 +333,7 @@ def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, e
         # This happens either if
         # (a) there were missing frames (should be a warning before telling that from the index function) or
         # (b) something elsed foired in this function, a supplementary check should not hurt !
-        log_warn('STAMPS ARE NOT COHERENT WITH VIDEO', verbose=verbose)
+        utility.log_warning('STAMPS ARE NOT COHERENT WITH VIDEO', verbose=verbose)
 
     return stamps_wanted
 
@@ -370,10 +355,10 @@ def get_number_of_available_frames_rawvideo(acquisition_path: str) -> int:
     img_s:int = img_w * img_h
     n_frames_tot:int = file_size // img_s
     if img_s == 0 or file_size % img_s != 0:
-        throw_G2L_warning('Bad formatting of rawvideo file')
+        utility.throw_G2L_warning('Bad formatting of rawvideo file')
     return n_frames_tot
 
-def get_frames_rawvideo(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
+def get_frames_rawvideo(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
     meta = retrieve_meta(acquisition_path)
 
     width:int = int(meta.get('subRegionWidth', '0'))

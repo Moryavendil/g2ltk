@@ -1,8 +1,6 @@
 from typing import Optional, Any, Tuple, Dict, List, Union
 import numpy as np
 
-from .. import display, throw_G2L_warning
-
 from .. import set_verbose, log_error, log_warn, log_warning, log_info, log_subinfo, log_debug, log_trace, log_subtrace
 
 ###### MATHS
@@ -248,9 +246,11 @@ def set_ticks_log_cb(cb, maximum_amplitude:float, range_db:Union[int, float]):
 
 from .fourier import *
 
-########## SAVE GRAPHE
+########## SAVE GRAPHE & FIG SIZE
 
 from .genfig import *
+
+from .plotting import *
 
 ########### DISPLAYS THE TIME
 def convert_time(time:Any, origin_unit:str, target_unit:str):

@@ -3,8 +3,7 @@ import numpy as np
 import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 
-from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
-from .. import utility, datasaving
+from .. import logging
 
 ###### LOSSY COMPRESSED VIDEO (mp4) READING
 
@@ -15,7 +14,7 @@ def find_available_mov(dataset_path: str) ->List[str]:
     return available_acquisitions
 
 def is_this_a_mov(acquisition_path: str) -> bool:
-    log_subtrace(f'func:is_this_a_mov')
+    logging.log_subtrace(f'func:is_this_a_mov')
     video:Optional[Any] = capture_mov(acquisition_path)
     if video is None:
         return False
@@ -24,21 +23,21 @@ def is_this_a_mov(acquisition_path: str) -> bool:
         return True
 
 def capture_mov(acquisition_path:str) -> Optional[Any]:
-    log_subtrace(f'func:capture_mov')
+    logging.log_subtrace(f'func:capture_mov')
     # This only captures LOSSY COMPRESSED VIDEOS WITH CODEC H264 AND FILETYPE MP4
 
     # Check for existence
     video_path = acquisition_path + '.MOV'
 
     if not os.path.isfile(video_path):
-        log_trace(f'No mov video named {video_path}')
+        logging.log_trace(f'No mov video named {video_path}')
         return None
 
     # Open video
     video = cv2.VideoCapture(video_path)
 
     if video.isOpened()== False:
-        log_error(f'Error opening video file {video_path}')
+        logging.log_error(f'Error opening video file {video_path}')
         return None
 
     #Check codec
@@ -47,7 +46,6 @@ def capture_mov(acquisition_path:str) -> Optional[Any]:
 
     # if codec != 'avc1':
     #     video.release()
-    #     #Todo:ERROR here
     #     log_error(f"Codec is {codec}. Cannot read frames from video that is not lossy compressed with codec avc1")
     #     return None
 
@@ -61,7 +59,7 @@ def get_number_of_available_frames_mov(acquisition_path: str) -> Optional[int]:
         return n_framenumbers_tot
     return None
 
-def get_acquisition_frequency_mov(acquisition_path, unit='Hz', verbose=1):
+def get_acquisition_frequency_mov(acquisition_path, unit='Hz'):
     video = capture_mov(acquisition_path)
     if video is not None:
         fps = video.get(cv2.CAP_PROP_FPS)
@@ -78,7 +76,7 @@ def get_frame_geometry_mov(acquisition_path):
         return height, width
     return None
 
-def get_frames_mov(acquisition_path:str, framenumbers:np.ndarray, verbose:Optional[int]=None) -> Optional[np.ndarray]:
+def get_frames_mov(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
 
     # Capture the video
     video = capture_mov(acquisition_path)
@@ -101,7 +99,7 @@ def get_frames_mov(acquisition_path:str, framenumbers:np.ndarray, verbose:Option
 
         ret, frame = video.read()
         if ret == False:
-            log_error(f'Error opening frame {framenumber} of video at {acquisition_path}')
+            logging.log_error(f'Error opening frame {framenumber} of video at {acquisition_path}')
         else:
             frames[i_frame] = frame[:,:,0]
 
