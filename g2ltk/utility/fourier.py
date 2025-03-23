@@ -248,7 +248,8 @@ def ft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=Non
     return fft.fftshift(z_hat) * step(x) * step(y)
 
 def rft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str= 'hann', norm=None,
-          zero_pad:Optional[Tuple[int, int]]=None, zero_pad_factor:Optional[Tuple[float, float]]=None) -> np.ndarray:
+          zero_pad:Optional[Tuple[int, int]]=None, zero_pad_factor:Optional[Tuple[float, float]]=None,
+          shift:Optional[Tuple[float, float]]=None) -> np.ndarray:
     """
     Returns the 2-D Fourier transform of a real input array using the given windowing.
 
@@ -302,9 +303,21 @@ def rft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=No
     # z_clean = z_pad - np.mean(z_pad) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
     z_clean = z_pad - np.mean(z_pad)
 
-    shift = (pad_width[0][0]+Nt//2, pad_width[1][0]+Nx//2)
-    log_subtrace(f'rft2d: Rolling (restoring phase) | shift={shift}')
-    z_roll = np.roll(z_clean, shift, axis = (0, 1))
+    roll_offset = (pad_width[0][0]+Nt//2, pad_width[1][0]+Nx//2)
+
+    roll_shift = None
+    if shift is not None:
+        try:
+            roll_shift = (int(shift[0]/np.pi * Nt), int(shift[1]/np.pi * Nx))
+        except:
+            log_warning(f'rft2d: What is this shift "{roll_shift}" ? I made it None')
+            roll_shift = None
+    if roll_shift is None:
+        roll_shift = (0, 0)
+    roll_total = (roll_offset[0] + roll_shift[0], roll_offset[1] + roll_shift[1])
+    log_subtrace(f'rft2d: Rolling (restoring phase) | roll={roll_total}')
+    log_subtrace(f'rft2d: roll_offset={roll_offset} | roll_shift={roll_shift}')
+    z_roll = np.roll(z_clean, roll_total, axis = (0, 1))
 
     log_subtrace(f'rft2d: Computing fft, norm={norm} | shape={z_roll.shape}')
     z_hat = fft.rfft2(z_roll, norm=norm, s=z_roll.shape)
@@ -348,7 +361,9 @@ def psd1d(z:np.ndarray, x:Optional[np.ndarray]=None, window:str='hann', zero_pad
     # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
     return esd / span(x)
 
-def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str='hann', zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None) -> np.ndarray:
+def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str='hann',
+          zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None,
+          shift:Optional[Tuple[float, float]]=None) -> np.ndarray:
     """
     Returns the 2-D Fourier PSD of a real input array using the given windowing.
 
@@ -375,7 +390,9 @@ def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None
     log_trace('psd2d: Computing a 2-D PSD')
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $\hat{z}$ is [V/(Hz.mm^{-1})(Hz, mm-1)]
-    y_ft = rft2d(z, x=x, y=y, window=window, norm="backward", zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+    y_ft = rft2d(z, x=x, y=y, window=window, norm="backward",
+                 zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
+                 shift=shift)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the oly thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this 2-frequency
