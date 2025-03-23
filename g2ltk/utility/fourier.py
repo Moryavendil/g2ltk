@@ -363,11 +363,11 @@ def psd1d(z:np.ndarray, x:Optional[np.ndarray]=None, window:str='hann', zero_pad
 
 def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str='hann',
           zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None,
-          shift:Optional[Tuple[float, float]]=None) -> np.ndarray:
+          shift:Optional[Tuple[float, float]]=None, quantitative:bool=True) -> np.ndarray:
     """
     Returns the 2-D Fourier PSD of a real input array using the given windowing.
 
-    for display purpose, multiply first column by 2 (or use fft instead of rfft)
+    quantitative ensures the real thing is computed. if False, the first column is mul
 
     if the unit of z(t, x) is [V(s, mm)], then the unit of PSD(z)$ is [V^2/(Hz.mm^{-1})(Hz, mm-1)]
 
@@ -400,6 +400,8 @@ def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $ESD(z)$ is [V^2/Hz^2/mm^{-2}(Hz, mm-1)]
     esd = np.abs(y_ft)**2 * window_factor(window)**2
     esd[:, 1:] *= 2 # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
+    if quantitative:
+        esd[:, 0] *= 2 # we want to equilibrate "for the show". But it changes teh valeus to non-physical ones !
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is 2-D periodic, then PSD = ESD / (duration_1.duration_2)
     # Thus if the unit of z(t, x) is [V(s, mm)], then the unit of PSD(z)$ is [V^2/Hz/mm^{-1}(Hz, mm-1)]
