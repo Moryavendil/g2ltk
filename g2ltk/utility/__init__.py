@@ -222,7 +222,7 @@ def log_amplitude_cbticks(maximum_amplitude:float, range_db:Union[int, float]):
     cbticklabels = ['0 dB' if att_db == 0 else f'-{att_db} dB' for att_db in att_db_major]
     return cbticks_major, cbticklabels
 
-def set_ticks_log_cb(cb, maximum_amplitude:float, range_db:Union[int, float]):
+def set_ticks_log_cb(cb, maximum_amplitude:float, range_db:Union[int, float], text:bool=True):
     step_major = 20
     step_minor = 5
     if range_db < 60:
@@ -239,7 +239,7 @@ def set_ticks_log_cb(cb, maximum_amplitude:float, range_db:Union[int, float]):
     cbticks_minor = [attenuate_power(maximum_amplitude, att_db) for att_db in att_db_minor]
 
     cb.ax.set_yticks(cbticks_major, minor=False)
-    cb.ax.set_yticklabels(cbticklabels, minor=False)
+    cb.ax.set_yticklabels(cbticklabels if text else [], minor=False)
     cb.ax.set_yticks(cbticks_minor, minor=True)
     cb.ax.set_yticklabels([], minor=True)
 
