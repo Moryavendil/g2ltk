@@ -62,6 +62,65 @@ def figsize(w:Optional[Union[float, int, str]], h:Optional[Union[float, int, str
 
     return (width_in, height_in)
 
+def subplots_adjust(fig:plt.Figure, left=None, bottom=None, right=None, top=None, wspace=None, hspace=None, unit='rel'):
+    width_in, height_in = fig.get_size_inches()
+
+    factor_w, factor_h = 1, 1
+    if unit == 'mm': # millimeters
+        factor_w = in_per_mm
+        factor_h = in_per_mm
+    elif unit == 'in': # inches
+        factor_w = 1
+        factor_h = 1
+    elif unit == 'rel': # relative (the usual way, but now can be negative)
+        factor_w = width_in
+        factor_h = height_in
+    else:
+        log_error('Unrecognized unit: {unit}'.format(unit=unit))
+    log_subtrace(f'subplots_adjust: unit is {unit}, factor is {factor_w, factor_h}')
+
+
+    if left is not None:
+        left_in = left * factor_w
+        if left_in >= 0:
+            left = left_in / width_in
+        else:
+            left = (width_in - (-left_in)) / width_in
+
+    if right is not None:
+        right_in = right * factor_w
+        if right_in >= 0:
+            right = right_in / width_in
+        else:
+            right = (width_in - (-right_in)) / width_in
+
+    if bottom is not None:
+        bottom_in = bottom * factor_h
+        if bottom_in >= 0:
+            bottom = bottom_in / height_in
+        else:
+            bottom = (height_in - (-bottom_in)) / height_in
+
+    if top is not None:
+        top_in = top * factor_h
+        if top_in >= 0:
+            top = top_in / height_in
+        else:
+            top = (height_in - (-top_in)) / height_in
+
+    if wspace is not None:
+        wspace_in = wspace * factor_w
+        wspace = wspace_in / width_in
+
+    if hspace is not None:
+        hspace_in = hspace * factor_h
+        hspace = hspace_in / width_in
+
+    log_trace('lauching subplots_adjust with')
+    log_trace(f'    left={left} | bottom={bottom} | right={right} | top={top}')
+    log_trace(f'    wspace={wspace} | hspace={hspace}')
+    fig.subplots_adjust(left, bottom, right, top, wspace=wspace, hspace=hspace)
+
 latex_preamble = r"""%
 %%% PACKAGES
 %
@@ -119,7 +178,7 @@ def configure_mpl(font_size=12):
 
 def activate_saveplot(activate=True, font_size=10):
     if not activate:
-        deactivate_saveplot()
+        deactivate_saveplot(font_size=font_size)
         return
     # use LaTeX
     plt.rcParams['text.usetex'] = True
