@@ -16,15 +16,22 @@ tmp_*
 # personal files
 perso_*
 
+# meta files for specific applications
+README_Zenodo.md
+
 # intellij
 .idea/
 
 # all images and movies
+# images
 *.jpg
 *.png
+*.bmp
 *.svg
+# movies
 *.mp4
 *.mov
+*.gcv
 
 # all sort of tables
 *.ods
