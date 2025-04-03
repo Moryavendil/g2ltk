@@ -1,4 +1,3 @@
-from numpy import ndarray, dtype
 from typing import Optional, Any, Tuple, Dict, List
 import numpy as np
 
@@ -9,7 +8,10 @@ import math
 from scipy.interpolate import CubicSpline, make_smoothing_spline # for cubic interpolation
 from scipy.optimize import curve_fit
 from scipy.ndimage import map_coordinates
-from scipy.signal import savgol_filter, butter, filtfilt, correlate, correlation_lags, find_peaks, hilbert
+# filetring
+from scipy.signal import savgol_filter, butter, filtfilt, correlate, correlation_lags, find_peaks
+# hilbert transform
+from scipy.signal import hilbert, hilbert2
 from scipy.stats import linregress
 
 from g2ltk import utility, logging
@@ -253,3 +255,22 @@ def hilbert_transform(signal, x=None, oversample=True, usesplines=False, symmetr
 def instantaneous_phase(signal, x=None, oversample=True, usesplines=False, symmetrize=True):
     x, amplitude, phase = hilbert_transform(signal, x=x, oversample=oversample, usesplines=usesplines, symmetrize=symmetrize)
     return x, phase
+
+### ### 2D HILBERT TRANSFORM
+def phase_wrapped_hilbert2(sig, flip = False):
+    sig -= sig.mean()
+
+    # technique 4 : hilbert2 on symmetrized matrix
+    hh, ww = sig.shape
+    sig_x4 = np.zeros((2 * hh, 2 * ww), dtype=sig.dtype)
+    sig_x4[:hh, :ww] = sig[:, :]
+    sig_x4[hh:, :ww] = sig[::-1, :]
+    sig_x4[:hh, ww:] = sig[:, ::-1]
+    sig_x4[hh:, ww:] = sig[::-1, ::-1]
+    hil2D_x4 = hilbert2(sig_x4)
+    phase_wrapped_hil2D_x4 = np.angle(hil2D_x4)
+
+    if not flip:
+        return phase_wrapped_hil2D_x4[:hh, :ww] # no flip
+    if flip:
+        return phase_wrapped_hil2D_x4[hh:, :ww][::-1, :] # flip
