@@ -7,12 +7,26 @@ from .. import log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
 import os
 import matplotlib.pyplot as plt
 
+# conversion to in
 in_per_mm = 1 / 25.4
+in_per_pt = 0.01384
+in_per_pc = 0.16605
 screen_dpi = 122.38 # 24'' , 2560x1440 px screen. Use 91.79 for 24'' FHD and 165.63 for 13.3'' FHD  (default 100)
 
-# for APS & AIP (latex revtex4)
+""" FIGURE STYLES
+JFM 
+* textsize: 32 pc (=134.96 mm) | single column
+* text font size: 10.5 pt | Fig/legend font size: 9 pt
+* font: newtxt, MUST INCLUDE jfm_latex_preamble
+"""
+
+
+# for APS & AIP (latex revtex4 2024)
 figw_aps:Dict[str, float] = {'simple': 86 * in_per_mm, 'wide': 140 * in_per_mm, 'double': 180 * in_per_mm,
                              'inset': 40 * in_per_mm}
+# for JFM (2025)
+figw_jfm:Dict[str, float] = {'simple': 15*in_per_pc, 'wide': 21*in_per_pc, 'double': 32*in_per_pc,
+                             'inset': 7*in_per_pc}
 # for thesis - WORK IN PROGRESS
 figw_these:Dict[str, float] = {'simple': 70*in_per_mm, 'wide': 110*in_per_mm, 'double': 150*in_per_mm,
                                'inset': 35*in_per_mm, 'small': 50*in_per_mm}
@@ -121,26 +135,76 @@ def subplots_adjust(fig:plt.Figure, left=None, bottom=None, right=None, top=None
     log_trace(f'    wspace={wspace} | hspace={hspace}')
     fig.subplots_adjust(left, bottom, right, top, wspace=wspace, hspace=hspace)
 
-latex_preamble = r"""%
+jfm_latex_preamble = r"""%
+%
+%%% JFM
+%
+\usepackage{newtxtext}
+\usepackage{newtxmath}
+%"""
+
+styledict_default = {'textfontsize': 12, 'fontsize': 10, 'latex_preamble': '%', 'figw': figw_confort}
+styledict_presentation = {'textfontsize': 20, 'fontsize': 18}
+styledict_jfm = {'textfontsize': 10.5, 'fontsize': 9, 'latex_preamble': jfm_latex_preamble, 'figw': figw_jfm}
+styledict_aps = {'figw': figw_aps}
+
+styledicts = {'jfm': styledict_jfm, 'aps': styledict_aps, 'presentation': styledict_presentation}
+
+def styled(key:str, style:Optional[str]=None):
+    if style is None:
+        styledict = styledict_default
+    else:
+        styledict = styledicts.get(style, styledict_default)
+
+    return styledict.get(key, styledict_default.get(key, None))
+
+
+general_latex_preamble = r"""%
 %%% PACKAGES
 %
 \usepackage{amsmath} %maths
 \usepackage{amssymb} %maths
 \usepackage{amsfonts} %maths
+\usepackage{xcolor} % use color
 \usepackage{physics} %physics
 \usepackage[range-phrase = --,retain-unity-mantissa = false,exponent-product = \cdot]{siunitx} % dimensioned quantities
 %
 %%% QOL
 %
 \setlength{\parindent}{0pt}% no indent
+%"""
+
+paper_specific_latex_preamble = r"""%
 %
 %%% MACROS
 %
-\newcommand{\mucl}{\mu_\text{cl}}
 \newcommand{\vdrift}{v_\text{drift}}
+%
+\newcommand{\mucl}{\ensuremath{\mu_\text{cl}}}
+%
+\newcommand{\lcap}{\ensuremath{\ell_\text{c}}} % capillary length l_c or l_cap or l_gamma
+\newcommand{\vcap}{\ensuremath{v_\text{c}}} % capillary speed v_c or v_cap or v_gamma
+\newcommand{\us}{{\ensuremath{u_s}}}
+\newcommand{\un}{{\ensuremath{u_n}}}
 %"""
 
-def configure_mpl(font_size=12):
+
+def latex_preamble(style=None):
+    style_specific_latex_preamble = styled('latex_preamble', style=style)
+
+    return fr"""%
+%
+{general_latex_preamble}
+%
+{paper_specific_latex_preamble}
+%
+{style_specific_latex_preamble}
+%
+%"""
+
+
+
+def configure_mpl(font_size=None, style=None):
     # figure options
     global screen_dpi
     plt.rcParams["figure.dpi"] = screen_dpi
@@ -159,6 +223,8 @@ def configure_mpl(font_size=12):
     plt.rcParams["hist.bins"] = 20 # more bins by default (default 10)
     plt.rcParams["legend.labelspacing"] = 0.3 # less space between legends items (default 0.5)
 
+    if font_size is None:
+        font_size = styled('fontsize', style=style)
 
     # have readable font size
     plt.rcParams.update({'font.family': 'serif', 'font.size': font_size,
@@ -176,7 +242,7 @@ def configure_mpl(font_size=12):
     # setup correct
     plt.rcParams['pgf.texsystem'] = 'pdflatex'
 
-def activate_saveplot(activate=True, font_size=10):
+def activate_saveplot(activate=True, font_size=None, style=None):
     if not activate:
         deactivate_saveplot(font_size=font_size)
         return
@@ -184,14 +250,17 @@ def activate_saveplot(activate=True, font_size=10):
     plt.rcParams['text.usetex'] = True
     plt.rcParams['pgf.texsystem'] = 'pdflatex'
     global latex_preamble
-    plt.rcParams['text.latex.preamble'] = latex_preamble
+    plt.rcParams['text.latex.preamble'] = latex_preamble(style=style)
 
     # use figure size
-    global figw, figw_aps
-    figw = {**figw_aps}
+    global figw
+    figw = {**styled('figw', style=style)}
     figwidth = figw['simple']
     figheight = figwidth / 1.618 # golden ratio
     plt.rcParams["figure.figsize"] = (figwidth, figheight)
+
+    if font_size is None:
+        font_size = styled('fontsize', style=style)
 
     # have appropriate font size
     plt.rcParams.update({'font.family': 'serif', 'font.size': font_size,
@@ -219,11 +288,11 @@ def activate_saveplot(activate=True, font_size=10):
                          # 'figure.constrained_layout.w_pad': 0.,
                          })
 
-def deactivate_saveplot(font_size=12):
+def deactivate_saveplot(font_size=None, style=None):
     # stop using LaTeX for faster display
     plt.rcParams['text.usetex'] = False
 
-    configure_mpl(font_size=font_size)
+    configure_mpl(font_size=font_size, style=style)
 def tighten_graph(pad=0., w_pad=0., h_pad=0.):
     plt.tight_layout(pad=pad, w_pad=w_pad, h_pad=h_pad)
 def save_graphe(graph_name, imageonly=False, **kwargs):
