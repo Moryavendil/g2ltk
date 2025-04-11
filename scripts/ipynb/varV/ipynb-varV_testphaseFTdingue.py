@@ -287,7 +287,7 @@ plt.imshow(Z_crop, aspect='auto')
 
 # <codecell>
 
-zero_pad_factor_visu = (8, 8)
+zero_pad_factor_visu = (1,1) #(8, 8)
 range_dB_visu = 40
 fft_window_visu = 'tukey'
 
@@ -418,9 +418,18 @@ angle_cmap = make_segmented_cmap()
 
 # <codecell>
 
+fig, axes = plt.subplots(2, 1)
+ax = axes[0]
+ax.plot(W_crop.mean(axis=1))
+ax = axes[1]
+ax.plot(W_crop.mean(axis=0))
+
+
+# <codecell>
+
 fig, axes = plt.subplots(2, 2, sharex=True, sharey=True, squeeze=False, figsize=utility.figsize('double'))
 imshow_kw = {'origin':'upper',
-             'interpolation':'bicubic',
+             'interpolation':'nearest',
              'aspect':'auto'}
 
 from matplotlib.colors import Normalize, LogNorm
@@ -431,7 +440,10 @@ norm_z = LogNorm(vmax=vmax, vmin=vmin, clip=True)
 # vmax, vmin = Z_pw_mm.max(), Z_pw_mm.max()/10*0
 # norm_z = Normalize(vmax=vmax, vmin=vmin, clip=True)
 
-vmax, vmin = utility.log_amplitude_range(W_pw_mm.max(), range_db=range_dB_visu)
+qthresh =.1
+qthresh_i = np.argmin((k_visu_mm - qthresh)**2)
+
+vmax, vmin = utility.log_amplitude_range(W_pw_mm[:, qthresh_i:].max(), range_db=range_dB_visu)
 norm_w = LogNorm(vmax=vmax, vmin=vmin, clip=True)
 # vmax, vmin = W_pw_mm.max(), W_pw_mm.max()/10*0
 # norm_w = Normalize(vmax=vmax, vmin=vmin, clip=True)

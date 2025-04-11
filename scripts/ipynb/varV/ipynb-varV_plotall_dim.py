@@ -168,7 +168,7 @@ fig, ax = plt.subplots(figsize=utility.figsize('wide', ratio = 1.6))
 errorbar_kw = {'capsize': 3, 'ls': '', 'marker':'o', 'mfc': 'w'}
 
 ax.errorbar(z0[instab], q0[instab], yerr=incert_q[instab], color=color_q, label='$q = k/(2\pi)$', **errorbar_kw)
-# ax.plot(z0[instab], qth * (1 + (z1[instab]/A)**2))
+ax.plot(z0[instab], qth * (1 + (z1[instab]/A)**2))
 
 ax.axhline(qth, ls='--', label='$q_{model} = f_0 / u_0$', alpha=.6, color=color_q)
 # ax.axvline(z0threshold, ls=':', label='Threshold', color='g')
@@ -226,7 +226,7 @@ plt.close()
 # <codecell>
 
 z0_thresh_alamano = .25
-z1_factor_alamano = 2
+z1_factor_alamano = 1.2
 w1_factor_alamano = 2.5# 7.
 
 z0_test = np.linspace(z0.min(), z0.max(), 1000)
@@ -248,34 +248,33 @@ ax.set_xlabel('$z_0$ [mm]')
 ax.set_ylabel('Amplitude [mm]')
 ax.legend()
 
-
-# <codecell>
-
-
+# plt.savefig('pouitprint.jpg')
 
 
 # <codecell>
 
-# plt.figure()
-# ax = plt.gca()
-# ax.scatter(z0[instab], w1[instab]/z1[instab], label='z1')
-# 
-# z0test = np.linspace(0, 0.5)
-# 
-# eta = 0
-# 
-# F = (2*np.pi* f0)**3 * z0**2 / (mu**2 * w0 * vc)
-# 
-# 
-# print(f'F={F}')
-# lam = mu/2 * (1-eta)/2 * (-1 + np.sqrt(1 + (eta + F)/((1-eta)/2)**2))
-# fact = (2*np.pi* f0) * (2*np.pi* q0) / (mu + 2*lam)
-# 
-# ax.plot(z0[instab], z0[instab] * fact[instab], label='z0', color='gray', ls='--')
-# ax.set_xlabel('$z_0$ [mm]')
-# ax.set_ylabel('W / Z0')
-# ax.set_ylim(0, 1)
-# # ax.legend()
+z0_thresh_alamano = .22
+z1_factor_alamano = .7
+w1_factor_alamano = 2.5# 7.
+
+z0_test = np.linspace(z0.min(), z0.max(), 1000)
+
+z1_alamano = np.zeros_like(z0_test)
+inside_sqrt = z0_test - z0_thresh_alamano
+z1_alamano[inside_sqrt > 0] = z1_factor_alamano*(inside_sqrt[inside_sqrt > 0])**(1/4)
+
+w1_alamano = z1_alamano / w1_factor_alamano
+
+plt.figure()
+ax = plt.gca()
+ax.scatter(z0, z1, label='z1')
+ax.scatter(z0, w1, label='w1')
+ax.plot(z0, z0, label='z0', color='gray', ls='--')
+ax.plot(z0_test, z1_alamano, label='z1 alamano')
+ax.plot(z0_test, w1_alamano, label='w1 alamano')
+ax.set_xlabel('$z_0$ [mm]')
+ax.set_ylabel('Amplitude [mm]')
+ax.legend()
 
 
 # <codecell>
@@ -362,12 +361,107 @@ def lam(eta_):
     D = tr**2 - 4*Delta # system determinant
     return (tr + np.sqrt(D))/2 # biggest eigenvalue
 
+ratio_fin_min = ratio_th * np.sqrt((-(0)*mu + 2*lam(0)) / (mu + 2*0)) # eta = 0
+ratio_fin_max = ratio_th * np.sqrt((-(-1)*mu + 2*lam(-1)) / (mu + 2*0)) # eta = -1
+ratio_fin = (ratio_fin_max + ratio_fin_min)/2
+ratio_fin_u = (ratio_fin_max - ratio_fin_min)/2
+
+fig, ax = plt.subplots(figsize=utility.figsize('wide', ratio = 1.6))
+
+
+ax.plot(z0test, lam(0))
+ax.plot(z0test, lam(-1))
+
+# plt.tight_layout()
+
+# utility.save_graphe('saturation_ratio_amplitudes')
+
+
+# <codecell>
+
+crit = instab & (z0 > 0.253)
+
+ratio_exp = w1 / z1 / k0
+ratio_exp_u = ratio_exp * np.sqrt((incert_z1 / z1) ** 2 + (incert_w1 / w1) ** 2 + (incert_q / q0) ** 2)
+
+ratio_th = np.sqrt( w0 * vc / omegavrai )
+ratio_th_u = ratio_th * np.sqrt((1/2 * w0_u / w0) ** 2 + (1/2 * vc_u / vc) ** 2)
+
+
+### WITH THE LAMBDA
+eta = 0
+
+F = (omegavrai)**3 * (z0test/2)**2 / (mu*mu * w0 * vc) # order parameter
+
+def lam(eta_):
+    Delta = - (mu/2)*(mu/2) * (eta_ + F) # matrix determinant
+    tr = -mu/2 + eta_ * mu/2 # matrix trace
+    D = tr**2 - 4*Delta # system determinant
+    return (tr + np.sqrt(D))/2 # biggest eigenvalue
+
+ratio_fin_min = ratio_th * np.sqrt((-(0)*mu + 2*0) / (mu + 2*0)) # eta = 0
+ratio_fin_max = ratio_th * np.sqrt((-(-1)*mu + 2*0) / (mu + 2*0)) # eta = -1
+ratio_fin = (ratio_fin_max + ratio_fin_min)/2
+ratio_fin_u = (ratio_fin_max - ratio_fin_min)/2
+
+fig, ax = plt.subplots(figsize=utility.figsize('wide', ratio = 1.6))
+ax.set_title('WITHOUT LAMBDA THE EIGENVALUE')
+errorbar_kw = {'capsize': 3, 'ls': '', 'marker':'o', 'mfc': 'w'}
+
+ax.errorbar(z0[crit], ratio_exp[crit], yerr=ratio_exp_u[crit], color=color_q, label='Measurements', **errorbar_kw)
+
+# ax.axhline(ratio_th, label=r'$\sqrt{w_0\, v_c / \omega_0}$', color=color_q, ls='-', alpha=.6)
+# ax.axhspan(ratio_th - ratio_th_u/2, ratio_th + ratio_th_u/2, color=color_q, ls='', alpha=.1)
+
+ax.plot(z0test, np.ones_like(z0test)*ratio_fin, color=color_q, ls='-', alpha=.6, label='From linear theory')
+ax.fill_between(z0test, ratio_fin_max, ratio_fin_min, color=color_q, alpha=.1, lw=0.0, label='From linear theory')
+
+ax.axvline(0.252, label='Threshold', color='k', ls=':', alpha=.6)
+
+ax.set_xticks(np.arange(0, .6, .05))
+ax.set_xlim(0.2, .45)
+ax.set_xlabel('Transverse movement amplitude $|Z_0|$ [mm]')
+
+ax.set_yticks(np.arange(0, 1, .2))
+# ax.set_ylim(0, .8)
+ax.set_ylabel('$|W_1| / (k\,|Z_1|)$ [mm]')
+
+ax.legend()
+
+# plt.tight_layout()
+
+# utility.save_graphe('saturation_ratio_amplitudes')
+
+
+# <codecell>
+
+crit = instab & (z0 > 0.253)
+
+ratio_exp = w1 / z1 / k0
+ratio_exp_u = ratio_exp * np.sqrt((incert_z1 / z1) ** 2 + (incert_w1 / w1) ** 2 + (incert_q / q0) ** 2)
+
+ratio_th = np.sqrt( w0 * vc / omegavrai )
+ratio_th_u = ratio_th * np.sqrt((1/2 * w0_u / w0) ** 2 + (1/2 * vc_u / vc) ** 2)
+
+
+### WITH THE LAMBDA
+eta = 0
+
+F = (omegavrai)**3 * (z0test/2)**2 / (mu*mu * w0 * vc) # order parameter
+
+def lam(eta_):
+    Delta = - (mu/2)*(mu/2) * (eta_ + F) # matrix determinant
+    tr = -mu/2 + eta_ * mu/2 # matrix trace
+    D = tr**2 - 4*Delta # system determinant
+    return (tr + np.sqrt(D))/2 # biggest eigenvalue
+
 ratio_fin_min = ratio_th * np.sqrt((-(0)*mu + 2*lam(0)) / (mu + 2*lam(0))) # eta = 0
 ratio_fin_max = ratio_th * np.sqrt((-(-1)*mu + 2*lam(-1)) / (mu + 2*lam(-1))) # eta = -1
 ratio_fin = (ratio_fin_max + ratio_fin_min)/2
 ratio_fin_u = (ratio_fin_max - ratio_fin_min)/2
 
 fig, ax = plt.subplots(figsize=utility.figsize('wide', ratio = 1.6))
+ax.set_title('WITH LAMBDA THE EIGENVALUE')
 errorbar_kw = {'capsize': 3, 'ls': '', 'marker':'o', 'mfc': 'w'}
 
 ax.errorbar(z0[crit], ratio_exp[crit], yerr=ratio_exp_u[crit], color=color_q, label='Measurements', **errorbar_kw)
@@ -397,7 +491,27 @@ ax.legend()
 
 # <codecell>
 
-plt.close()
+z0_thresh_alamano = .22
+z1_factor_alamano = .7
+w1_factor_alamano = 2.5# 7.
+
+z1_alamano = np.zeros_like(z0test)
+inside_sqrt = z0test - z0_thresh_alamano
+z1_alamano[inside_sqrt > 0] = z1_factor_alamano*(inside_sqrt[inside_sqrt > 0])**(1/4)
+
+w1_alamano = z1_alamano * ratio_fin * qth*2*np.pi
+
+plt.figure()
+ax = plt.gca()
+ax.scatter(z0, z1, label='z1')
+ax.scatter(z0, w1, label='w1')
+ax.scatter(z0, w1 / (k0 * 0.4), label='w1')
+ax.plot(z0, z0, label='z0', color='gray', ls='--')
+ax.plot(z0test, z1_alamano, label='z1 alamano')
+ax.plot(z0test, w1_alamano, label='w1 alamano')
+ax.set_xlabel('$z_0$ [mm]')
+ax.set_ylabel('Amplitude [mm]')
+ax.legend()
 
 
 # <codecell>
