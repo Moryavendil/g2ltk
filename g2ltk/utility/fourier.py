@@ -743,7 +743,7 @@ def peak_contour2d(peak_x:float, peak_y:float, z:np.ndarray, peak_depth_dB:float
             log_debug(f"Found {len(maincontours)} valid contours.")
             return maincontours
         else:
-            peak_depth_dB -= 10
+            peak_depth_dB -= 5
             if peak_depth_dB < min_peak_depth_dB: peak_depth_dB = min_peak_depth_dB
             log_debug(f"Couldn't find any valid contour: Trying peak_depth={peak_depth_dB} dB")
     if peak_depth_dB != min_peak_depth_dB:
