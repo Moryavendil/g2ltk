@@ -1,4 +1,4 @@
-
+import math
 
 # default settings
 errorbar_kw_default = {'capsize': 3, 'ls': '', 'marker':'o', 'mfc': 'w'}
@@ -22,3 +22,9 @@ def force_aspect_ratio(ax, aspect=1):
     im = ax.get_images()
     extent =  im[0].get_extent()
     ax.set_aspect(abs((extent[1]-extent[0])/(extent[3]-extent[2]))/aspect)
+
+def set_yaxis_rad(ax):
+    ax.set_yticks([-math.pi, -math.pi/2, 0, math.pi/2, math.pi], minor=False)
+    ax.set_yticklabels([r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'], minor=False)
+    ax.set_yticks([-3*math.pi/4, -math.pi/4, 0, math.pi/4, 3*math.pi/4], minor=True)
+    ax.set_ylim(-math.pi, math.pi)
