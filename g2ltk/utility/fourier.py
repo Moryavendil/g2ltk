@@ -186,7 +186,8 @@ def rft1d(arr:np.ndarray, x:Optional[np.ndarray]=None, window:str= 'hann', norm=
 
 
 def ft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str= 'hann', norm=None,
-          zero_pad:Optional[Tuple[int, int]]=None, zero_pad_factor:Optional[Tuple[float, float]]=None) -> np.ndarray:
+          zero_pad:Optional[Tuple[int, int]]=None, zero_pad_factor:Optional[Tuple[float, float]]=None,
+         shift:Optional[Tuple[float, float]]=None) -> np.ndarray:
     """
     Returns the 2-D Fourier transform of a real input array using the given windowing.
 
@@ -207,43 +208,63 @@ def ft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=Non
     -------
 
     """
-    log_trace(f'rft2d: Computing 2-D FFT of array of shape {arr.shape}')
+    log_trace(f'ft2d: Computing 2-D FFT of array of shape {arr.shape}')
     Nt, Nx = arr.shape
 
-    log_subtrace(f'rft2d: Using windowing | window={window}')
+    log_subtrace(f'ft2d: Using windowing | window={window}')
     z_win = arr * np.expand_dims(get_window(window, Nt), axis=1) * np.expand_dims(get_window(window, Nx), axis=0)
 
     pad_width = None
     if zero_pad_factor is not None:
-        log_subtrace(f'rft2d: | zero_pad_factor={zero_pad_factor}')
+        log_subtrace(f'ft2d: | zero_pad_factor={zero_pad_factor}')
         try:
-            halfpad_t = np.rint(Nt * (zero_pad_factor[0]-1)/2).astype(int)
-            halfpad_x = np.rint(Nx * (zero_pad_factor[1]-1)/2).astype(int)
-            pad_width = ((halfpad_t, halfpad_t), (halfpad_x, halfpad_x))
+            # halfpad_t_before = np.rint(Nt * (zero_pad_factor[0]-1)/2).astype(int)
+            # halfpad_t_after = np.rint(Nt * zero_pad_factor[0]).astype(int) - halfpad_t_before - Nt
+            # halfpad_x_before = np.rint(Nx * (zero_pad_factor[1]-1)/2).astype(int)
+            # halfpad_x_after = np.rint(Nx * zero_pad_factor[1]).astype(int) - halfpad_x_before - Nx
+            # pad_width = ((halfpad_t_before, halfpad_t_after), (halfpad_x_before, halfpad_x_after))
+            halfpad_t = np.rint(Nt * (zero_pad_factor[0]-1)).astype(int)
+            halfpad_x = np.rint(Nx * (zero_pad_factor[1]-1)).astype(int)
+            pad_width = ((halfpad_t//2, halfpad_t//2+halfpad_t%2), (halfpad_x//2, halfpad_x//2+halfpad_x%2))
         except:
-            log_warning(f'rft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
+            log_warning(f'ft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
             pad_width = None
     elif zero_pad is not None:
-        log_subtrace(f'rft2d: | zero_pad={zero_pad}')
+        log_subtrace(f'ft2d: | zero_pad={zero_pad}')
         try:
             pad_width = ((0, int(zero_pad[0])), (0, int(zero_pad[1])))
         except:
-            log_warning(f'rft2d: What is this zero-padding "{zero_pad}" ? I made it None')
+            log_warning(f'ft2d: What is this zero-padding "{zero_pad}" ? I made it None')
             pad_width = None
 
-    log_subtrace(f'rft2d: Padding (artificially better resolution) | pad={pad_width}')
+    log_subtrace(f'ft2d: Padding (artificially better resolution) | pad={pad_width}')
     if pad_width is None:
         pad_width = ((0,0), (0,0))
     z_pad = np.pad(z_win, pad_width=pad_width, mode='constant', constant_values=0)
 
-    log_subtrace(f'rft2d: Removing (0,0)-freq component | {True}')
+    log_subtrace(f'ft2d: Removing (0,0)-freq component | {True}')
     # z_clean -= np.mean(z_win) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
     z_clean = z_pad - np.mean(z_pad)
 
-    log_subtrace(f'rft2d: Rolling (restoring phase) | pad={pad_width}')
-    z_roll = np.roll(z_clean, (pad_width[0][0]+Nt//2, pad_width[1][0]+Nx//2), axis = (0, 1))
+    # log_subtrace(f'rft2d: Rolling (restoring phase) | pad={pad_width}')
+    # z_roll = np.roll(z_clean, (pad_width[0][0]+Nt//2, pad_width[1][0]+Nx//2), axis = (0, 1))
+    roll_offset = (pad_width[0][0]+Nt//2, pad_width[1][0]+Nx//2)
 
-    log_subtrace(f'rft2d: Computing fft, norm={norm} | shape={z_roll.shape}')
+    roll_shift = None
+    if shift is not None:
+        try:
+            roll_shift = (int(shift[0]/np.pi * Nt), int(shift[1]/np.pi * Nx))
+        except:
+            log_warning(f'ft2d: What is this shift "{roll_shift}" ? I made it None')
+            roll_shift = None
+    if roll_shift is None:
+        roll_shift = (0, 0)
+    roll_total = (roll_offset[0] + roll_shift[0], roll_offset[1] + roll_shift[1])
+    log_subtrace(f'ft2d: Rolling (restoring phase) | roll={roll_total}')
+    log_subtrace(f'ft2d: roll_offset={roll_offset} | roll_shift={roll_shift}')
+    z_roll = np.roll(z_clean, roll_total, axis = (0, 1))
+
+    log_subtrace(f'ft2d: Computing fft, norm={norm} | shape={z_roll.shape}')
     z_hat = fft.fft2(z_roll, norm=norm, s=z_roll.shape)
     return fft.fftshift(z_hat) * step(x) * step(y)
 
@@ -343,7 +364,7 @@ def window_factor(window:str):
     elif window == 'hann':
         return 8/3
     else:
-        return 1/((get_window(window, 1000)**2).sum()/1000)
+        return 1/((get_window(window, 10000)**2).sum()/10000)
 
 def psd1d(z:np.ndarray, x:Optional[np.ndarray]=None, window:str='hann', zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None) -> np.ndarray:
     ### Step 1 : do the dimensional Fourier transform
@@ -361,9 +382,9 @@ def psd1d(z:np.ndarray, x:Optional[np.ndarray]=None, window:str='hann', zero_pad
     # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
     return esd / span(x)
 
-def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str='hann',
-          zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None,
-          shift:Optional[Tuple[float, float]]=None, quantitative:bool=True) -> np.ndarray:
+def rpsd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str= 'hann',
+           zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None,
+           shift:Optional[Tuple[float, float]]=None, quantitative:bool=True) -> np.ndarray:
     """
     Returns the 2-D Fourier PSD of a real input array using the given windowing.
 
@@ -387,7 +408,7 @@ def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None
     -------
 
     """
-    log_trace('psd2d: Computing a 2-D PSD')
+    log_trace('rpsd2d: Computing a 2-D PSD')
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $\hat{z}$ is [V/(Hz.mm^{-1})(Hz, mm-1)]
     y_ft = rft2d(z, x=x, y=y, window=window, norm="backward",
@@ -400,12 +421,56 @@ def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $ESD(z)$ is [V^2/Hz^2/mm^{-2}(Hz, mm-1)]
     esd = np.abs(y_ft)**2 * window_factor(window)**2
     esd[:, 1:] *= 2 # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
-    if quantitative:
+    if not quantitative:
         esd[:, 0] *= 2 # we want to equilibrate "for the show". But it changes teh valeus to non-physical ones !
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is 2-D periodic, then PSD = ESD / (duration_1.duration_2)
     # Thus if the unit of z(t, x) is [V(s, mm)], then the unit of PSD(z)$ is [V^2/Hz/mm^{-1}(Hz, mm-1)]
     return esd / span(x) / span(y)
+
+def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str= 'hann',
+           zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None,
+           shift:Optional[Tuple[float, float]]=None, quantitative:bool=True) -> np.ndarray:
+    """
+    Returns the 2-D Fourier PSD of a real input array using the given windowing.
+
+    quantitative ensures the real thing is computed. if False, the first column is mul
+
+    if the unit of z(t, x) is [V(s, mm)], then the unit of PSD(z)$ is [V^2/(Hz.mm^{-1})(Hz, mm-1)]
+
+    The unit is in amplitude/(inverse period), e.g. V(s, m) -> V/Hz/m$^{-1}$(Hz.m$^{-1}$)
+
+    Parameters
+    ----------
+    arr
+    x
+    y
+    window
+    zero_pad
+    zero_pad_factor
+        Use powers of 2
+
+    Returns
+    -------
+
+    """
+    log_trace('rpsd2d: Computing a 2-D PSD')
+    ### Step 1 : do the dimensional Fourier transform
+    # if the unit of z(t, x) is [V(s, mm)], then the unit of $\hat{z}$ is [V/(Hz.mm^{-1})(Hz, mm-1)]
+    y_ft = ft2d(z, x=x, y=y, window=window, norm="backward",
+                 zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
+                 shift=shift)
+    ### Step 2 : compute the ESD (Energy Spectral Density)
+    # Rigorously, this is the oly thing we can really measure with discretized inputs and FFT
+    # It is the total energy (i.e., during all the sampling time) of the signal at this 2-frequency
+    # It is useful in itself for space-time-limited signals (wavelets)
+    # if the unit of z(t, x) is [V(s, mm)], then the unit of $ESD(z)$ is [V^2/Hz^2/mm^{-2}(Hz, mm-1)]
+    esd = np.abs(y_ft)**2 * window_factor(window)**2
+    ### Step 3 : compute the PSD (Power Spectral Density)
+    # Assuming that the signal is 2-D periodic, then PSD = ESD / (duration_1.duration_2)
+    # Thus if the unit of z(t, x) is [V(s, mm)], then the unit of PSD(z)$ is [V^2/Hz/mm^{-1}(Hz, mm-1)]
+    return esd / span(x) / span(y)
+
 
 #
 def estimatesignalfrequency(z:np.ndarray, x:Optional[np.ndarray]=None,
@@ -595,7 +660,8 @@ peak_max_area_default = 100
 peak_min_circularity_default = .3
 
 def peak_contour2d(peak_x:float, peak_y:float, z:np.ndarray, peak_depth_dB:float, x:Optional[np.ndarray[float]]=None, y:Optional[np.ndarray[float]]=None,
-                   fastmode:bool=True, peak_max_area:Optional[float]=None, peak_min_circularity:Optional[float]=None):
+                   fastmode:bool=True, peak_max_area:Optional[float]=None, peak_min_circularity:Optional[float]=None,
+                   truncated_spectrum:bool=False):
     """Finds a contour around a peak at a certain threshold level
 
     Parameters
@@ -628,16 +694,21 @@ def peak_contour2d(peak_x:float, peak_y:float, z:np.ndarray, peak_depth_dB:float
     log_debug(f'Searching for a contour around ({round(peak_x, 3)}, {round(peak_y, 3)}) with attenuation -{peak_depth_dB} dB')
 
     interestpoints = [[peak_x, peak_y]]
-    if np.isclose(peak_x, 0):
+    if truncated_spectrum and np.isclose(peak_x, 0):
         interestpoints.append([peak_x, -peak_y])
+    if not truncated_spectrum:
+        interestpoints.append([-peak_x, -peak_y]) # Since we are interested in real signals (we are doing physics)...
     zpeak = z[np.argmin((y - peak_y) ** 2)][np.argmin((x - peak_x) ** 2)]
 
     # duplicate the first column to better find the points which are at k=0
-    x_for_cg = np.concatenate(([x[0]-step(x)], x))
-    y_for_cg = y.copy()
-    z_for_cg = np.zeros((z.shape[0], z.shape[1]+1))
-    z_for_cg[:, 1:] = z
-    z_for_cg[:, 0] = z[:, 0]
+    x_for_cg = x
+    y_for_cg = y
+    z_for_cg = z
+    if truncated_spectrum:
+        x_for_cg = np.concatenate(([x[0]-step(x)], x))
+        z_for_cg = np.zeros((z.shape[0], z.shape[1]+1))
+        z_for_cg[:, 1:] = z
+        z_for_cg[:, 0] = z[:, 0]
     # to find the contour, we use contourpy which is fast, efficient and has the log-interpolation option that is relevant for us
     cg = contour_generator(x=x_for_cg, y=y_for_cg, z=z_for_cg, z_interp=ZInterp.Log, fill_type="OuterOffset")
 

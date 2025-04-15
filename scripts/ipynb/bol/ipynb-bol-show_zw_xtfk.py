@@ -260,8 +260,8 @@ Z = z_tmp.copy()
 W = w_tmp.copy()
 
 k_visu, f_visu = utility.fourier.rdual2d(x, t, zero_pad_factor=zero_pad_factor_visu)
-Z_pw = utility.fourier.psd2d(Z, x, t, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
-W_pw = utility.fourier.psd2d(W, x, t, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
+Z_pw = utility.fourier.rpsd2d(Z, x, t, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
+W_pw = utility.fourier.rpsd2d(W, x, t, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
 
 
 # <codecell>
@@ -319,8 +319,8 @@ W_mm = W / px_per_mm
 # <codecell>
 
 k_visu_mm, f_visu_mm = utility.fourier.rdual2d(x_mm, t_s, zero_pad_factor=zero_pad_factor_visu)
-Z_pw_mm = utility.fourier.psd2d(Z_mm, x_mm, t_s, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
-W_pw_mm = utility.fourier.psd2d(W_mm, x_mm, t_s, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
+Z_pw_mm = utility.fourier.rpsd2d(Z_mm, x_mm, t_s, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
+W_pw_mm = utility.fourier.rpsd2d(W_mm, x_mm, t_s, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
 
 
 # <codecell>
