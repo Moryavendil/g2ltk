@@ -657,7 +657,7 @@ peak_min_circularity_default = .3
 
 def peak_contour2d(peak_x:float, peak_y:float, z:np.ndarray, peak_depth_dB:float, x:Optional[np.ndarray[float]]=None, y:Optional[np.ndarray[float]]=None,
                    fastmode:bool=True, peak_max_area:Optional[float]=None, peak_min_circularity:Optional[float]=None,
-                   truncated_spectrum:bool=False):
+                   truncated_spectrum:bool=False, real_signal:bool=True):
     """Finds a contour around a peak at a certain threshold level
 
     Parameters
@@ -690,9 +690,9 @@ def peak_contour2d(peak_x:float, peak_y:float, z:np.ndarray, peak_depth_dB:float
     log_debug(f'Searching for a contour around ({round(peak_x, 3)}, {round(peak_y, 3)}) with attenuation -{peak_depth_dB} dB')
 
     interestpoints = [[peak_x, peak_y]]
-    if truncated_spectrum and np.isclose(peak_x, 0):
+    if real_signal and truncated_spectrum and np.isclose(peak_x, 0):
         interestpoints.append([peak_x, -peak_y])
-    if not truncated_spectrum:
+    if real_signal and not truncated_spectrum:
         interestpoints.append([-peak_x, -peak_y]) # Since we are interested in real signals (we are doing physics)...
     zpeak = z[np.argmin((y - peak_y) ** 2)][np.argmin((x - peak_x) ** 2)]
 
