@@ -11,11 +11,15 @@ import matplotlib.pyplot as plt
 in_per_mm = 1 / 25.4
 in_per_pt = 0.01384
 in_per_pc = 0.16605
-screen_dpi = 122.38 # 24'' , 2560x1440 px screen. Use 91.79 for 24'' FHD and 165.63 for 13.3'' FHD  (default 100)
+# screen_dpi = 100 # default 100
+screen_dpi = 122.38 # 24'' 2560x1440 px screen
+# screen_dpi = 91.79 # 24'' FHD
+# screen_dpi = 165.63 # 13.3'' FHD
 
 """ FIGURE STYLES
 JFM 
 * textsize: 32 pc (=134.96 mm) | single column
+* textheight: 49 baselineskip (12 pt) = 210 mm
 * text font size: 10.5 pt | Fig/legend font size: 9 pt
 * font: newtxt, MUST INCLUDE jfm_latex_preamble
 """
@@ -143,18 +147,22 @@ jfm_latex_preamble = r"""%
 \usepackage{newtxmath}
 %"""
 
-styledict_default = {'textfontsize': 12, 'fontsize': 10, 'latex_preamble': '%', 'figw': figw_confort}
-styledict_presentation = {'textfontsize': 20, 'fontsize': 18}
-styledict_jfm = {'textfontsize': 10.5, 'fontsize': 9, 'latex_preamble': jfm_latex_preamble, 'figw': figw_jfm}
-styledict_aps = {'figw': figw_aps}
+styledict_default = {'name': 'default', 'textfontsize': 12, 'fontsize': 10, 'latex_preamble': '%', 'figw': figw_confort}
+styledict_presentation = {'name': 'presentation', 'textfontsize': 20, 'fontsize': 18}
+styledict_jfm = {'name': 'jfm', 'textfontsize': 10.5, 'fontsize': 9, 'latex_preamble': jfm_latex_preamble, 'figw': figw_jfm}
+styledict_aps = {'name': 'aps', 'figw': figw_aps}
 
 styledicts = {'jfm': styledict_jfm, 'aps': styledict_aps, 'presentation': styledict_presentation}
 
-def styled(key:str, style:Optional[str]=None):
+def fetch_styledict(style:Optional[str]=None):
     if style is None:
         styledict = styledict_default
     else:
         styledict = styledicts.get(style, styledict_default)
+    return styledict
+
+def styled(key:str, style:Optional[str]=None):
+    styledict = fetch_styledict(style)
 
     return styledict.get(key, styledict_default.get(key, None))
 
@@ -211,8 +219,8 @@ def configure_mpl(font_size=None, style=None):
     plt.rcParams["figure.max_open_warning"] = 50 # we have RAM
 
     # use confortable figure size
-    global figw, figw_confort
-    figw = {**figw_confort}
+    global figw
+    figw = {**styled('figw', style=style)}
     figwidth = figw['double']
     figheight = figwidth / 1.618 # golden ratio
     plt.rcParams["figure.figsize"] = (figwidth, figheight)
@@ -225,6 +233,8 @@ def configure_mpl(font_size=None, style=None):
 
     if font_size is None:
         font_size = styled('fontsize', style=style)
+
+    log_debug(f'Setting font size to {font_size} pt')
 
     # have readable font size
     plt.rcParams.update({'font.family': 'serif', 'font.size': font_size,
@@ -239,12 +249,13 @@ def configure_mpl(font_size=None, style=None):
                          'legend.handletextpad': 0.5  # default 0.8
                          })
 
+
     # setup correct
     plt.rcParams['pgf.texsystem'] = 'pdflatex'
 
 def activate_saveplot(activate=True, font_size=None, style=None):
     if not activate:
-        deactivate_saveplot(font_size=font_size)
+        deactivate_saveplot(font_size=font_size, style=style)
         return
     # use LaTeX
     plt.rcParams['text.usetex'] = True
@@ -261,6 +272,8 @@ def activate_saveplot(activate=True, font_size=None, style=None):
 
     if font_size is None:
         font_size = styled('fontsize', style=style)
+
+    log_debug(f'Setting font size to {font_size} pt')
 
     # have appropriate font size
     plt.rcParams.update({'font.family': 'serif', 'font.size': font_size,
