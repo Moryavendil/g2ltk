@@ -28,8 +28,8 @@ def dual(arr:np.ndarray, zero_pad:Optional[int]=None, zero_pad_factor:Optional[f
     if zero_pad_factor is not None:
         log_subtrace(f'rft2d: | zero_pad_factor={zero_pad_factor}')
         try:
-            halfpad = np.rint(N * (zero_pad_factor-1)/2).astype(int)
-            pad_width = (halfpad, halfpad)
+            pad = np.rint(N * (zero_pad_factor-1)).astype(int)
+            pad_width = (pad//2, pad//2+pad%2)
         except:
             log_warning(f'rft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
             pad_width = None
@@ -69,8 +69,8 @@ def rdual(arr:np.ndarray, zero_pad:Optional[int]=None, zero_pad_factor:Optional[
     if zero_pad_factor is not None:
         log_subtrace(f'rft2d: | zero_pad_factor={zero_pad_factor}')
         try:
-            halfpad = np.rint(N * (zero_pad_factor-1)/2).astype(int)
-            pad_width = (halfpad, halfpad)
+            pad = np.rint(N * (zero_pad_factor-1)).astype(int)
+            pad_width = (pad//2, pad//2+pad%2)
         except:
             log_warning(f'rft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
             pad_width = None
@@ -130,7 +130,8 @@ def rdual2d(x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None,
 from scipy.signal.windows import get_window # FFT windowing
 from scipy import fft
 
-def rft1d(arr:np.ndarray, x:Optional[np.ndarray]=None, window:str= 'hann', norm=None, zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None) -> np.ndarray:
+def rft1d(arr:np.ndarray, x:Optional[np.ndarray]=None, window:str= 'hann', norm=None,
+          zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None) -> np.ndarray:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
     The unit is in amplitude/(inverse periode), e.g. V(s) -> V/Hz(Hz)
@@ -156,8 +157,8 @@ def rft1d(arr:np.ndarray, x:Optional[np.ndarray]=None, window:str= 'hann', norm=
     if zero_pad_factor is not None:
         log_subtrace(f'rft2d: | zero_pad_factor={zero_pad_factor}')
         try:
-            halfpad = np.rint(N * (zero_pad_factor-1)/2).astype(int)
-            pad_width = (halfpad, halfpad)
+            pad = np.rint(N * (zero_pad_factor-1)).astype(int)
+            pad_width = (pad//2, pad//2+pad%2)
         except:
             log_warning(f'rft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
             pad_width = None
@@ -218,14 +219,9 @@ def ft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=Non
     if zero_pad_factor is not None:
         log_subtrace(f'ft2d: | zero_pad_factor={zero_pad_factor}')
         try:
-            # halfpad_t_before = np.rint(Nt * (zero_pad_factor[0]-1)/2).astype(int)
-            # halfpad_t_after = np.rint(Nt * zero_pad_factor[0]).astype(int) - halfpad_t_before - Nt
-            # halfpad_x_before = np.rint(Nx * (zero_pad_factor[1]-1)/2).astype(int)
-            # halfpad_x_after = np.rint(Nx * zero_pad_factor[1]).astype(int) - halfpad_x_before - Nx
-            # pad_width = ((halfpad_t_before, halfpad_t_after), (halfpad_x_before, halfpad_x_after))
-            halfpad_t = np.rint(Nt * (zero_pad_factor[0]-1)).astype(int)
-            halfpad_x = np.rint(Nx * (zero_pad_factor[1]-1)).astype(int)
-            pad_width = ((halfpad_t//2, halfpad_t//2+halfpad_t%2), (halfpad_x//2, halfpad_x//2+halfpad_x%2))
+            pad_t = np.rint(Nt * (zero_pad_factor[0]-1)).astype(int)
+            pad_x = np.rint(Nx * (zero_pad_factor[1]-1)).astype(int)
+            pad_width = ((pad_t//2, pad_t//2+pad_t%2), (pad_x//2, pad_x//2+pad_x%2))
         except:
             log_warning(f'ft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
             pad_width = None
@@ -301,9 +297,9 @@ def rft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=No
     if zero_pad_factor is not None:
         log_subtrace(f'rft2d: | zero_pad_factor={zero_pad_factor}')
         try:
-            halfpad_t = np.rint(Nt * (zero_pad_factor[0]-1)).astype(int)
-            halfpad_x = np.rint(Nx * (zero_pad_factor[1]-1)).astype(int)
-            pad_width = ((halfpad_t//2, halfpad_t//2+halfpad_t%2), (halfpad_x//2, halfpad_x//2+halfpad_x%2))
+            pad_t = np.rint(Nt * (zero_pad_factor[0]-1)).astype(int)
+            pad_x = np.rint(Nx * (zero_pad_factor[1]-1)).astype(int)
+            pad_width = ((pad_t//2, pad_t//2+pad_t%2), (pad_x//2, pad_x//2+pad_x%2))
         except:
             log_warning(f'rft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
             pad_width = None
