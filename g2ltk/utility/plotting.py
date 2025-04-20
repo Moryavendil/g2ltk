@@ -2,7 +2,7 @@ import math
 import matplotlib.colors as col
 
 # default settings
-errorbar_kw_default = {'capsize': 3, 'ls': '', 'marker':'o', 'mfc': 'w'}
+errorbar_kw_default = {'capsize': 3, 'ls': ''}
 fill_between_kw_default = {'alpha':.1, 'lw':0.0}
 
 # This is from https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
@@ -39,8 +39,8 @@ cmap_z = col.LinearSegmentedColormap('white_to_z', segmentdata=cmap_z_dict, N=25
 color_q = '#9c1ab2' # (dark version : #9c1ab2 | light version : #c320df
 
 # condition colors
-smallQ_color = '#008C00'
-bigQ_color = '#C29A49'
+color_smallQ = '#008C00'
+color_bigQ = '#C29A49'
 
 def force_aspect_ratio(ax, aspect=1):
     # old version, for images

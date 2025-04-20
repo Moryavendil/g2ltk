@@ -17,11 +17,14 @@ screen_dpi = 122.38 # 24'' 2560x1440 px screen
 # screen_dpi = 165.63 # 13.3'' FHD
 
 """ FIGURE STYLES
-JFM 
+JFM - Conform with the Journal of Fluid Mechanics template
 * textsize: 32 pc (=134.96 mm) | single column
 * textheight: 49 baselineskip (12 pt) = 210 mm
 * text font size: 10.5 pt | Fig/legend font size: 9 pt
 * font: newtxt, MUST INCLUDE jfm_latex_preamble
+
+PREZ - PowerPoint standard presentation
+* half-screen : 150 mm x 150 mm squere domain for plots
 """
 
 
@@ -166,6 +169,7 @@ def styled(key:str, style:Optional[str]=None):
 
     return styledict.get(key, styledict_default.get(key, None))
 
+### latex
 
 general_latex_preamble = r"""%
 %%% PACKAGES
@@ -196,7 +200,6 @@ paper_specific_latex_preamble = r"""%
 \newcommand{\un}{{\ensuremath{u_n}}}
 %"""
 
-
 def latex_preamble(style=None):
     style_specific_latex_preamble = styled('latex_preamble', style=style)
 
@@ -210,6 +213,47 @@ def latex_preamble(style=None):
 %
 %"""
 
+### mpl params
+
+# lines, scatters and plots
+params_lines = {
+    'lines.linewidth': 1.0, # default 1.5
+    'lines.markerfacecolor': 'w', # default 'auto'
+    'lines.markersize': 5 # default 6          # marker size, in points
+    }
+# legends and axes labels
+params_legend = {
+    'legend.frameon': True, # default True
+    'legend.framealpha': 0.9, # default 0.9
+    'legend.edgecolor': '1.0', # default 0.8
+    'legend.labelspacing': 0.3, # default 0.5
+    'legend.handletextpad': 0.5,  # default 0.8
+    'axes.titlepad': 4.0, # default 6.0
+    'axes.labelpad': 1.0 # default 4.0
+    }
+# figures saving
+params_saving = {'savefig.bbox': 'tight', # tight or standard
+                     'savefig.dpi': 600, # default 'figure'
+                     'savefig.pad_inches': 0., # padding to be used, when bbox is set to 'tight' ; default 0.1
+                     'savefig.transparent': True,
+                     # # tight layout
+                     # 'figure.subplot.hspace': 0., 'figure.subplot.wspace': 0.,
+                     # # 'figure.subplot.hspace': 0.2, 'figure.subplot.wspace': 0.2,
+                     # 'figure.subplot.left': 0, 'figure.subplot.right': 1.,
+                     # 'figure.subplot.top': 1., 'figure.subplot.bottom': 0.,
+                     # # constrained layout
+                     # 'figure.constrained_layout.h_pad': 0.,
+                     # 'figure.constrained_layout.w_pad': 0.,
+                     }
+
+def params_fontsize(font_size):
+    return { 'font.family': 'serif', 'font.size': font_size,
+             'legend.fontsize': font_size,
+             'axes.labelsize': font_size, 'axes.titlesize': font_size,
+             'figure.labelsize': font_size,
+             }
+
+# Default visible at : https://matplotlib.org/stable/users/explain/customizing.html (at leas version 3.10)
 
 
 def configure_mpl(font_size=None, style=None):
@@ -233,79 +277,29 @@ def configure_mpl(font_size=None, style=None):
 
     if font_size is None:
         font_size = styled('fontsize', style=style)
-
     log_debug(f'Setting font size to {font_size} pt')
+    plt.rcParams.update(params_fontsize(font_size))
 
-    # have readable font size
-    plt.rcParams.update({'font.family': 'serif', 'font.size': font_size,
-                         'legend.fontsize': font_size,
-                         'axes.labelsize': font_size, 'axes.titlesize': font_size,
-                         'figure.labelsize': font_size,
-                         ### LEGEND
-                         'legend.frameon': True, # default True
-                         'legend.framealpha': 0.9, # default 0.9
-                         'legend.edgecolor': '1.0', # default 0.8
-                         'legend.labelspacing': 0.4, # default 0.5
-                         'legend.handletextpad': 0.5  # default 0.8
-                         })
-
+    global params_lines, params_legend, params_saving
+    plt.rcParams.update(params_lines)
+    plt.rcParams.update(params_legend)
+    plt.rcParams.update(params_saving)
 
     # setup correct
     plt.rcParams['pgf.texsystem'] = 'pdflatex'
 
 def activate_saveplot(activate=True, font_size=None, style=None):
-    if not activate:
-        deactivate_saveplot(font_size=font_size, style=style)
-        return
     # use LaTeX
-    plt.rcParams['text.usetex'] = True
-    plt.rcParams['pgf.texsystem'] = 'pdflatex'
-    global latex_preamble
-    plt.rcParams['text.latex.preamble'] = latex_preamble(style=style)
+    plt.rcParams['text.usetex'] = activate
+    if activate:
+        plt.rcParams['pgf.texsystem'] = 'pdflatex'
+        plt.rcParams['text.latex.preamble'] = latex_preamble(style=style)
 
-    # use figure size
-    global figw
-    figw = {**styled('figw', style=style)}
-    figwidth = figw['simple']
-    figheight = figwidth / 1.618 # golden ratio
-    plt.rcParams["figure.figsize"] = (figwidth, figheight)
-
-    if font_size is None:
-        font_size = styled('fontsize', style=style)
-
-    log_debug(f'Setting font size to {font_size} pt')
-
-    # have appropriate font size
-    plt.rcParams.update({'font.family': 'serif', 'font.size': font_size,
-                         'legend.fontsize': font_size,
-                         'axes.labelsize': font_size, 'axes.titlesize': font_size,
-                         'figure.labelsize': font_size,
-                         ### LEGEND
-                         'legend.frameon': False, # default True
-                         'legend.framealpha': 0.9, # default 0.9
-                         'legend.labelspacing': 0.4, # default 0.5
-                         'legend.handletextpad': 0.5  # default 0.8
-                         })
-    # saving options
-    plt.rcParams.update({'savefig.bbox': 'tight', # tight or standard
-                         'savefig.dpi': 300, # default 'figure'
-                         'savefig.pad_inches': 0., # padding to be used, when bbox is set to 'tight' ; default 0.1
-                         'savefig.transparent': True,
-                         # # tight layout
-                         # 'figure.subplot.hspace': 0., 'figure.subplot.wspace': 0.,
-                         # # 'figure.subplot.hspace': 0.2, 'figure.subplot.wspace': 0.2,
-                         # 'figure.subplot.left': 0, 'figure.subplot.right': 1.,
-                         # 'figure.subplot.top': 1., 'figure.subplot.bottom': 0.,
-                         # # constrained layout
-                         # 'figure.constrained_layout.h_pad': 0.,
-                         # 'figure.constrained_layout.w_pad': 0.,
-                         })
+    configure_mpl(font_size=font_size, style=style)
 
 def deactivate_saveplot(font_size=None, style=None):
     # stop using LaTeX for faster display
-    plt.rcParams['text.usetex'] = False
-
-    configure_mpl(font_size=font_size, style=style)
+    activate_saveplot(activate=False, font_size=font_size, style=style)
 def tighten_graph(pad=0., w_pad=0., h_pad=0.):
     plt.tight_layout(pad=pad, w_pad=w_pad, h_pad=h_pad)
 def save_graphe(graph_name, imageonly=False, **kwargs):
