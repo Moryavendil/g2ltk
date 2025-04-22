@@ -473,6 +473,11 @@ def get_geometry(acquisition_path: str, framenumbers: Framenumbers = None, subre
     return length, height, width
 
 ## Space data
+def get_z_px(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None,
+             resize_factor: int = 1, verbose: Optional[int] = None) -> Optional[np.ndarray]:
+    length, height, width = get_geometry(acquisition_path, framenumbers=framenumbers, subregion=subregion)
+    return np.arange(height * resize_factor) / resize_factor
+
 def get_x_px(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None,
              resize_factor: int = 1, verbose: Optional[int] = None) -> Optional[np.ndarray]:
     length, height, width = get_geometry(acquisition_path, framenumbers=framenumbers, subregion=subregion)
