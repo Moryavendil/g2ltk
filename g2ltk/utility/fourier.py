@@ -128,6 +128,7 @@ def rdual2d(x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None,
     return (rdual(x, zero_pad=zero_pad_x, zero_pad_factor=zero_pad_factor_x), dual(y, zero_pad=zero_pad_y, zero_pad_factor=zero_pad_factor_y))
 
 from scipy.signal.windows import get_window # FFT windowing
+from skimage import filters # filters.window for 2D FFT windowing
 from scipy import fft
 
 def rft1d(arr:np.ndarray, x:Optional[np.ndarray]=None, window:str= 'hann', norm=None,
@@ -186,8 +187,9 @@ def rft1d(arr:np.ndarray, x:Optional[np.ndarray]=None, window:str= 'hann', norm=
     return z_hat * step(x)
 
 
-def ft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str= 'hann', norm=None,
-          zero_pad:Optional[Tuple[int, int]]=None, zero_pad_factor:Optional[Tuple[float, float]]=None,
+def ft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str= 'hann',
+         winstyle=None, norm=None,
+         zero_pad:Optional[Tuple[int, int]]=None, zero_pad_factor:Optional[Tuple[float, float]]=None,
          shift:Optional[Tuple[float, float]]=None) -> np.ndarray:
     """
     Returns the 2-D Fourier transform of a real input array using the given windowing.
@@ -212,8 +214,18 @@ def ft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=Non
     log_trace(f'ft2d: Computing 2-D FFT of array of shape {arr.shape}')
     Nt, Nx = arr.shape
 
-    log_subtrace(f'ft2d: Using windowing | window={window}')
-    z_win = arr * np.expand_dims(get_window(window, Nt), axis=1) * np.expand_dims(get_window(window, Nx), axis=0)
+    if winstyle is None:
+        winstyle = 'outer'
+    winstyle = str(winstyle)
+    log_subtrace(f'ft2d: Using windowing | window={window} | style={winstyle}')
+    if winstyle == 'outer':
+        z_win = arr * np.expand_dims(get_window(window, Nt), axis=1) * np.expand_dims(get_window(window, Nx), axis=0)
+    elif winstyle == 'circular':
+        z_win = arr * filters.window(window, (Nt, Nx), warp_kwargs={'order':3})
+    else:
+        log_warning(f'Unrecognized 2d-windowing style: {winstyle}')
+        z_win = arr
+
 
     pad_width = None
     if zero_pad_factor is not None:
@@ -264,7 +276,8 @@ def ft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=Non
     z_hat = fft.fft2(z_roll, norm=norm, s=z_roll.shape)
     return fft.fftshift(z_hat) * step(x) * step(y)
 
-def rft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str= 'hann', norm=None,
+def rft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str= 'hann',
+          winstyle=None, norm=None,
           zero_pad:Optional[Tuple[int, int]]=None, zero_pad_factor:Optional[Tuple[float, float]]=None,
           shift:Optional[Tuple[float, float]]=None) -> np.ndarray:
     """
@@ -290,8 +303,17 @@ def rft2d(arr:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=No
     log_trace(f'rft2d: Computing 2-D RFFT of array of shape {arr.shape}')
     Nt, Nx = arr.shape
 
-    log_subtrace(f'rft2d: Using windowing | window={window}')
-    z_win = arr * np.expand_dims(get_window(window, Nt), axis=1) * np.expand_dims(get_window(window, Nx), axis=0)
+    if winstyle is None:
+        winstyle = 'outer'
+    winstyle = str(winstyle)
+    log_subtrace(f'ft2d: Using windowing | window={window} | style={winstyle}')
+    if winstyle == 'outer':
+        z_win = arr * np.expand_dims(get_window(window, Nt), axis=1) * np.expand_dims(get_window(window, Nx), axis=0)
+    elif winstyle == 'circular':
+        z_win = arr * filters.window(window, (Nt, Nx), warp_kwargs={'order':3})
+    else:
+        log_warning(f'Unrecognized 2d-windowing style: {winstyle}')
+        z_win = arr
 
     pad_width = None
     if zero_pad_factor is not None:
@@ -378,7 +400,7 @@ def psd1d(z:np.ndarray, x:Optional[np.ndarray]=None, window:str='hann', zero_pad
     # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
     return esd / span(x)
 
-def rpsd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str= 'hann',
+def rpsd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str= 'hann', winstyle=None,
            zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None,
            shift:Optional[Tuple[float, float]]=None, quantitative:bool=True) -> np.ndarray:
     """
@@ -407,7 +429,7 @@ def rpsd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=Non
     log_trace('rpsd2d: Computing a 2-D PSD')
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $\hat{z}$ is [V/(Hz.mm^{-1})(Hz, mm-1)]
-    y_ft = rft2d(z, x=x, y=y, window=window, norm="backward",
+    y_ft = rft2d(z, x=x, y=y, window=window, winstyle=winstyle, norm="backward",
                  zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
                  shift=shift)
     ### Step 2 : compute the ESD (Energy Spectral Density)
@@ -424,7 +446,7 @@ def rpsd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=Non
     # Thus if the unit of z(t, x) is [V(s, mm)], then the unit of PSD(z)$ is [V^2/Hz/mm^{-1}(Hz, mm-1)]
     return esd / span(x) / span(y)
 
-def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str= 'hann',
+def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None, window:str= 'hann', winstyle=None,
            zero_pad:Optional[int]=None, zero_pad_factor:Optional[float]=None,
            shift:Optional[Tuple[float, float]]=None, quantitative:bool=True) -> np.ndarray:
     """
@@ -453,7 +475,8 @@ def psd2d(z:np.ndarray, x:Optional[np.ndarray]=None, y:Optional[np.ndarray]=None
     log_trace('rpsd2d: Computing a 2-D PSD')
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $\hat{z}$ is [V/(Hz.mm^{-1})(Hz, mm-1)]
-    y_ft = ft2d(z, x=x, y=y, window=window, norm="backward",
+    y_ft = ft2d(z, x=x, y=y, window=window, winstyle = winstyle,
+                 norm="backward",
                  zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
                  shift=shift)
     ### Step 2 : compute the ESD (Energy Spectral Density)
