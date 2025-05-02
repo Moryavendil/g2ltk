@@ -66,19 +66,19 @@ blur_x_px = 1 # blur in space (px).
 apply_gaussianfiler = True
 
 ### Spatial and temporal drift or 0-frequency correction
-xcorrect = 'linear'
-do_tcorrect= False
+xcorrect = None
+tcorrect = None
 
 ### 2D FFT parameters
-fft_window_visu = 'tukey'
-zero_pad_factor_visu = (5, 5)
+fft_window_visu = 'hann'
+zero_pad_factor_visu = (1, 1)
 range_dB_visu = 80
 
 # Data display
 # ------------
 
 # conversion factor
-frames_per_s = datareading.get_acquisition_frequency(acquisition_path)
+fr_per_s = datareading.get_acquisition_frequency(acquisition_path)
 px_per_mm = 0.
 px_per_um = px_per_mm * 1e3
 
@@ -139,23 +139,27 @@ plt.tight_layout()
 
 # <codecell>
 
-# Spatial cleaning : parabolic fit on the data
+# Spatial cleaning
 from scipy.signal import savgol_filter
 
 # get temporal mean
 z_xprofile = np.mean(z_tmp, axis=0)
 
 # linear fit
-rivs_fit_spatial = np.polyfit(x, z_xprofile, deg = 1)
-utility.log_info(f'Position spatial drift linear estimation: {round(np.poly1d(rivs_fit_spatial)(x).max() - np.poly1d(rivs_fit_spatial)(x).min(),2)} px')
+rivs_fit_spatial_linear = np.polyfit(x, z_xprofile, deg = 1)
+utility.log_info(f'Position spatial drift linear estimation: {round(np.poly1d(rivs_fit_spatial_linear)(x).max() - np.poly1d(rivs_fit_spatial_linear)(x).min(), 2)} px')
+
+# parabolic fit
+rivs_fit_spatial_parabolic = np.polyfit(x, z_xprofile, deg = 2)
 
 # savgol
 savgol_width = len(x)//10 + (1 if len(x)%2 == 0 else 0)
 
 """
-xcorrect can be 3 things
+xcorrect can be 4 things
  * None: we do not want correction : it is biaised, or we are interested in the mean-time features
  * 'linear': we do a linear fit and remove everything from it
+ * 'parabolic': we do a parabolic fit and remove everything from it
  * 'smoothed': we do a smoothing avec the average and remove that
  * 'total': total removal of the mean value
 """
@@ -163,7 +167,10 @@ if xcorrect is None:
     utility.log_info('No spatial correction made')
 elif xcorrect == 'linear':
     utility.log_info('Linear spatial correction made')
-    z_tmp = z_tmp - np.expand_dims(np.poly1d(rivs_fit_spatial)(x), axis=0)
+    z_tmp = z_tmp - np.expand_dims(np.poly1d(rivs_fit_spatial_linear)(x), axis=0)
+elif xcorrect == 'parabolic':
+    utility.log_info('Parabolic spatial correction made')
+    z_tmp = z_tmp - np.expand_dims(np.poly1d(rivs_fit_spatial_parabolic)(x), axis=0)
 elif xcorrect == 'smoothed':
     utility.log_info(f'Smoothed spatial correction made (savgol-{savgol_width}-2)')
     z_tmp = z_tmp - savgol_filter(z_xprofile, savgol_width, 2)
@@ -179,45 +186,50 @@ else:
 fig, axes = plt.subplots(2, 1, sharex=True, figsize=utility.figsize('double'))
 ax = axes[0]
 ax.plot(x, z_xprofile, color='k', alpha=0.5, label='old time-averaged riv position')
-ax.plot(x, np.poly1d(rivs_fit_spatial)(x), color='r', alpha=0.5, label=f'linear fit')
+ax.plot(x, np.poly1d(rivs_fit_spatial_linear)(x), color='r', alpha=0.5, label=f'linear fit')
+ax.plot(x, np.poly1d(rivs_fit_spatial_parabolic)(x), color='g', alpha=0.5, label=f'linear fit')
 ax.plot(x, savgol_filter(z_xprofile, savgol_width, 2), color='b', alpha=0.5, label=f'smooth')
-ax.set_ylabel('z (px)')
+ax.set_ylabel('z [px]')
 ax.legend()
 
 ax = axes[1]
 ax.plot(x, z_tmp.mean(axis=0), color='k', label='New time-averaged riv position')
-ax.set_xlabel('x (px)')
-ax.set_ylabel('z (px)')
+ax.set_xlabel('x [px]')
+ax.set_ylabel('z [px]')
 ax.legend()
 plt.tight_layout()
 
 
 # <codecell>
 
-# Temporal cleaning : parabolic fit on the data
+# Temporal cleaning
 
 # get spatial mean
 z_tprofile = np.mean(z_tmp, axis=1)
 
-# fit
-rivs_fit_temporal = np.polyfit(t, z_tprofile, deg = 2)
+# linear fit
+rivs_fit_temporal_linear = np.polyfit(t, z_tprofile, deg = 1)
+utility.log_info(f'Position temporal drift linear estimation: {round(np.poly1d(rivs_fit_temporal_linear)(t).max() - np.poly1d(rivs_fit_temporal_linear)(t).min(), 2)} px')
 
 # correct
-if do_tcorrect:
-    z_tmp = z_tmp - np.expand_dims(np.poly1d(rivs_fit_temporal)(t), axis=1)
+if tcorrect == 'linear':
+    z_tmp = z_tmp - np.expand_dims(np.poly1d(rivs_fit_temporal_linear)(t), axis=1)
 else:
     utility.log_info('No temporal correction made')
 
 ### plot
 
-plt.figure(figsize=(8,3))
-ax = plt.gca()
-if do_tcorrect:
-    ax.plot(t, z_tprofile, color='k', alpha=0.5, label='old space-averaged riv position')
-    plt.plot(t, np.poly1d(rivs_fit_temporal)(t), color='r', alpha=0.5, label=f'paraboloidal fit')
-ax.plot(t, z_tmp.mean(axis=1), color='k', label='space-averaged riv position')
-ax.set_xlabel('t (s)')
-ax.set_ylabel('z (px)')
+fig, axes = plt.subplots(2, 1, sharex=True, figsize=utility.figsize('double'))
+ax = axes[0]
+ax.plot(t, z_tprofile, color='k', alpha=0.5, label='old time-averaged riv position')
+ax.plot(t, np.poly1d(rivs_fit_temporal_linear)(t), color='r', alpha=0.5, label=f'linear fit')
+ax.set_ylabel('z [px]')
+ax.legend()
+
+ax = axes[1]
+ax.plot(t, np.mean(z_tmp, axis=1), color='k', label='New time-averaged riv position')
+ax.set_xlabel('t [s]')
+ax.set_ylabel('z [px]')
 ax.legend()
 plt.tight_layout()
 
@@ -226,8 +238,8 @@ plt.tight_layout()
 
 Z = z_tmp.copy()
 
-k_visu, f_visu = utility.fourier.dual2d(x, t, zero_pad_factor=zero_pad_factor_visu)
-Z_pw = utility.fourier.psd2d(Z, x, t, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
+k_visu, f_visu = utility.fourier.rdual2d(x, t, zero_pad_factor=zero_pad_factor_visu)
+Z_pw = utility.fourier.rpsd2d(Z, x, t, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
 
 
 # <codecell>
@@ -268,8 +280,8 @@ Z_mm = Z / px_per_mm
 
 # <codecell>
 
-k_visu_mm, f_visu_mm = utility.fourier.dual2d(x_mm, t_s, zero_pad_factor=zero_pad_factor_visu)
-Z_pw_mm = utility.fourier.psd2d(Z_mm, x_mm, t_s, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
+k_visu_mm, f_visu_mm = utility.fourier.rdual2d(x_mm, t_s, zero_pad_factor=zero_pad_factor_visu)
+Z_pw_mm = utility.fourier.rpsd2d(Z_mm, x_mm, t_s, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
 
 
 # <codecell>

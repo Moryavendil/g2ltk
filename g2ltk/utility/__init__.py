@@ -115,7 +115,7 @@ def find_global_peak(x: np.ndarray, y: np.ndarray, peak_category: str = 'raw') -
         return None
 
     try:
-        peaks_positions = find_extrema(x, y, 'raw', smooth_derivative=False)
+        peaks_positions = find_extrema(x, y, peak_category, smooth_derivative=False)
         precise_peak_position = peaks_positions[np.abs(peaks_positions - gross_peak_position).argmin()]
     except:
         precise_peak_position = gross_peak_position
@@ -222,7 +222,7 @@ def log_amplitude_cbticks(maximum_amplitude:float, range_db:Union[int, float]):
     cbticklabels = ['0 dB' if att_db == 0 else f'-{att_db} dB' for att_db in att_db_major]
     return cbticks_major, cbticklabels
 
-def set_ticks_log_cb(cb, maximum_amplitude:float, range_db:Union[int, float]):
+def set_ticks_log_cb(cb, maximum_amplitude:float, range_db:Union[int, float], text:bool=True):
     step_major = 20
     step_minor = 5
     if range_db < 60:
@@ -239,8 +239,9 @@ def set_ticks_log_cb(cb, maximum_amplitude:float, range_db:Union[int, float]):
     cbticks_minor = [attenuate_power(maximum_amplitude, att_db) for att_db in att_db_minor]
 
     cb.ax.set_yticks(cbticks_major, minor=False)
-    cb.ax.set_yticklabels(cbticklabels)
+    cb.ax.set_yticklabels(cbticklabels if text else [], minor=False)
     cb.ax.set_yticks(cbticks_minor, minor=True)
+    cb.ax.set_yticklabels([], minor=True)
 
 ### FFT AND PSD COMPUTATIONS
 

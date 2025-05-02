@@ -13,7 +13,7 @@ def force_print(text:str, flush:bool=True, end:str='\n', padding:bool=True, disp
 VIOLET = '#4f0e51'
 JAUNE = '#eaac3f'
 
-__version__ = '1.1.3'
+__version__ = '1.1.6'
 
 import warnings
 _warn_skips = (os.path.dirname(__file__),)

@@ -20,7 +20,7 @@ Default value for finding functions parameters
  - resize_factor        (int, 1 - 3):       resizing image pour une meilleure precision
  - remove_median_bckgnd (bool):             Remove the median image for all the frames. only use when the whole rivulet is moving. Should be unnecessary on clean videos
  - white_tolerance      (float, 0 - 255):   Difference between the channel white background and the black borders
- - rivulet_size_factor  (float, 1. - 5.):   How much wider is the rivulet compared to the size occupied by low luminosity extremapoints
+ - rivulet_size_factor  (float, 1. - 5.):   How much wider is the rivulet compared to the size occupied by low luminosity extrema points
  - std_factor           (float, 1. - 5.):   How much of the noise to remove
  - borders_min_distance (float, 1. - 100.):  The distance, in px / resize_factor, between two consecutive maximums in the function find_extrema used to find the borders
  - borders_prominence (float, 1. - 100.):  prominence of menisci, given to scipy's find_peaks
@@ -422,7 +422,10 @@ def borders_framewise(frame:np.ndarray, prominence:float = 1, do_fit:bool=False,
     ydiff:np.ndarray = np.abs(y1 - y2)
     ydiff_ok = ydiff < kwargs['max_borders_luminosity_difference']
     if (1 - ydiff_ok).sum() > 0:
-        logging.log_warning(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1 - ydiff_ok).sum()} pts', verbose=kwargs['verbose'])
+        logging.log_warning(f'Border framewise collapse: max_borders_luminosity_difference not respected', verbose=kwargs['verbose'])
+        logging.log_subinfo(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1 - ydiff_ok).sum()} pts', verbose=kwargs['verbose'])
+        logging.log_debug(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): min = {ydiff.min()} | median = {np.median(ydiff)} |  max = {ydiff.max()} ', verbose=kwargs['verbose'])
+        logging.log_subtrace(f'Bad values: {ydiff[~ydiff_ok]}', verbose=kwargs['verbose'])
 
     # There are 2 peaks
     deuxmax = space_ok * ydiff_ok
@@ -977,6 +980,7 @@ def find_borders(**parameters):
 
 def find_bol(verbose:int = 1, **parameters):
     # First we need the borders
+    logging.log_debug('find_bol: fetching borders')
     borders_for_this_video = datasaving.fetch_or_generate_data_from_parameters('borders', parameters, verbose=verbose)
 
     # Then the frames
