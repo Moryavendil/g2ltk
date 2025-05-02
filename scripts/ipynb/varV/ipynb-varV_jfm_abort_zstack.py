@@ -30,7 +30,7 @@ dataset_path = datareading.generate_dataset_path(dataset)
 # <codecell>
 
 ### Acquisition selection
-acquisition = 'a120'
+acquisition = 'a260'
 acquisition_path = datareading.generate_acquisition_path(acquisition, dataset)
 
 
@@ -41,6 +41,10 @@ acquisition_path = datareading.generate_acquisition_path(acquisition, dataset)
 # conversion factor
 px_per_mm = (1563/30+1507/30)/2
 px_per_um = px_per_mm * 1e3
+fr_per_s = datareading.get_acquisition_frequency(acquisition_path)
+if dataset=='40evo':
+    fr_per_s = (40 * 100)
+fr_per_ms = fr_per_s / 1000
 
 # parameters to find the rivulet
 rivfinding_params = {
@@ -74,6 +78,8 @@ x = datareading.get_x_px(acquisition_path, framenumbers = framenumbers, subregio
 z_raw = datasaving.fetch_or_generate_data('bol', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
 w_raw = datasaving.fetch_or_generate_data('fwhmol', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
 
+z_raw = z_raw[:,::-1]
+w_raw = w_raw[:,::-1]
 
 
 # <codecell>
@@ -85,9 +91,9 @@ w_tmp = w_raw.copy()
 # <codecell>
 
 from scipy.ndimage import gaussian_filter
-blur_t_frame = 2 # blur in time (frame).
+blur_t_frame = 4 # blur in time (frame).
 sigma_t = blur_t_frame
-blur_x_px = 5 # blur in space (px).
+blur_x_px = 20 # blur in space (px).
 sigma_x = blur_x_px
 
 
@@ -227,184 +233,126 @@ plt.tight_layout()
 Z = z_tmp.copy()
 W = w_tmp.copy()
 
-zero_pad_factor = (5,5)
-window='hann'
+W = W / np.sqrt(1 + np.gradient(Z, x, axis=1)**2) # correction due to curvature
 
-k, f = utility.fourier.dual2d(x, t, zero_pad_factor=zero_pad_factor)
-Z_pw = utility.fourier.psd2d(Z, x, t, window=window, zero_pad_factor=zero_pad_factor)
-W_pw = utility.fourier.psd2d(W, x, t, window=window, zero_pad_factor=zero_pad_factor)
+t_s = datareading.get_t_frames(acquisition_path, framenumbers) / fr_per_s
+t_ms = t_s * 1000
+x_mm = datareading.get_x_mm(acquisition_path, framenumbers, subregion=roi, resize_factor=rivfinding_params['resize_factor'], px_per_mm=px_per_mm)
 
-range_db = 100
-
-
-# <codecell>
-
-print('Wmean', W.mean() / px_per_mm)
-print('Wstd', W.std() / px_per_mm)
-print('mm_per_px', 1/px_per_mm)
-
-plt.figure()
-plt.hist(W.flatten() / px_per_mm, bins = np.linspace(W.min() / px_per_mm*.9, W.max() / px_per_mm*1.1, 200))
+Z_mm = Z / px_per_mm
+W_mm = W / px_per_mm
 
 
 # <codecell>
 
-fig, axes = plt.subplots(2, 2)
-imshow_kw = {'origin':'upper', 
-             'interpolation':'nearest', 
-             'aspect':'auto'}
-
-ax = axes[0,0]
-ax.set_title('Z (normal)')
-imz = ax.imshow(Z, extent=utility.correct_extent(x, t), cmap='viridis', **imshow_kw)
-ax.set_xlabel('$x$ [px]')
-ax.set_ylabel('$t$ [frame]')
-plt.colorbar(imz, ax=ax, label='$z$ [px]')
-
-ax = axes[0,1]
-vmax, vmin = utility.log_amplitude_range(Z_pw.max(), range_db=range_db)
-im_zpw = ax.imshow(Z_pw, extent=utility.correct_extent(k, f), norm='log', vmax=vmax, vmin=vmin, cmap='viridis', **imshow_kw)
-ax.set_xlabel(r'$k$ [px$^{-1}$]')
-ax.set_ylabel(r'$f$ [frame$^{-1}$]')
-cb = plt.colorbar(im_zpw, ax=ax, label=r'$|\hat{z}|^2$ [px^2/(px-1.frame-1)]')
-utility.set_ticks_log_cb(cb, vmax, range_db=range_db)
-
-ax.set_xlim(0, 1/50)
-ax.set_ylim(-1/20, 1/20)
-
-ax = axes[1,0]
-ax.set_title('W (normal)')
-imz = ax.imshow(W, extent=utility.correct_extent(x, t), cmap='viridis', **imshow_kw)
-ax.set_xlabel('$x$ [px]')
-ax.set_ylabel('$t$ [frame]')
-plt.colorbar(imz, ax=ax, label='$w$ [px]')
-
-ax = axes[1,1]
-vmax, vmin = utility.log_amplitude_range(W_pw.max(), range_db=range_db)
-im_zpw = ax.imshow(W_pw, extent=utility.correct_extent(k, f), norm='log', vmax=vmax, vmin=vmin, cmap='viridis', **imshow_kw)
-ax.set_xlabel(r'$k$ [px$^{-1}$]')
-ax.set_ylabel(r'$f$ [frame$^{-1}$]')
-cb = plt.colorbar(im_zpw, ax=ax, label=r'$|\hat{w}|^2$ [px^2/(px-1.frame-1)]')
-utility.set_ticks_log_cb(cb, vmax, range_db=range_db)
-
-ax.set_xlim(0, 1/50)
-ax.set_ylim(-1/20, 1/20)
-
-# plt.tight_layout()
-
-
-# <markdowncell>
-
-# ## ##  # F# i# n# d#  # $# z# _# 1# $#  # a# n# d#  # $# w# _# 1# $
-
-
-# <codecell>
-
-### meta-info reading
-import pandas as pd
-
-metainfo = pd.read_excel(os.path.join(dataset_path, 'datasheet.xlsx'), sheet_name='metainfo', skiprows=2)
-
-meaningful_keys = [key for key in metainfo.keys() if 'unnamed' not in key.lower()]
-valid = metainfo['acquisition_title'].astype(str) != 'nan'
-
-acquisition_title = metainfo['acquisition_title'][valid].to_numpy()
-
-
-# <codecell>
-
-import pandas as pd
-### AUTODATA WORKSHEET CREATION
-sheet_name = 'autodata'
-
-workbookpath = os.path.join(dataset_path, 'datasheet.xlsx')
-
-from openpyxl import load_workbook
- 
-### Check if sheet already exists
-wb = load_workbook(workbookpath, read_only=True)   # open an Excel file and return a workbook
-must_create_sheet = sheet_name not in wb.sheetnames
-wb.close()
-
-### Create sheet if we must.
-if must_create_sheet:
-    dataauto = {'acquisition_title': acquisition_title}
-    # fknu
-    dataauto[f'f0'] = np.full(len(acquisition_title), np.nan)
-    dataauto[f'q0'] = np.full(len(acquisition_title), np.nan)
-    dataauto[f'fdrift'] = np.full(len(acquisition_title), np.nan)
-    # amplitudes
-    dataauto[f'z0'] = np.full(len(acquisition_title), np.nan)
-    dataauto[f'z1'] = np.full(len(acquisition_title), np.nan)
-    dataauto[f'w1'] = np.full(len(acquisition_title), np.nan)
-    
-    df_autodata = pd.DataFrame(dataauto)
-    
-    with pd.ExcelWriter(workbookpath, engine='openpyxl', mode='a', if_sheet_exists='error') as writer:
-        df_autodata.to_excel(writer, sheet_name=sheet_name, index=False)
+t1, t2 = None, None
+x1 ,x2 = None, None
+if dataset == '40evo':
+    if acquisition == 'a260':
+        L_X = 1/0.00290 / px_per_mm
+        L_T = 100 / fr_per_ms
         
-### load sheet
-df_autodata = pd.read_excel(workbookpath, sheet_name=sheet_name)
-
-### find the right index corresponding to the current acquisition
-if acquisition.replace('_gcv', '') in acquisition_title:
-    i_acquisition = np.where(acquisition_title == acquisition.replace('_gcv', ''))[0][0]
-else:
-    raise('wtf the video is not in the meta data file ?')
-
-k0 = df_autodata['q0'][i_acquisition]
-f0 = df_autodata['f0'][i_acquisition]
-z0_global = df_autodata['z0'][i_acquisition]
-L = 1/k0 * (1+0.1)
-
-
-# <codecell>
-
-zone_start = x.max() - L
-zone_start = 0
-zone_end = zone_start + L
-
-zone = (x > zone_start) & (x < zone_end)
+        t1 = int(61 + .25 * L_T*fr_per_ms)
+        t2 = int(t1 + 2.5 * L_T*fr_per_ms)
+        x1 = int(870 + L_X / 2  - .25 * L_X*px_per_mm*2 )
+        x2 = int(x1 + 2.5 * L_X*px_per_mm*2)
+        
+Z_ = Z_mm[t1:t2, x1:x2]
+W_ = W_mm[t1:t2, x1:x2]
+t_ = t_ms[t1:t2]
+x_ = x_mm[x1:x2]
+t_ -= t_[0]
+x_ -= x_[0]
+X_, T_ = np.meshgrid(x_, t_)
 
 
 
 # <codecell>
 
-## Estimate z0
+
+Zt = np.mean(Z_, axis = 0)
+Zx = np.mean(Z_, axis = 1)
+Wt = np.mean(W_, axis = 0)
+Wx = np.mean(W_, axis = 1)
+
+Zextr = .6 #.5 # Z_.max()
+Wextr = .4
+
+Zlim = [-Zextr, Zextr]
+# Zlim = [-.5, .5]
+
+cmap_z = 'PuOr_r'
+cmap_w = 'viridis'
 
 
 # <codecell>
 
-### HERE WE FIND THE EXCITATION FREQUENCY BY CONSIDERING THE SPACE-AVERAGED VERSION OF Z
-window = 'hann'
-peak_depth_dB = 60
+fig, axes = plt.subplots(1, 5, squeeze=False, sharex=True, sharey=True)
 
-# Take the space-average
-zmeanx = np.mean(Z[:, np.argmin((x - zone_start)**2):np.argmin((x - zone_end)**2)+1], axis=1)
+ax = axes[0, 0]
+ax.set_aspect('equal')
+ni = 0
+ax.plot(Z_[ni], x_, color=utility.color_z)
+ax.plot(Z_[ni]+W_[ni]/2, x_, color=utility.color_w)
+ax.plot(Z_[ni]-W_[ni]/2, x_, color=utility.color_w)
 
-# Compute the power spectral density
-freq = utility.rdual(t, zero_pad_factor=zero_pad_factor[0])
-zmeanx_psd = utility.psd1d(zmeanx, t, window=window, zero_pad_factor=zero_pad_factor[0])  # power spectral density
+ax = axes[0, 1]
+ax.set_aspect('equal')
+ni = 25
+ax.plot(Z_[ni], x_, color=utility.color_z)
+ax.plot(Z_[ni]+W_[ni]/2, x_, color=utility.color_w)
+ax.plot(Z_[ni]-W_[ni]/2, x_, color=utility.color_w)
 
-# find the main peak
-f0_guess = utility.fourier.estimatesignalfrequency(zmeanx, t, window='boxcar')
-print(f'f_0 (guessed): {round(f0_guess, 3)} frames-1 ')
+ax = axes[0, 2]
+ax.set_aspect('equal')
+ni = 50
+ax.plot(Z_[ni], x_, color=utility.color_z)
+ax.plot(Z_[ni]+W_[ni]/2, x_, color=utility.color_w)
+ax.plot(Z_[ni]-W_[ni]/2, x_, color=utility.color_w)
 
-peak_edges = utility.peak_contour1d(f0_guess, zmeanx_psd, peak_depth_dB=peak_depth_dB, x=freq)
-peak_indexes = utility.peak_vicinity1d(f0_guess, zmeanx_psd, peak_depth_dB=peak_depth_dB, x=freq)
-z_peakpower = utility.power_near_peak1d(f0_guess, zmeanx_psd, peak_depth_dB=peak_depth_dB, x=freq)
+ax = axes[0, 3]
+ax.set_aspect('equal')
+ni = 75
+ax.plot(Z_[ni], x_, color=utility.color_z)
+ax.plot(Z_[ni]+W_[ni]/2, x_, color=utility.color_w)
+ax.plot(Z_[ni]-W_[ni]/2, x_, color=utility.color_w)
 
-z_peakamplitude = np.sqrt(z_peakpower) * np.sqrt(2)
-print(f'z_0: {round(z_peakamplitude, 3)} px (filtering PSD of <Z>_x)')
-z0_measure = z_peakamplitude
+ax = axes[0, 4]
+ax.set_aspect('equal')
+ni = 100
+ax.plot(Z_[ni], x_, color=utility.color_z)
+ax.plot(Z_[ni]+W_[ni]/2, x_, color=utility.color_w)
+ax.plot(Z_[ni]-W_[ni]/2, x_, color=utility.color_w)
+
+
+ax.set_ylim(ax.get_ylim()[::-1])
 
 
 # <codecell>
 
-## Estimate z1 via fit
+fig, axes = plt.subplots(1, 1, squeeze=False, sharex=True, sharey=True, figsize=(6, 10))
+
+import matplotlib as mpl
+
+ax = axes[0, 0]
+# ax.set_aspect('equal')
+for p in range(4):
+    ni = p*25
+    midpos = (Z_[ni]).mean()
+    
+    cm = mpl.colormaps['hsv']
+    
+    # ax.plot(Z_[ni]-midpos, x_, color=utility.color_z)
+    # ax.plot(Z_[ni]-midpos+W_[ni]/2, x_, color=cm(p/4), alpha=.5)
+    # ax.plot(Z_[ni]-midpos-W_[ni]/2, x_, color=cm(p/4), alpha=.5)
+    ax.plot(W_[ni]/2, x_, color=cm(p/4), alpha=.5)
+    ax.plot(-W_[ni]/2, x_, color=cm(p/4), alpha=.5)
+
+
+ax.set_ylim(ax.get_ylim()[::-1])
 
 
 # <codecell>
 
-## Estimate w1 via fit
+
 
