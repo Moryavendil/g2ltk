@@ -2,8 +2,8 @@ import math
 import matplotlib.colors as col
 
 # default settings
-errorbar_kw_default = {'capsize': 3, 'ls': ''}
-fill_between_kw_default = {'alpha':.1, 'lw':0.0}
+errorbar_kw_default = {'capsize':3, 'ls':''}
+fill_between_kw_default = {'lw':0.0}
 
 # This is from https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
 cb_magic_args = {'fraction':0.046, 'pad':0.04}
