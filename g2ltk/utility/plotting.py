@@ -14,6 +14,15 @@ The shrink keyword argument, which defaults to 1.0, may also be useful for furth
 '''
 
 
+gray = '#808080'
+red = '#ff0000'
+blue = '#0000ff'
+green = '#00ff00'
+anglecmap = col.LinearSegmentedColormap.from_list('anglecmap', [green, blue, gray, red, green], N=256, gamma=1)
+anglecmap_r = col.LinearSegmentedColormap.from_list('anglecmap_r', [green, blue, gray, red, green][::-1], N=256, gamma=1)
+anglecmap_shifted = col.LinearSegmentedColormap.from_list('anglecmap_shifted', [gray, blue, green, red, gray], N=256, gamma=1)
+anglecmap_shifted_r = col.LinearSegmentedColormap.from_list('anglecmap_shifted_r', [gray, blue, green, red, gray][::-1], N=256, gamma=1)
+
 # rivulet colors
 color_w = '#3d5da9'
 color_w_rgb = (61, 93, 169)
