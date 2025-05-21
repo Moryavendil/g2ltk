@@ -39,6 +39,8 @@ tmax = max([acquisitions[acquisition][1] for acquisition in acquisitions])
 
 # <codecell>
 
+import os
+
 scaledata_folder = datareading.generate_dataset_path(dataset=dataset)
 
 date = None
