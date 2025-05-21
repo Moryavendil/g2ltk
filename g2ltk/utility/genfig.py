@@ -25,6 +25,10 @@ JFM - Conform with the Journal of Fluid Mechanics template
 
 PREZ - PowerPoint standard presentation
 * half-screen : 150 mm x 150 mm squere domain for plots
+
+THEZ - These de doctorat de G2L, template UPCité modifié par A. Briole et G2L
+* largeur : 210 mm (aA4) - 30 mm (left) - 25 mm (right) = 155 mm
+* font: ???, 11pt (figure: 10pt)
 """
 
 
@@ -35,7 +39,7 @@ figw_aps:Dict[str, float] = {'simple': 86 * in_per_mm, 'wide': 140 * in_per_mm, 
 figw_jfm:Dict[str, float] = {'simple': 15*in_per_pc, 'wide': 21*in_per_pc, 'double': 32*in_per_pc,
                              'inset': 7*in_per_pc}
 # for thesis - WORK IN PROGRESS
-figw_these:Dict[str, float] = {'simple': 70*in_per_mm, 'wide': 110*in_per_mm, 'double': 150*in_per_mm,
+figw_thesis:Dict[str, float] = {'simple': 70 * in_per_mm, 'wide': 110 * in_per_mm, 'double': 155 * in_per_mm,
                                'inset': 35*in_per_mm, 'small': 50*in_per_mm}
 # for viewing confort, on a screen
 figw_confort:Dict[str, float] = {'simple': 120*in_per_mm, 'wide': 190*in_per_mm, 'double': 250*in_per_mm,
@@ -152,10 +156,13 @@ jfm_latex_preamble = r"""%
 
 styledict_default = {'name': 'default', 'textfontsize': 12, 'fontsize': 10, 'latex_preamble': '%', 'figw': figw_confort}
 styledict_presentation = {'name': 'presentation', 'textfontsize': 20, 'fontsize': 18}
+styledict_thesis = {'name': 'thesis', 'textfontsize': 11, 'fontsize': 10, 'figw': figw_thesis}
 styledict_jfm = {'name': 'jfm', 'textfontsize': 10.5, 'fontsize': 9, 'latex_preamble': jfm_latex_preamble, 'figw': figw_jfm}
 styledict_aps = {'name': 'aps', 'figw': figw_aps}
 
-styledicts = {'jfm': styledict_jfm, 'aps': styledict_aps, 'presentation': styledict_presentation}
+styledicts = {'jfm': styledict_jfm, 'aps': styledict_aps,
+              'presentation': styledict_presentation, 'thesis': styledict_thesis, 
+              'default': styledict_default}
 
 def fetch_styledict(style:Optional[str]=None):
     if style is None:
