@@ -154,9 +154,23 @@ jfm_latex_preamble = r"""%
 \usepackage{newtxmath}
 %"""
 
+thesis_latex_preamble = r"""%
+%
+%%% THESE
+%
+\usepackage[utf8]{inputenc}		% LaTeX, comprend les accents !
+\usepackage[T1]{fontenc}
+\usepackage[french,english]{babel}
+\usepackage{csquotes}
+\usepackage{lmodern}
+\usepackage{ae,aecompl}				
+\usepackage[upright]{fourier}
+%"""
+
+
 styledict_default = {'name': 'default', 'textfontsize': 12, 'fontsize': 10, 'latex_preamble': '%', 'figw': figw_confort}
 styledict_presentation = {'name': 'presentation', 'textfontsize': 20, 'fontsize': 18}
-styledict_thesis = {'name': 'thesis', 'textfontsize': 11, 'fontsize': 10, 'figw': figw_thesis}
+styledict_thesis = {'name': 'thesis', 'textfontsize': 11, 'fontsize': 10, 'latex_preamble': thesis_latex_preamble, 'figw': figw_thesis}
 styledict_jfm = {'name': 'jfm', 'textfontsize': 10.5, 'fontsize': 9, 'latex_preamble': jfm_latex_preamble, 'figw': figw_jfm}
 styledict_aps = {'name': 'aps', 'figw': figw_aps}
 
@@ -185,9 +199,24 @@ general_latex_preamble = r"""%
 \usepackage{amssymb} %maths
 \usepackage{amsfonts} %maths
 \usepackage{xcolor} % use color
-\usepackage{physics} %physics
-\usepackage[range-phrase = --,retain-unity-mantissa = false,exponent-product = \cdot]{siunitx} % dimensioned quantities
-%
+
+%% Physique
+\usepackage{siunitx} % dimensioned quantities
+\sisetup{per-mode = symbol,
+	range-phrase = --,
+	exponent-product = \cdot, % pour avoir 1.5e10 -> 1.5 \cdot 10^{15}
+%    print-unity-mantissa=true,
+%    product_units = repeat,
+	inter-unit-product=\ensuremath{{}\cdot{}}, % pour avoir N \cdot m instead of N m
+	separate-uncertainty=true, % pour avoir 25.8 \pm 0.2 plutôt que 25.8(2)
+	range-units = single}
+\DeclareSIUnit{\pixel}{px}
+\DeclareSIUnit{\px}{px}
+\DeclareSIUnit{\frame}{frame}
+\DeclareSIUnit\litre{l} % redefine litre to have a small l
+
+\usepackage{physics} % Physics-friendly commands
+
 %%% QOL
 %
 \setlength{\parindent}{0pt}% no indent
