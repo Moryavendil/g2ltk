@@ -93,7 +93,7 @@ length, height, width = datareading.get_geometry(acquisition_path, framenumbers 
 t = datareading.get_t_frames(acquisition_path, framenumbers=framenumbers)
 x = datareading.get_x_px(acquisition_path, framenumbers = framenumbers, subregion=roi, resize_factor=rivfinding_params['resize_factor'])
 
-z_raw = datasaving.fetch_or_generate_data('bol', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
+z_raw = datasaving.fetch_or_generate_data('bos', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
 
 
 # <codecell>
