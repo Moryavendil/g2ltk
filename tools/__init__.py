@@ -1,7 +1,7 @@
 import os
 import sys
 from colorama import Fore # change display text color
-from typing import Union
+from typing import Union, Dict
 
 DISPLAYSIZE:int = 80
 
@@ -28,80 +28,82 @@ def throw_G2L_warning(text:str):
                   )
     sys.stderr.flush() ; display('') # force to display warning at runtime
 
-global_verbose = 3
+__VERBOSE__ = 30
 
+verbose_codes:Dict[str, int] = {'critical': 0,
+                                'error': 10,
+                                'warning': 20,
+                                'info': 30,
+                                'debug': 40,
+                                'trace': 50,
+                                'subtrace': 55}
 def set_verbose(verbose:Union[int, str]):
-    global global_verbose
+    global __VERBOSE__, verbose_codes
     if isinstance(verbose, str):
-        if verbose == 'critical':
-            verbose = 0
-        elif verbose == 'error':
-            verbose = 1
-        elif verbose == 'warning':
-            verbose = 2
-        elif verbose == 'info':
-            verbose = 3
-        elif verbose == 'debug':
-            verbose = 4
-        elif verbose == 'trace':
-            verbose = 5
-        elif verbose == 'subtrace':
-            verbose = 6
-        else:
-            throw_G2L_warning(f'Could not recognize verbose {verbose}, using 3 (info).')
-            verbose = 3
-    global_verbose = verbose
+        verbose = verbose_codes.get(verbose, None)
+    if not isinstance(verbose, int):
+        default_verbose = "info"
+        throw_G2L_warning(f'Could not recognize verbose {verbose}, using {verbose_codes[default_verbose]} ({default_verbose}).')
+        verbose = verbose_codes[default_verbose]
+    __VERBOSE__ = verbose
 
 def log_criticalFailure(text:str, verbose:int=None): # verbose 0
     if verbose is None:
-        global global_verbose
-        verbose=global_verbose
-    if verbose >= 0:
+        global __VERBOSE__
+        verbose=__VERBOSE__
+    global verbose_codes
+    if verbose >= verbose_codes['critical']:
         display('=!=!=!=!=!=!=!=!= CRITICAL FAILURES ARE NOT CODED YET =!=!=!=!=!=!=!=!=')
         display(Fore.LIGHTMAGENTA_EX + 'CRITICAL: ' + text + Fore.RESET)
 
 def log_error(text:str, verbose:int=None): # verbose 1
     if verbose is None:
-        global global_verbose
-        verbose=global_verbose
-    if verbose >= 1:
+        global __VERBOSE__
+        verbose=__VERBOSE__
+    global verbose_codes
+    if verbose >= verbose_codes['error']:
         # display('=!=!=!=!=!=!=!=!= ERRORS ARE NOT CODED YET =!=!=!=!=!=!=!=!=')
         display(Fore.LIGHTRED_EX + 'ERROR: ' + str(text) + Fore.RESET)
 
 def log_warn(text:str, verbose:int=None): # verbose 2
     if verbose is None:
-        global global_verbose
-        verbose=global_verbose
-    if verbose >= 2:
+        global __VERBOSE__
+        verbose=__VERBOSE__
+    global verbose_codes
+    if verbose >= verbose_codes['warning']:
         display(Fore.LIGHTYELLOW_EX + 'WARN: ' + str(text) + Fore.RESET)
 
 def log_info(text:str, verbose:int=None): # verbose 3
     if verbose is None:
-        global global_verbose
-        verbose=global_verbose
-    if verbose >= 3:
+        global __VERBOSE__
+        verbose=__VERBOSE__
+    global verbose_codes
+    if verbose >= verbose_codes['info']:
         display(Fore.LIGHTGREEN_EX + 'INFO: ' + str(text) + Fore.RESET)
 
 def log_debug(text:str, verbose:int=None): # verbose 4
     if verbose is None:
-        global global_verbose
-        verbose=global_verbose
-    if verbose >= 4:
+        global __VERBOSE__
+        verbose=__VERBOSE__
+    global verbose_codes
+    if verbose >= verbose_codes['debug']:
         display(Fore.LIGHTCYAN_EX + 'DEBUG:\t' + str(text) + Fore.RESET)
 
 def log_trace(text:str, verbose:int=None): # verbose 5
     if verbose is None:
-        global global_verbose
-        verbose=global_verbose
-    if verbose >= 5:
+        global __VERBOSE__
+        verbose=__VERBOSE__
+    global verbose_codes
+    if verbose >= verbose_codes['trace']:
         display(Fore.LIGHTBLUE_EX + 'TRACE:\t\t' + str(text) + Fore.RESET)
 
 def log_subtrace(text:str, verbose:int=None): # verbose 6
     if verbose is None:
-        global global_verbose
-        verbose=global_verbose
-    if verbose >= 6:
-        display(Fore.LIGHTMAGENTA_EX + 'RETRACE:\t\t\t' + str(text) + Fore.RESET)
+        global __VERBOSE__
+        verbose=__VERBOSE__
+    global verbose_codes
+    if verbose >= verbose_codes['subtrace']:
+        display(Fore.LIGHTMAGENTA_EX + 'SUBTRACE:\t\t\t' + str(text) + Fore.RESET)
         
 
 log_info('Loading tools version '+__version__)
