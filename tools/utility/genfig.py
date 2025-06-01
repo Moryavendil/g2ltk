@@ -17,31 +17,35 @@ figw_confort:Dict[str, float] = {'simple': 120*in_per_mm, 'wide': 190*in_per_mm,
 
 figw = {**figw_confort}
 
-def figsize(w:Optional[Union[float, int, str]], h:Optional[Union[float, int, str]], unit='mm') ->Tuple[float, float]:
+def figsize(w:Optional[Union[float, int, str]]=None, h:Optional[Union[float, int, str]]=None, unit='mm', ratio = 1.618) ->Tuple[float, float]:
     global in_per_mm
-    width_in = figw['simple']
-    if isinstance(w, str):
+    width_in = figw['simple'] # default
+    if w is None:
+        pass
+    elif isinstance(w, str):
         width_in = figw.get(w, None)
         if width_in is None:
-            log_error('Unrecognized figsize: {w}'.format(w=w))
+            log_error(f'Unrecognized figsize: {w}')
     elif unit == 'mm':
         width_in = float(w)*in_per_mm
     elif unit == 'in':
         width_in = float(w)
-    elif w is not None:
-        log_error('Unrecognized unit for figsize: {unit}'.format(unit=unit))
+    else:
+        log_error('Unrecognized unit for figsize (w): {unit}'.format(unit=unit))
 
-    height_in = width_in / 1.618
-    if isinstance(h, str):
+    height_in = width_in / ratio # default
+    if h is None:
+        pass
+    elif isinstance(h, str):
         height_in = figw.get(h, None)
         if height_in is None:
-            log_error('Unrecognized figsize: {h}'.format(h=h))
+            log_error(f'Unrecognized figsize: {h}')
     elif unit == 'mm':
         height_in = float(h)*in_per_mm
     elif unit == 'in':
         height_in = float(h)
-    elif h is not None:
-        log_error('Unrecognized unit for figsize: {unit}'.format(unit=unit))
+    else:
+        log_error('Unrecognized unit for figsize (h): {unit}'.format(unit=unit))
 
     return (width_in, height_in)
 
@@ -119,7 +123,7 @@ def deactivate_saveplot(font_size=12):
 def tighten_graph(pad=0., w_pad=0., h_pad=0.):
     plt.tight_layout(pad=pad, w_pad=w_pad, h_pad=h_pad)
 def save_graphe(graph_name, imageonly=False, **kwargs):
-    figures_directory = 'figures'
+    figures_directory = kwargs.get('figures_directory', 'figures')
     if not os.path.isdir(figures_directory):
         os.mkdir(figures_directory)
     raw_path = os.path.join(figures_directory, graph_name)
@@ -132,6 +136,6 @@ def save_graphe(graph_name, imageonly=False, **kwargs):
     else:
         if 'dpi' not in kwargs:
             kwargs['dpi'] = 600
-        plt.savefig(raw_path + '.png', **kwargs)
-        plt.savefig(raw_path + '.pdf', **kwargs)
-        plt.savefig(raw_path + '.svg', **kwargs)
+    plt.savefig(raw_path + '.svg', **kwargs)
+    plt.savefig(raw_path + '.png', **kwargs)
+    plt.savefig(raw_path + '.pdf', **kwargs)
