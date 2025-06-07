@@ -1,4 +1,6 @@
 from typing import Optional, Tuple, List, Union
+
+import cv2
 import numpy as np
 
 # import cv2 # to manipulate images and videos
@@ -602,7 +604,7 @@ def crop_frame(frame, subregion: Subregion = None):
 
 
 # Resize
-def resize_frames(frames: np.ndarray, resize_factor: int = 1):
+def resize_frames(frames: np.ndarray, resize_factor:int = 1, bicubic:bool=False):
     """
     Resizes an array with the given resize factor, using opencv resize function (the fastest).
     IT WILL CONVERT THE FRAMES TO UINT8 SINCE OPENCV ONLY SUPPORTS THAT.
@@ -621,9 +623,12 @@ def resize_frames(frames: np.ndarray, resize_factor: int = 1):
 
     frames_enhanced = np.zeros((length, new_height, new_width), dtype=np.uint8)
 
+    interpolation = cv2.INTER_CUBIC if bicubic else cv2.INTER_LINEAR
+
     for framenumber in range(length):
         # Other possibilites were skimage.resize but it is more than 10 times slower.
-        frames_enhanced[framenumber] = cv2.resize(frames[framenumber], (new_width, new_height))
+        frames_enhanced[framenumber] = cv2.resize(frames[framenumber], (new_width, new_height),
+                                                  interpolation=interpolation)
 
     return frames_enhanced
 
