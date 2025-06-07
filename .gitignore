@@ -15,6 +15,7 @@ tmp_*
 
 # personal files
 perso_*
+*.zip
 
 # meta files for specific applications
 README_Zenodo.md
