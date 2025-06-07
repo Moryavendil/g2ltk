@@ -156,15 +156,18 @@ jfm_latex_preamble = r"""%
 
 thesis_latex_preamble = r"""%
 %
-%%% THESE
+%%% THESIS
 %
-\usepackage[utf8]{inputenc}		% LaTeX, comprend les accents !
+% Encodage
 \usepackage[T1]{fontenc}
-\usepackage[french,english]{babel}
-\usepackage{csquotes}
-\usepackage{lmodern}
-\usepackage{ae,aecompl}				
-\usepackage[upright]{fourier}
+\usepackage[utf8]{inputenc}
+%
+% Police : Utopia
+\usepackage{amsmath}			% Permet de taper des formules mathématiques
+\usepackage{amssymb}			% Permet d'utiliser des symboles mathématiques
+\usepackage{amsfonts}			% Permet d'utiliser des polices mathématiques
+\usepackage[frenchmath, erewhon]{newtxmath} % font for math : utopia with bold greek
+\usepackage{erewhon} % font for text : simili-utopia
 %"""
 
 
