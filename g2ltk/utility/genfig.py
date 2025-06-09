@@ -166,7 +166,7 @@ thesis_latex_preamble = r"""%
 \usepackage{amsmath}			% Permet de taper des formules mathématiques
 \usepackage{amssymb}			% Permet d'utiliser des symboles mathématiques
 \usepackage{amsfonts}			% Permet d'utiliser des polices mathématiques
-\usepackage[frenchmath, erewhon]{newtxmath} % font for math : utopia with bold greek
+\usepackage[erewhon]{newtxmath} % font for math : utopia with bold greek
 \usepackage{erewhon} % font for text : simili-utopia
 %"""
 
