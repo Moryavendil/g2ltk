@@ -158,16 +158,22 @@ thesis_latex_preamble = r"""%
 %
 %%% THESIS
 %
-% Encodage
+%%% Fonts and characters
+% Encoding
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 %
-% Police : Utopia
+% Font : Erewhon (Utopia-inspired)
 \usepackage{amsmath}			% Permet de taper des formules mathématiques
 \usepackage{amssymb}			% Permet d'utiliser des symboles mathématiques
 \usepackage{amsfonts}			% Permet d'utiliser des polices mathématiques
-\usepackage[erewhon]{newtxmath} % font for math : utopia with bold greek
+\usepackage[erewhon]{newtxmath} % font for math : utopia for bold greek. option: [frenchmath] makes everything ugly
 \usepackage{erewhon} % font for text : simili-utopia
+%
+% Special symbols
+\usepackage[french,english]{babel} % Languages
+\usepackage{pifont} % dingbats
+\usepackage{circledsteps} % faire des trucs en dedans de ronds
 %"""
 
 
@@ -203,7 +209,8 @@ general_latex_preamble = r"""%
 \usepackage{amsfonts} %maths
 \usepackage{xcolor} % use color
 
-%% Physique
+%%% Physics
+%
 \usepackage{siunitx} % dimensioned quantities
 \sisetup{per-mode = symbol,
 	range-phrase = --,
@@ -217,7 +224,7 @@ general_latex_preamble = r"""%
 \DeclareSIUnit{\px}{px}
 \DeclareSIUnit{\frame}{frame}
 \DeclareSIUnit\litre{l} % redefine litre to have a small l
-
+%
 \usepackage{physics} % Physics-friendly commands
 
 %%% QOL
@@ -229,12 +236,31 @@ paper_specific_latex_preamble = r"""%
 %
 %%% MACROS
 %
+%%% NOTATIONS DE LA THÈSE
+
+% Mecanique des fluides
+\newcommand\Rey{\mbox{\textit{Re}}}  % Reynolds number
+\newcommand\Pran{\mbox{\textit{Pr}}} % Prandtl number, cf TeX's \Pr product
+\newcommand\Pen{\mbox{\textit{Pe}}}  % Peclet number
+\newcommand\Ca{\mbox{\textit{Ca}}}  % Capillary number
+\newcommand\Bon{\mbox{\textit{Bo}}}  % Capillary number
+
+\newcommand{\lcap}{\ensuremath{\ell_\text{c}}} % Longueur capilalire l_c or l_cap or l_gamma
+
+% Rivelet
+\newcommand{\mucl}{{\ensuremath{\mu_\text{cl}}}}
+\newcommand{\vcap}{{\ensuremath{v_\text{c}}}} % capillary speed v_c or v_cap or v_gamma
+\newcommand{\hlim}{{\ensuremath{h_\infty}}}
 \newcommand{\vdrift}{v_\text{drift}}
-%
-\newcommand{\mucl}{\ensuremath{\mu_\text{cl}}}
-%
-\newcommand{\lcap}{\ensuremath{\ell_\text{c}}} % capillary length l_c or l_cap or l_gamma
-\newcommand{\vcap}{\ensuremath{v_\text{c}}} % capillary speed v_c or v_cap or v_gamma
+
+\newcommand{\adv}{{\ensuremath{\partial_a}}} % advection operator = \partial_t + u_0 \partial_x
+
+% Standard math
+\newcommand\bnabla{\boldsymbol{\nabla}}
+\newcommand\bcdot{\boldsymbol{\cdot}}
+
+\newcommand{\ux}{{\ensuremath{u}}}
+\newcommand{\uz}{{\ensuremath{v}}}
 \newcommand{\us}{{\ensuremath{u_s}}}
 \newcommand{\un}{{\ensuremath{u_n}}}
 %"""
