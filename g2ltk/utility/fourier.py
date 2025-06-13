@@ -165,7 +165,11 @@ def rft1d(arr: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann',
     log_trace(f'rft2d: Computing 2-D FFT of array of shape {arr.shape}')
     N = arr.shape[0]
 
-    z_win = arr * get_window(window, N)
+    # Removing mean
+    z_nozero = arr - np.mean(arr)
+
+    # windowing
+    z_win = z_nozero * get_window(window, N)
 
     pad_width = None
     if zero_pad_factor is not None:
@@ -217,6 +221,8 @@ def prepare_signal_for_ft2d(arr: np.ndarray,
     x
     y
     window
+    winstyle
+        Can be 'outer' (default) or 'circular'
     norm
     zero_pad
     zero_pad_factor
@@ -229,17 +235,20 @@ def prepare_signal_for_ft2d(arr: np.ndarray,
     log_trace(f'ft2d: Preparing array of shape {arr.shape} to 2-D FFT')
     Nt, Nx = arr.shape
 
+    # Removing mean
+    z_nozero = arr - np.mean(arr)
+
     if winstyle is None:
         winstyle = 'outer'
     winstyle = str(winstyle)
     log_subtrace(f'ft2d: Using windowing | window={window} | style={winstyle}')
     if winstyle == 'outer':
-        z_win = arr * np.expand_dims(get_window(window, Nt), axis=1) * np.expand_dims(get_window(window, Nx), axis=0)
+        z_win = z_nozero * np.expand_dims(get_window(window, Nt), axis=1) * np.expand_dims(get_window(window, Nx), axis=0)
     elif winstyle == 'circular':
-        z_win = arr * filters.window(window, (Nt, Nx), warp_kwargs={'order': 3})
+        z_win = z_nozero * filters.window(window, (Nt, Nx), warp_kwargs={'order': 3})
     else:
         log_warning(f'Unrecognized 2d-windowing style: {winstyle}')
-        z_win = arr
+        z_win = z_nozero
 
     pad_width = None
     if zero_pad_factor is not None:
