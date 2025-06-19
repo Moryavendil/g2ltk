@@ -10,23 +10,14 @@ from scipy.signal import savgol_filter # for smoothing
 from scipy.interpolate import CubicSpline # for cubic interpolation
 
 # derivating
-def der1(x: np.ndarray, y:np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    # gives the derivative of y(x)
-    dx = (x[1:] + x[:-1])/2
-    dy = (y[1:] - y[:-1])/(x[1:] - x[:-1])
-    return dx, dy
-
-def der2(x: np.ndarray, y:np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    # gives the derivative of y(x)
-    dx = (x[2:] + x[:-2])/2
-    dy = (y[2:] - y[:-2])/(x[2:] - x[:-2])
-    return dx, dy
 
 def lap(x: np.ndarray, y:np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     # gives the second derivative of y(x)
-    dx = (x[2:] + x[:-2])/2
-    dy = (y[2:] - 2*y[1:-1] + y[:-2])/((x[2:] - x[:-2])/2)**2
-    return dx, dy
+
+    # TODO: implement this properly for uneven spacing
+    ddx = (x[2:] + x[:-2])/2
+    ddy = (y[2:] - 2*y[1:-1] + y[:-2])/((x[2:] - x[:-2])/2)**2
+    return ddx, ddy
 
 # root finding
 def find_unexplicit_roots(x: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -74,8 +65,8 @@ def find_extrema(x: np.ndarray, y: np.ndarray, peak_category: str = 'all', smoot
     """
 
     ### FIRST DERIVATIVE
-    # dx, dy = der1(x, y)
-    dx, dy = der2(x, y)
+    dx = x.copy()
+    dy = np.gradient(y, x)
 
     ### ROOTS OF THE FIRST DERIVATIVE
     roots = find_roots(dx, dy)
@@ -133,7 +124,7 @@ def find_global_max(x: np.ndarray, y: np.ndarray) -> Optional[float]:
     return find_global_peak(x, y, 'max')
 
 def find_inflexion_point(x: np.ndarray, y: np.ndarray):
-    dx, dy = der1(x, y)
+    dx, dy = x.copy(), np.gradient(y, x)
     return find_global_peak(dx, dy)
 
 # smooting
