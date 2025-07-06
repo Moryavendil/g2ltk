@@ -144,25 +144,8 @@ from skimage import filters  # filters.window for 2D FFT windowing
 from scipy import fft
 
 
-def rft1d(arr: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', norm=None,
-          zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> np.ndarray:
-    """ Returns the 1-D Fourier transform of the input array using the given windowing.
-
-    The unit is in amplitude/(inverse periode), e.g. V(s) -> V/Hz(Hz)
-
-    Parameters
-    ----------
-    arr
-    x
-    window
-    norm
-    zero_pad
-
-    Returns
-    -------
-
-    """
-    log_trace(f'rft2d: Computing 2-D FFT of array of shape {arr.shape}')
+def prepare_signal_for_ft1d(arr: np.ndarray, window: str = 'hann',
+                            zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> np.ndarray:
     N = arr.shape[0]
 
     # Removing mean
@@ -199,9 +182,58 @@ def rft1d(arr: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann',
     log_subtrace(f'rft2d: Rolling (restoring phase) | pad={pad_width}')
     z_roll = np.roll(z_clean, pad_width[0] + N // 2)
 
+    return z_roll
+def rft1d(arr: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', norm=None,
+          zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> np.ndarray:
+    """ Returns the 1-D Fourier transform of the input array using the given windowing.
+
+    The unit is in amplitude/(inverse periode), e.g. V(s) -> V/Hz(Hz)
+
+    Parameters
+    ----------
+    arr
+    x
+    window
+    norm
+    zero_pad
+
+    Returns
+    -------
+
+    """
+    log_trace(f'rft2d: Computing 2-D FFT of array of shape {arr.shape}')
+
+    z_roll = prepare_signal_for_ft1d(arr, window=window, zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+
     z_hat = fft.rfft(z_roll, norm=norm, n=z_roll.shape[0])
 
     return z_hat * step(x)
+
+def ft1d(arr: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', norm=None,
+          zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> np.ndarray:
+    """ Returns the 1-D Fourier transform of the input array using the given windowing.
+
+    The unit is in amplitude/(inverse periode), e.g. V(s) -> V/Hz(Hz)
+
+    Parameters
+    ----------
+    arr
+    x
+    window
+    norm
+    zero_pad
+
+    Returns
+    -------
+
+    """
+    log_trace(f'rft2d: Computing 2-D FFT of array of shape {arr.shape}')
+
+    arr_prepared = prepare_signal_for_ft1d(arr, window=window, zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+
+    z_hat = fft.fft(arr_prepared, norm=norm, n=arr_prepared.shape[0])
+
+    return fft.fftshift(z_hat) * step(x)
 
 
 def prepare_signal_for_ft2d(arr: np.ndarray,
@@ -408,6 +440,8 @@ def psd1d(z: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', z
     # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
     return esd / span(x)
 
+def ifft1d(zhat: np.ndarray, xdual: Optional[np.ndarray] = None):
+    return fft.fftshift(fft.ifft(np.fft.ifftshift(zhat))) * span(xdual)
 
 def rpsd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None, window: str = 'hann',
            winstyle=None,
