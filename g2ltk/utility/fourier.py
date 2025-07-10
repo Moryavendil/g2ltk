@@ -626,7 +626,7 @@ def peak_vicinity1d(peak_x, z, peak_depth_dB, x=None):
     return ((x >= x1_before) * (x <= x1_after)).astype(bool)
 
 
-def power_near_peak1d(peak_x, z, peak_depth_dB, x=None):
+def power_near_peak1d(peak_x, z, peak_depth_dB, x=None, peak_vicinity: Optional[np.ndarray] = None):
     # powerlog_intercmor_incertitude = zmeanx_psd.max()/(10**(peak_depth_dB/10))
     # freq_for_intercept = utility.find_roots(freqs, zmeanx_psd - powerlog_intercmor_incertitude)
     # freqpre = freq_for_intercept[freq_for_intercept < freq_guess].max()
@@ -638,7 +638,13 @@ def power_near_peak1d(peak_x, z, peak_depth_dB, x=None):
     # p_ft_peak = trapezoid(y_f, x_f)
     ### Go bourrin (we are in log we do not care) : rectangular integration
     # p_ft_peak = np.sum(zmeanx_psd[(freqpre < freqs)*(freqs < freqpost)]) * utility.step(freqs)
-    return np.sum(z[peak_vicinity1d(peak_x=peak_x, z=z, peak_depth_dB=peak_depth_dB, x=x)]) * step(x)
+    #
+    log_debug(f'Measuring the power around     ({round(peak_x, 3)})')
+    if peak_vicinity is None:
+        peak_vicinity = peak_vicinity1d(peak_x=peak_x, z=z, peak_depth_dB=peak_depth_dB, x=x)
+    pw = np.sum(z[peak_vicinity]) * step(x)
+    log_debug(f'Power: {pw} (amplitude: {np.sqrt(pw*2)})')
+    return pw
 
 
 ### 2D peak finding (life is pain)
