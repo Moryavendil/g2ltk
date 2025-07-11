@@ -179,7 +179,7 @@ thesis_latex_preamble = r"""%
 
 styledict_default = {'name': 'default', 'textfontsize': 12, 'fontsize': 10, 'latex_preamble': '%', 'figw': figw_confort}
 styledict_presentation = {'name': 'presentation', 'textfontsize': 20, 'fontsize': 18}
-styledict_thesis = {'name': 'thesis', 'textfontsize': 11, 'fontsize': 10, 'latex_preamble': thesis_latex_preamble, 'figw': figw_thesis}
+styledict_thesis = {'name': 'thesis', 'textfontsize': 11, 'fontsize': 10, 'fontsize_inset': 9, 'latex_preamble': thesis_latex_preamble, 'figw': figw_thesis}
 styledict_jfm = {'name': 'jfm', 'textfontsize': 10.5, 'fontsize': 9, 'latex_preamble': jfm_latex_preamble, 'figw': figw_jfm}
 styledict_aps = {'name': 'aps', 'figw': figw_aps}
 
@@ -210,6 +210,7 @@ general_latex_preamble
 %
 \setlength{\parindent}{0pt}% no indent
 %"""
+
 
 paper_specific_latex_preamble = r"""%
 %
@@ -475,8 +476,8 @@ params_saving = {'savefig.bbox': 'tight', # tight or standard
                      # 'figure.subplot.top': 1., 'figure.subplot.bottom': 0.,
                      # ### constrained layout
                      # # Padding (in inches) around axes; defaults to 3/72 inches, i.e. 3 points.
-                     #figure.constrained_layout.h_pad:  0.04167
-                     #figure.constrained_layout.w_pad:  0.04167
+                     'figure.constrained_layout.h_pad':  0.0,
+                     'figure.constrained_layout.w_pad':  0.0,
                      # # Spacing between subplots, relative to the subplot sizes.  Much smaller than for
                      # # tight_layout (figure.subplot.hspace, figure.subplot.wspace) as constrained_layout
                      # # already takes surrounding texts (titles, labels, # ticklabels) into account.
@@ -513,6 +514,10 @@ def configure_mpl(font_size=None, style=None):
     # Specific plots
     plt.rcParams["image.interpolation"] = "nearest" # for science, to not be misleading (default antialiased)
 
+    try:
+        if font_size == 'inset':
+            font_size = styled('fontsize_inset', style=style)
+    except:pass
     if font_size is None:
         font_size = styled('fontsize', style=style)
     log_debug(f'Setting font size to {font_size} pt')
@@ -535,6 +540,8 @@ def activate_saveplot(activate=True, font_size=None, style=None):
 
     configure_mpl(font_size=font_size, style=style)
 
+def is_saveplot_activated():
+    return plt.rcParams['text.usetex']
 def deactivate_saveplot(font_size=None, style=None):
     # stop using LaTeX for faster display
     activate_saveplot(activate=False, font_size=font_size, style=style)

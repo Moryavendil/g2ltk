@@ -51,6 +51,9 @@ color_q = '#9c1ab2' # (dark version : #9c1ab2 | light version : #c320df
 color_smallQ = '#008C00'
 color_bigQ = '#C29A49'
 
+cmap_zonly = 'PuOr_r'
+cmap_wonly = 'viridis_r'
+
 def force_aspect_ratio(ax, aspect=1):
     # old version, for images
     # im = ax.get_images()
