@@ -154,8 +154,6 @@ ax.set_xlabel('$x$ [px]')
 ax.set_ylabel('$t$ [frame]')
 plt.colorbar(imz, ax=ax, label='$z$ [px]')
 
-plt.tight_layout()
-
 
 # <codecell>
 
@@ -217,7 +215,6 @@ ax.plot(x, z_tmp.mean(axis=0), color='k', label='New time-averaged riv position'
 ax.set_xlabel('x [px]')
 ax.set_ylabel('z [px]')
 ax.legend()
-plt.tight_layout()
 
 
 # <codecell>
@@ -230,9 +227,12 @@ z_tprofile = np.mean(z_tmp, axis=1)
 # linear fit
 rivs_fit_temporal_linear = np.polyfit(t, z_tprofile, deg = 1)
 utility.log_info(f'Position temporal drift linear estimation: {round(np.poly1d(rivs_fit_temporal_linear)(t).max() - np.poly1d(rivs_fit_temporal_linear)(t).min(), 2)} px')
+rivs_fit_temporal_parabolic = np.polyfit(t, z_tprofile, deg = 2)
 
 # correct
 if tcorrect == 'linear':
+    z_tmp = z_tmp - np.expand_dims(np.poly1d(rivs_fit_temporal_linear)(t), axis=1)
+if tcorrect == 'parabolic':
     z_tmp = z_tmp - np.expand_dims(np.poly1d(rivs_fit_temporal_linear)(t), axis=1)
 else:
     utility.log_info('No temporal correction made')
@@ -243,6 +243,7 @@ fig, axes = plt.subplots(2, 1, sharex=True, figsize=utility.figsize('double'))
 ax = axes[0]
 ax.plot(t, z_tprofile, color='k', alpha=0.5, label='old time-averaged riv position')
 ax.plot(t, np.poly1d(rivs_fit_temporal_linear)(t), color='r', alpha=0.5, label=f'linear fit')
+ax.plot(t, np.poly1d(rivs_fit_temporal_parabolic)(t), color='b', alpha=0.5, label=f'parabolic fit')
 ax.set_ylabel('z [px]')
 ax.legend()
 
@@ -251,7 +252,6 @@ ax.plot(t, np.mean(z_tmp, axis=1), color='k', label='New time-averaged riv posit
 ax.set_xlabel('t [s]')
 ax.set_ylabel('z [px]')
 ax.legend()
-plt.tight_layout()
 
 
 # <codecell>
@@ -267,8 +267,8 @@ W_pw = utility.fourier.rpsd2d(W, x, t, window=fft_window_visu, zero_pad_factor=z
 # <codecell>
 
 fig, axes = plt.subplots(2, 2, figsize=utility.figsize('double'), sharex='col', sharey='col', squeeze=False)
-imshow_kw = {'origin':'upper', 
-             'interpolation':'nearest', 
+imshow_kw = {'origin':'upper',
+             'interpolation':'nearest',
              'aspect':'auto'}
 
 ax = axes[0,0]
@@ -279,29 +279,31 @@ ax.set_ylabel('$t$ [frame]')
 plt.colorbar(imz, ax=ax, label='$z$ [px]')
 
 ax = axes[0,1]
-vmax, vmin = utility.log_amplitude_range(Z_pw.max(), range_db=range_dB_visu)
-im_zpw = ax.imshow(Z_pw, extent=utility.correct_extent(k_visu, f_visu), norm='log', vmax=vmax, vmin=vmin, cmap='viridis', **imshow_kw)
+ax.set_title('Z (fourier)')
+vmax_z, vmin_z = utility.log_amplitude_range(Z_pw.max(), range_db=range_dB_visu)
+im_zpw = ax.imshow(Z_pw, extent=utility.correct_extent(k_visu, f_visu), norm='log', vmax=vmax_z, vmin=vmin_z, cmap='viridis', **imshow_kw)
 ax.set_xlabel(r'$k$ [px$^{-1}$]')
 ax.set_ylabel(r'$f$ [frame$^{-1}$]')
-cb = plt.colorbar(im_zpw, ax=ax, label=r'$|\hat{z}|^2$ [px^2/(px-1.frame-1)]')
+cb = plt.colorbar(im_zpw, ax=ax, label=r'$|\hat{z}|^2$ [px$^2$/(px$-1$.frame$-1$)]')
 utility.set_ticks_log_cb(cb, vmax, range_db=range_dB_visu)
 
-ax.set_xlim(0, 1/10*1/20)
+ax.set_xlim(0, 1/20)
 ax.set_ylim(-1/20, 1/5)
 
 ax = axes[1,0]
 ax.set_title('W (normal)')
-imz = ax.imshow(W, extent=utility.correct_extent(x, t), cmap='viridis', **imshow_kw)
+imw = ax.imshow(W, extent=utility.correct_extent(x, t), cmap='viridis', **imshow_kw)
 ax.set_xlabel('$x$ [px]')
 ax.set_ylabel('$t$ [frame]')
-plt.colorbar(imz, ax=ax, label='$w$ [px]')
+plt.colorbar(imw, ax=ax, label='$w$ [px]')
 
 ax = axes[1,1]
-vmax, vmin = utility.log_amplitude_range(W_pw.max(), range_db=range_dB_visu)
-im_zpw = ax.imshow(W_pw, extent=utility.correct_extent(k_visu, f_visu), norm='log', vmax=vmax, vmin=vmin, cmap='viridis', **imshow_kw)
+ax.set_title('W (fourier)')
+vmax_w, vmin_w = utility.log_amplitude_range(W_pw.max(), range_db=range_dB_visu)
+im_wpw = ax.imshow(np.maximum(W_pw, 1e-8), extent=utility.correct_extent(k_visu, f_visu), norm='log', vmax=vmax_w, vmin=vmin_w, cmap='viridis', **imshow_kw)
 ax.set_xlabel(r'$k$ [px$^{-1}$]')
 ax.set_ylabel(r'$f$ [frame$^{-1}$]')
-cb = plt.colorbar(im_zpw, ax=ax, label=r'$|\hat{w}|^2$ [px^2/(px-1.frame-1)]')
+cb = plt.colorbar(im_wpw, ax=ax, label=r'$|\hat{w}|^2$ [px$^2$/(px$-1$.frame$-1$)]')
 utility.set_ticks_log_cb(cb, vmax, range_db=range_dB_visu)
 
 
