@@ -42,8 +42,18 @@ for acquisition in datareading.find_available_videos(dataset=dataset, videotype=
 
     acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
 
-    acquisition_frequency = (float(infotable['acquisition_frequency'][infotable['title'] == acquisition]))
-    exposure_time = (float(infotable['exposure_time'][infotable['title'] == acquisition]))
+    logging.log_debug(f'dataset: {dataset} | acquisition: {acquisition}')
+    for colname in ['title', 'acquisition_frequency', 'exposure_time']:
+        try:
+            col = infotable[colname]
+            logging.log_debug(f'Has column: {colname}')
+        except KeyError as e:
+            logging.log_error(f'Missing column: {e}')
+    logging.log_debug(f"Found the acquisition in titles?: {(infotable['title'] == acquisition).max()}")
+
+    acquisition_frequency = (float((infotable['acquisition_frequency'][infotable['title'] == acquisition]).iloc[0]))
+    exposure_time = (float((infotable['exposure_time'][infotable['title'] == acquisition]).iloc[0]))
+
     logging.log_info(f'acquisition: {acquisition} | fps={acquisition_frequency} | texp={exposure_time}')
 
     # Parameters definition
