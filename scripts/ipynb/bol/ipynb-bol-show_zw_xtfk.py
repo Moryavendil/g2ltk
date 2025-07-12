@@ -157,6 +157,11 @@ plt.colorbar(imz, ax=ax, label='$z$ [px]')
 
 # <codecell>
 
+# Correct angle
+w_tmp = w_tmp / np.sqrt(1 + np.gradient(z_tmp, x, axis=1)**2)
+
+# <codecell>
+
 # Spatial cleaning
 from scipy.signal import savgol_filter
 
@@ -285,7 +290,7 @@ im_zpw = ax.imshow(Z_pw, extent=utility.correct_extent(k_visu, f_visu), norm='lo
 ax.set_xlabel(r'$k$ [px$^{-1}$]')
 ax.set_ylabel(r'$f$ [frame$^{-1}$]')
 cb = plt.colorbar(im_zpw, ax=ax, label=r'$|\hat{z}|^2$ [px$^2$/(px$-1$.frame$-1$)]')
-utility.set_ticks_log_cb(cb, vmax, range_db=range_dB_visu)
+utility.set_ticks_log_cb(cb, vmax_z, range_db=range_dB_visu)
 
 ax.set_xlim(0, 1/20)
 ax.set_ylim(-1/20, 1/5)
@@ -304,7 +309,7 @@ im_wpw = ax.imshow(np.maximum(W_pw, 1e-8), extent=utility.correct_extent(k_visu,
 ax.set_xlabel(r'$k$ [px$^{-1}$]')
 ax.set_ylabel(r'$f$ [frame$^{-1}$]')
 cb = plt.colorbar(im_wpw, ax=ax, label=r'$|\hat{w}|^2$ [px$^2$/(px$-1$.frame$-1$)]')
-utility.set_ticks_log_cb(cb, vmax, range_db=range_dB_visu)
+utility.set_ticks_log_cb(cb, vmax_w, range_db=range_dB_visu)
 
 
 # <codecell>
