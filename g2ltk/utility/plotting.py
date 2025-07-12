@@ -1,5 +1,6 @@
 import math
 import matplotlib.colors as col
+from matplotlib.colors import Normalize, LogNorm
 
 # default settings
 errorbar_kw_default = {'capsize':3, 'ls':''}
