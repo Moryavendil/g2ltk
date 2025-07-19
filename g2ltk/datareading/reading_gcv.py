@@ -52,7 +52,7 @@ def get_number_of_available_frames_gcv(acquisition_path:str) -> int:
     n_frames_stamps = get_number_of_available_frames_stamps(acquisition_path)
     n_frames_rawvideo = get_number_of_available_frames_rawvideo(acquisition_path)
 
-    if n_frames_stamps != n_frames_rawvideo:
+    if (n_frames_stamps != n_frames_rawvideo) and (n_frames_rawvideo > 0):
         utility.log_warning(f'Video {acquisition_path}: The stamps file mentions {n_frames_stamps} frames while there are {n_frames_rawvideo} frames availables in the raw video file.')
     if n_frames_rawvideo > 0:
         return n_frames_rawvideo
