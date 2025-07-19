@@ -134,8 +134,6 @@ ax.set_xlabel('$x$ [px]')
 ax.set_ylabel('$t$ [frame]')
 plt.colorbar(imz, ax=ax, label='$z$ [px]')
 
-plt.tight_layout()
-
 
 # <codecell>
 
@@ -197,7 +195,6 @@ ax.plot(x, z_tmp.mean(axis=0), color='k', label='New time-averaged riv position'
 ax.set_xlabel('x [px]')
 ax.set_ylabel('z [px]')
 ax.legend()
-plt.tight_layout()
 
 
 # <codecell>
@@ -231,7 +228,6 @@ ax.plot(t, np.mean(z_tmp, axis=1), color='k', label='New time-averaged riv posit
 ax.set_xlabel('t [s]')
 ax.set_ylabel('z [px]')
 ax.legend()
-plt.tight_layout()
 
 
 # <codecell>

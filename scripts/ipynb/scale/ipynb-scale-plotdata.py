@@ -29,7 +29,7 @@ datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
 # <codecell>
 
 acquisitions:utility.Dict[str, utility.Tuple[float, float]] = {}
-for acquisition in datareading.find_available_videos(dataset=dataset):
+for acquisition in datareading.find_available_videos(dataset=dataset, videotype='gcv'):
     acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
     acquisitions[acquisition] = datareading.get_monotonic_timebound(acquisition_path, unit='s')
 
