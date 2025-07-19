@@ -23,19 +23,29 @@ def is_this_a_gcv(acquisition_path:str) -> bool:
     :param acquisition_path:
     :return:
     """
+    utility.log_subtrace(f'func: is_this_a_gcv ({acquisition_path})')
     gcv_path = acquisition_path + '.gcv'
     # check that we indeed have a folder containing the right files
     if not os.path.isdir(gcv_path): return False
     # check that the folder contain the right number of files
     files = os.listdir(gcv_path)
-    if len(files) != 3: return False
     stampsfiles = [f for f in files if f.endswith('.stamps')]
     metafiles = [f for f in files if f.endswith('.meta')]
-    rawvideofiles = [f for f in files if f.endswith('.raw')]
     # check that we have one stamp file
     if len(stampsfiles) != 1: return False
     if len(metafiles) != 1: return False
-    if len(rawvideofiles) != 1: return False
+    if len(files) == 3:
+        rawvideofiles = [f for f in files if f.endswith('.raw')]
+        if len(rawvideofiles) != 1:
+            utility.log_trace(f'Video {acquisition_path}: {3} files: stamps, meta but no rawvideo?')
+            return False
+    elif len(files) == 2:
+        # utility.log_warning(f'Video {acquisition_path}: No rawvideo file!')
+        utility.log_trace(f'Video {acquisition_path}: It is a GCV without a rawvideo file!')
+        return True
+    else:
+        utility.log_trace(f'Video {acquisition_path}: {len(files)} files?! Too much to be a gcv.')
+        return False
     return True
 
 def get_number_of_available_frames_gcv(acquisition_path:str) -> int:
@@ -43,8 +53,10 @@ def get_number_of_available_frames_gcv(acquisition_path:str) -> int:
     n_frames_rawvideo = get_number_of_available_frames_rawvideo(acquisition_path)
 
     if n_frames_stamps != n_frames_rawvideo:
-        utility.throw_G2L_warning(f'The stamps file mentions {n_frames_stamps} frames while there are {n_frames_rawvideo} frames availables in the raw video file.')
-    return n_frames_rawvideo
+        utility.log_warning(f'Video {acquisition_path}: The stamps file mentions {n_frames_stamps} frames while there are {n_frames_rawvideo} frames availables in the raw video file.')
+    if n_frames_rawvideo > 0:
+        return n_frames_rawvideo
+    return n_frames_stamps
 
 def get_acquisition_frequency_gcv(acquisition_path:str, unit = None) -> float:
     if unit is None: # default unit
@@ -115,7 +127,37 @@ def retrieve_meta(acquisition_path: str) -> Meta:
     except:
         raise(Exception(f'ERROR: Problem with the {acquisition_path} meta file (probably it could not be opened).'))
 
+    utility.log_subtrace(f'Video {acquisition_path}: Metafile content: meta={meta}')
+
     return meta
+
+def get_frame_geometry_gcv(acquisition_path: str) -> Tuple[int, int]:
+    utility.log_subtrace('func:get_frame_geometry_gcv')
+    # returns the geometry from the metafile, in the format width, height
+    meta:Meta = retrieve_meta(acquisition_path)
+
+    usingROI = meta.get('usingROI', 'false') == 'true'
+    camera_region_width  = int(meta.get('cameraRegionWidth', '0'))
+    camera_region_height = int(meta.get('cameraRegionHeight', '0'))
+    viewer_region_width  = int(meta.get('viewerRegionWidth', '0'))
+    viewer_region_height = int(meta.get('viewerRegionHeight', '0'))
+
+    legacy_width  = int(meta.get('subRegionWidth', '0'))
+    legacy_height = int(meta.get('subRegionHeight', '0'))
+
+    width:int  =  camera_region_width if not usingROI else viewer_region_width
+    height:int =  camera_region_height if not usingROI else viewer_region_height
+    if width  == 0: width = legacy_width
+    if height == 0: height = legacy_height
+
+    # OLD CODE
+    # width:int = int(meta.get('subRegionWidth', '0'))
+    # height:int = int(meta.get('subRegionHeight', '0'))
+
+    utility.log_debug(f'Video {acquisition_path}: Retrieved frame geometry from metafile.')
+    utility.log_trace(f'Video {acquisition_path}: Frame geometry: (w,h)=({width},{height})')
+
+    return width, height
 
 ### STAMPS READING
 
@@ -342,27 +384,35 @@ def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, e
 
 def get_number_of_available_frames_rawvideo(acquisition_path: str) -> int:
     gcv_path = acquisition_path + '.gcv'
-    rawvideo_filename = [f for f in os.listdir(gcv_path) if f.endswith('.raw')][0]
+
+    rawvideofiles = [f for f in os.listdir(gcv_path) if f.endswith('.raw')]
+    if len(rawvideofiles) == 0:
+        # At this point, we were already warned a dozen times by is_this_a_gcv, so no need to spam the user
+        # utility.log_warning(f'Video {acquisition_path}: No rawvideo frames available.')
+        return 0
+    elif len(rawvideofiles) > 2:
+        utility.log_warning(f'Video {acquisition_path}: More than one rawvideo?!')
+        return 0
+
+    rawvideo_filename = rawvideofiles[0]
     rawvideo_path = os.path.join(gcv_path, rawvideo_filename)
-    if not(os.path.isfile(rawvideo_path)): raise(Exception(f'ERROR: Problem with the {acquisition_path} rawvideo file (it does not exist).'))
+    if not(os.path.isfile(rawvideo_path)):
+        utility.log_warning(f'Video {acquisition_path}: No rawvideo file.')
+        return 0
     f = open(rawvideo_path, "rb")
     f.seek(0, 2)
     file_size:int = f.tell()
 
-    meta:Meta = retrieve_meta(acquisition_path)
-    img_w:int = int(meta.get('subRegionWidth', '0'))
-    img_h:int = int(meta.get('subRegionHeight', '0'))
+    img_w, img_h = get_frame_geometry_gcv(acquisition_path)
     img_s:int = img_w * img_h
     n_frames_tot:int = file_size // img_s
     if img_s == 0 or file_size % img_s != 0:
-        utility.throw_G2L_warning('Bad formatting of rawvideo file')
+        utility.log_warning(f'Video {acquisition_path}: Bad formatting of rawvideo file')
     return n_frames_tot
 
 def get_frames_rawvideo(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
-    meta = retrieve_meta(acquisition_path)
 
-    width:int = int(meta.get('subRegionWidth', '0'))
-    height:int = int(meta.get('subRegionHeight', '0'))
+    width, height = get_frame_geometry_gcv(acquisition_path)
     length:int = len(framenumbers)
 
     bytes_per_image:int = width * height

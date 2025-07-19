@@ -464,13 +464,22 @@ def get_geometry(acquisition_path: str, framenumbers: Framenumbers = None, subre
     formatted_fns = format_framenumbers(acquisition_path, framenumbers)
     if formatted_fns is None: return None
 
+    # get the video length
     length = formatted_fns.size
 
-    frame = get_frame(acquisition_path, int(formatted_fns[0]), subregion=subregion)
+    # get the geometry of a sample frame
+    if is_this_a_gcv(acquisition_path):
+        # With gcv we do not need the video, the info is in the meta file
+        width, height = get_frame_geometry_gcv(acquisition_path)
+        sampleframe = crop_frame(np.empty((height, width)), subregion=subregion)
+    else:
+        # General method
+        sampleframe = get_frame(acquisition_path, int(formatted_fns[0]), subregion=subregion)
 
-    if frame is None: return None
-
-    height, width = frame.shape
+        if sampleframe is None:
+            utility.log_error(f'Video {acquisition_path}: Could not get geometry (frame 0 unavailable)')
+            return None
+    height, width = sampleframe.shape
 
     return length, height, width
 
