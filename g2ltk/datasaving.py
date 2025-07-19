@@ -75,6 +75,7 @@ def get_items(parameters: dict, total_match:bool = False, verbose:Optional[int]=
     index = get_index(verbose=verbose)
     items = []
     # search the index
+    logging.log_subtrace(f'Searching the index for the parameters: {parameters}', verbose)
     for candidate_file_name in index.keys():
         candidate_parameters = index[candidate_file_name]
         parameters_match = True
@@ -125,7 +126,7 @@ def fetch_saved_data(parameters: dict, verbose:Optional[int]=None) -> Any:
     for item in items: # run across the items that are indeed in the index
         file_path = os.path.join(save_directory, item)
         if os.path.isfile(file_path):
-            logging.log_trace('Fetching data from file "{item}"', verbose)
+            logging.log_trace(f'Fetching data from file "{item}"', verbose)
             return np.load(file_path, allow_pickle=True)['data'][()] # return the first one
 
     logging.log_warning(f'Did not find the right stuff ?')
@@ -240,6 +241,9 @@ def fetch_or_generate_data_from_parameters(datatype:str, parameters:dict, verbos
     wanted_fns = parameters['framenumbers']
     logging.log_trace(f'Wanted framenumbers "{wanted_fns}"', verbose)
     logging.log_trace(f'Available framenumbers "{available_fns}"', verbose)
+
+    # TODO solve bad behaviour here : if we have all the fns but we ask for none, the available_fns is None check fails and we have to compute again
+
     if available_fns is None: # si tout est dispo
         logging.log_debug(f'All framenumbers available', verbose)
         data = fetch_saved_data(parameters, verbose=verbose) # prendre tout
