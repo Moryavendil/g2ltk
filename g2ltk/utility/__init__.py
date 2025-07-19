@@ -19,6 +19,53 @@ def lap(x: np.ndarray, y:np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     ddy = (y[2:] - 2*y[1:-1] + y[:-2])/((x[2:] - x[:-2])/2)**2
     return ddx, ddy
 
+
+def findiff_regular(y:np.ndarray, x:Optional[np.ndarray]=None, order:int=2, derivative=1) -> Tuple[np.ndarray, np.ndarray]:
+    # https://en.wikipedia.org/wiki/Finite_difference_coefficient
+
+    if derivative == 1:
+        if order == 2:
+            coeffs = [-1/2, 0, 1/2]
+        elif order == 4:
+            coeffs = [1/12, -2/3, 0, 2/3, -1/12]
+        elif order == 6:
+            coeffs = [-1/60, 3/20, -3/4, 0, 3/4, -3/20, 1/60]
+        else:
+            return None
+    elif derivative == 2:
+        if order == 2:
+            coeffs = [1, -2, 1]
+        elif order == 4:
+            coeffs = [-1/12, 4/3, -5/2, 4/3, -1/12]
+        elif order == 6:
+            coeffs = [1/90, -3/20, 3/2, -49/18, 3/2, -3/20, 1/90]
+        else:
+            return None
+    else:
+        return None
+
+    oneoverdx_n = 1/step(x)**derivative
+
+    dy = y.copy()
+    for _ in range(derivative):
+        dy = np.gradient(dy, step(x), edge_order=2)
+    if order != 2:
+        dy[order//2:-order//2] *= 0
+        for i in range(order+1):
+            endi = None if i == order else -order+i
+            dy[order//2:-order//2] += coeffs[i]*y[i:endi] * oneoverdx_n # a bit sloppy
+    return dy
+
+def gradient_findiff_regular(y:np.ndarray, x:Optional[np.ndarray]=None, order:int=2) -> Tuple[np.ndarray, np.ndarray]:
+    # gives the second derivative of y(x)
+
+    return findiff_regular(y, x=x, order=order, derivative=1)
+
+def laplacian_findiff_regular(y:np.ndarray, x:Optional[np.ndarray]=None, order:int=2) -> Tuple[np.ndarray, np.ndarray]:
+    # gives the second derivative of y(x)
+
+    return findiff_regular(y, x=x, order=order, derivative=2)
+
 # root finding
 def find_unexplicit_roots(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     s = np.abs( np.diff(np.sign(y)) ).astype(bool) * (y[:-1] != 0)
@@ -169,6 +216,7 @@ def normalize(y: Any):
 ### ARRAYS
 
 def step(arr:Optional[np.ndarray]) -> float:
+    # Returns the spacing between points in a (hopefully) regularly spaced array
     if arr is None:
         return 1
     # return arr[1] - arr[0]
