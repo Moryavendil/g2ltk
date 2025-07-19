@@ -44,7 +44,7 @@ import os
 scaledata_folder = datareading.generate_dataset_path(dataset=dataset)
 
 date = None
-date = '2025-03-07'
+# date = '2025-03-07'
 
 date = date if date is not None else ''
 scaledata_suffix = '.scale'
