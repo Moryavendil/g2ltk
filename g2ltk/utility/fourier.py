@@ -8,7 +8,7 @@ from . import step, span, find_roots, find_global_max, correct_limits, attenuate
 
 
 ### FFT AND PSD COMPUTATIONS
-def dual(arr: np.ndarray, zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> np.ndarray:
+def dual(arr: np.ndarray, zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> np.ndarray:
     """
     Returns the dual, i.e. the frequencies.
 
@@ -51,7 +51,7 @@ def dual(arr: np.ndarray, zero_pad: Optional[int] = None, zero_pad_factor: Optio
     return np.fft.fftshift(np.fft.fftfreq(n, step(arr)))
 
 
-def rdual(arr: np.ndarray, zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> np.ndarray:
+def rdual(arr: np.ndarray, zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> np.ndarray:
     """Returns the dual, i.e. the frequencies, in a numpy.fft.rfft-compatible style.
 
     The unit is the inverse, e.g. time (s)-> frequency (Hz).
@@ -94,12 +94,12 @@ def rdual(arr: np.ndarray, zero_pad: Optional[int] = None, zero_pad_factor: Opti
 
 
 def dual2d(x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
-           zero_pad: Optional[Tuple[int, int]] = None, zero_pad_factor: Optional[Tuple[float, float]] = None) -> Tuple[
+           zero_pad: Optional[Tuple[int, int]] = None, zero_pad_factor: Optional[Union[int, Tuple[int, int]]] = None) -> Tuple[
     np.ndarray, np.ndarray]:
     zero_pad_x, zero_pad_y = None, None
     if zero_pad is not None:
         try:
-            int(zero_pad[0]);
+            int(zero_pad[0])
             int(zero_pad[1])
             zero_pad_y, zero_pad_x = zero_pad
         except:
@@ -111,30 +111,38 @@ def dual2d(x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
             float(zero_pad_factor[1])
             zero_pad_factor_y, zero_pad_factor_x = zero_pad_factor
         except:
-            log_warning(f'What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
+            try:
+                float(zero_pad_factor)
+                zero_pad_y, zero_pad_x = zero_pad_factor, zero_pad_factor
+            except:
+                log_warning(f'dual2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
     return (dual(x, zero_pad=zero_pad_x, zero_pad_factor=zero_pad_factor_x),
             dual(y, zero_pad=zero_pad_y, zero_pad_factor=zero_pad_factor_y))
 
 
 def rdual2d(x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
-            zero_pad: Optional[Tuple[int, int]] = None, zero_pad_factor: Optional[Tuple[float, float]] = None) -> Tuple[
+            zero_pad: Optional[Tuple[int, int]] = None, zero_pad_factor: Optional[Union[int, Tuple[int, int]]] = None) -> Tuple[
     np.ndarray, np.ndarray]:
     zero_pad_x, zero_pad_y = None, None
     if zero_pad is not None:
         try:
-            int(zero_pad[0]);
+            int(zero_pad[0])
             int(zero_pad[1])
             zero_pad_y, zero_pad_x = zero_pad
         except:
-            log_warning(f'What is this zero-padding "{zero_pad}" ? I made it None')
+            log_warning(f'dual2d: What is this zero-padding "{zero_pad}" ? I made it None')
     zero_pad_factor_x, zero_pad_factor_y = None, None
     if zero_pad_factor is not None:
         try:
-            float(zero_pad_factor[0]);
+            float(zero_pad_factor[0])
             float(zero_pad_factor[1])
             zero_pad_factor_y, zero_pad_factor_x = zero_pad_factor
         except:
-            log_warning(f'What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
+            try:
+                float(zero_pad_factor)
+                zero_pad_y, zero_pad_x = zero_pad_factor, zero_pad_factor
+            except:
+                log_warning(f'dual2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
     return (rdual(x, zero_pad=zero_pad_x, zero_pad_factor=zero_pad_factor_x),
             dual(y, zero_pad=zero_pad_y, zero_pad_factor=zero_pad_factor_y))
 
@@ -145,7 +153,7 @@ from scipy import fft
 
 
 def prepare_signal_for_ft1d(arr: np.ndarray, window: str = 'hann',
-                            zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> np.ndarray:
+                            zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> np.ndarray:
     N = arr.shape[0]
 
     # Removing mean
@@ -184,7 +192,7 @@ def prepare_signal_for_ft1d(arr: np.ndarray, window: str = 'hann',
 
     return z_roll
 def rft1d(arr: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', norm=None,
-          zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> np.ndarray:
+          zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> np.ndarray:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
     The unit is in amplitude/(inverse periode), e.g. V(s) -> V/Hz(Hz)
@@ -210,7 +218,7 @@ def rft1d(arr: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann',
     return z_hat * step(x)
 
 def ft1d(arr: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', norm=None,
-          zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> np.ndarray:
+          zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> np.ndarray:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
     The unit is in amplitude/(inverse periode), e.g. V(s) -> V/Hz(Hz)
@@ -240,7 +248,7 @@ def prepare_signal_for_ft2d(arr: np.ndarray,
                             window: str = 'hann',
                             winstyle=None,
                             zero_pad: Optional[Tuple[int, int]] = None,
-                            zero_pad_factor: Optional[Tuple[float, float]] = None,
+                            zero_pad_factor: Optional[Union[int, Tuple[int, int]]] = None,
                             shift: Optional[Tuple[int, int]] = None) -> np.ndarray:
     """
     Returns the 2-D Fourier transform of a real input array using the given windowing.
@@ -290,8 +298,14 @@ def prepare_signal_for_ft2d(arr: np.ndarray,
             pad_x = np.rint(Nx * (zero_pad_factor[1] - 1)).astype(int)
             pad_width = ((pad_t // 2, pad_t // 2 + pad_t % 2), (pad_x // 2, pad_x // 2 + pad_x % 2))
         except:
-            log_warning(f'ft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
-            pad_width = None
+            # case zero_pad_factor is an int
+            try:
+                pad_t = np.rint(Nt * (zero_pad_factor - 1)).astype(int)
+                pad_x = np.rint(Nx * (zero_pad_factor - 1)).astype(int)
+                pad_width = ((pad_t // 2, pad_t // 2 + pad_t % 2), (pad_x // 2, pad_x // 2 + pad_x % 2))
+            except:
+                log_warning(f'ft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
+                pad_width = None
     elif zero_pad is not None:
         log_subtrace(f'ft2d: | zero_pad={zero_pad}')
         try:
