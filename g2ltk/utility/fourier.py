@@ -371,6 +371,12 @@ def ft2d(arr: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray
     """
     log_trace(f'ft2d: Computing 2-D FFT of array of shape {arr.shape}')
 
+    Nt_arr, Nx_arr = arr.shape
+    Nx_x = len(x) if x is not None else None
+    Nt_t = len(y) if y is not None else None
+    if ((Nx_x is not None) and (Nx_x != Nx_arr)) or ((Nt_t is not None) and (Nt_t != Nt_arr)):
+        log_warning(f'ft2d: array is shaped {arr.shape} != {Nt_t} x {Nx_x}')
+
     arr_prepared = prepare_signal_for_ft2d(arr, window=window, winstyle=winstyle,
                                            zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
                                            shift=shift)
@@ -407,6 +413,12 @@ def rft2d(arr: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarra
 
     """
     log_trace(f'rft2d: Computing 2-D RFFT of array of shape {arr.shape}')
+
+    Nt_arr, Nx_arr = arr.shape
+    Nx_x = len(x) if x is not None else None
+    Nt_t = len(y) if y is not None else None
+    if ((Nx_x is not None) and (Nx_x != Nx_arr)) or ((Nt_t is not None) and (Nt_t != Nt_arr)):
+        log_warning(f'ft2d: array is shaped {arr.shape} != {Nt_t} x {Nx_x}')
 
     arr_prepared = prepare_signal_for_ft2d(arr, window=window, winstyle=winstyle,
                                            zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
