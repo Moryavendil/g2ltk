@@ -341,6 +341,8 @@ def prepare_signal_for_ft2d(arr: np.ndarray,
     log_subtrace(f'ft2d: roll_offset={roll_offset} | roll_shift={roll_shift}')
     z_roll = np.roll(z_clean, roll_total, axis=(0, 1))
 
+    log_debug(f'ft2d: Old size ({Nt},{Nx}) | New size={z_roll.shape}')
+
     return z_roll
 
 def ft2d(arr: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None, window: str = 'hann',
