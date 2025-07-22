@@ -19,7 +19,7 @@ def lap(x: np.ndarray, y:np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     ddy = (y[2:] - 2*y[1:-1] + y[:-2])/((x[2:] - x[:-2])/2)**2
     return ddx, ddy
 
-
+# USE PATHON PACKAGE findiff https://github.com/maroba/findiff
 def findiff_regular(y:np.ndarray, x:Optional[np.ndarray]=None, order:int=2, derivative=1) -> Tuple[np.ndarray, np.ndarray]:
     # https://en.wikipedia.org/wiki/Finite_difference_coefficient
 
@@ -30,7 +30,10 @@ def findiff_regular(y:np.ndarray, x:Optional[np.ndarray]=None, order:int=2, deri
             coeffs = [1/12, -2/3, 0, 2/3, -1/12]
         elif order == 6:
             coeffs = [-1/60, 3/20, -3/4, 0, 3/4, -3/20, 1/60]
+        elif order == 8:
+            coeffs = [1/280, -4/105, 1/5, -4/5, 0, 4/5, -1/5, 4/105, -1/280]
         else:
+            log_warning(f'We do not have the coeffs for derivative={derivative} and order={order}')
             return None
     elif derivative == 2:
         if order == 2:
@@ -40,8 +43,10 @@ def findiff_regular(y:np.ndarray, x:Optional[np.ndarray]=None, order:int=2, deri
         elif order == 6:
             coeffs = [1/90, -3/20, 3/2, -49/18, 3/2, -3/20, 1/90]
         else:
+            log_warning(f'We do not have the coeffs for derivative={derivative} and order={order}')
             return None
     else:
+        log_warning(f'We do not have the coeffs for derivative={derivative}')
         return None
 
     oneoverdx_n = 1/step(x)**derivative
