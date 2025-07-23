@@ -226,11 +226,14 @@ def step(arr:Optional[np.ndarray]) -> float:
         return 1
     # return arr[1] - arr[0]
     return (arr[1:] - arr[:-1]).mean()
-
 def span(arr:Optional[np.ndarray]) -> float:
     if arr is None:
         return 1
     return (len(arr)-1)*step(arr)
+
+# find index of value
+def argval(arr:np.ndarray, val:Union[int, float]):
+    return np.argmin((arr-val)**2)
 
 def correct_limits(arr:np.ndarray) -> Tuple[float, float]:
     return arr.min() - step(arr) / 2, arr.max() + step(arr) / 2
