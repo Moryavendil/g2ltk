@@ -5,6 +5,7 @@
 figures/
 movies/
 analysis_files/
+out/
 
 # libraries
 __pycache__/
@@ -15,6 +16,7 @@ tmp_*
 
 # personal files
 perso_*
+nogit_*
 *.zip
 
 # meta files for specific applications
