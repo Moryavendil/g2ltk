@@ -266,27 +266,6 @@ def log_amplitude_cbticks(maximum_amplitude:float, range_db:Union[int, float]):
     cbticklabels = ['0 dB' if att_db == 0 else f'-{att_db} dB' for att_db in att_db_major]
     return cbticks_major, cbticklabels
 
-def set_ticks_log_cb(cb, maximum_amplitude:float, range_db:Union[int, float], text:bool=True):
-    step_major = 20
-    step_minor = 5
-    if range_db < 60:
-        step_major = 10
-        step_minor = 2
-    if range_db < 30:
-        step_major = 5
-        step_minor = 1
-    # it seems unreasonable to have range_db > 100 or < 10
-    att_db_major = np.arange(0, range_db+1, step_major)
-    att_db_minor = np.arange(0, range_db+1, step_minor)
-    cbticks_major = [attenuate_power(maximum_amplitude, att_db) for att_db in att_db_major]
-    cbticklabels = ['0 dB' if att_db == 0 else f'-{att_db} dB' for att_db in att_db_major]
-    cbticks_minor = [attenuate_power(maximum_amplitude, att_db) for att_db in att_db_minor]
-
-    cb.ax.set_yticks(cbticks_major, minor=False)
-    cb.ax.set_yticklabels(cbticklabels if text else [], minor=False)
-    cb.ax.set_yticks(cbticks_minor, minor=True)
-    cb.ax.set_yticklabels([], minor=True)
-
 ### FFT AND PSD COMPUTATIONS
 
 from .fourier import *
@@ -296,6 +275,7 @@ from .fourier import *
 from .genfig import *
 
 from .plotting import *
+
 
 ########### DISPLAYS THE TIME
 def convert_time(time:Any, origin_unit:str, target_unit:str):

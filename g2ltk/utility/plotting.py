@@ -1,6 +1,10 @@
+from typing import Optional, Any, Tuple, Dict, List, Union
 import math
+import numpy as np
 import matplotlib.colors as col
 from matplotlib.colors import Normalize, LogNorm
+
+from . import attenuate_power
 
 # default settings
 errorbar_kw_default = {'capsize':3, 'ls':''}
@@ -70,3 +74,40 @@ def set_yaxis_rad(ax):
     ax.set_yticklabels([r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'], minor=False)
     ax.set_yticks([-3*math.pi/4, -math.pi/4, 0, math.pi/4, 3*math.pi/4], minor=True)
     ax.set_ylim(-math.pi, math.pi)
+
+def set_yaxis_log(ax, maximum_amplitude:float, range_db:Union[int, float], text:bool=True,
+                  step_minor=None):
+    step_major = 40
+    if range_db < 200:
+        step_major = 20
+    if range_db < 100:
+        step_major = 20
+    if range_db < 60:
+        step_major = 10
+    if range_db < 30:
+        step_major = 5
+    if step_minor is None:
+        step_minor = 20
+        if range_db < 200:
+            step_minor = 10
+        if range_db < 100:
+            step_minor = 5
+        if range_db < 60:
+            step_minor = 2
+        if range_db < 30:
+            step_minor = 1
+    # it seems unreasonable to have range_db > 100 or < 10
+    att_db_major = np.arange(0, range_db+1, step_major)
+    att_db_minor = np.arange(0, range_db+1, step_minor)
+    cbticks_major = [attenuate_power(maximum_amplitude, att_db) for att_db in att_db_major]
+    cbticklabels = ['0 dB' if att_db == 0 else f'-{att_db} dB' for att_db in att_db_major]
+    cbticks_minor = [attenuate_power(maximum_amplitude, att_db) for att_db in att_db_minor]
+
+    ax.set_yticks(cbticks_major, minor=False)
+    ax.set_yticklabels(cbticklabels if text else [], minor=False)
+    ax.set_yticks(cbticks_minor, minor=True)
+    ax.set_yticklabels([], minor=True)
+
+def set_ticks_log_cb(cb, maximum_amplitude:float, range_db:Union[int, float], text:bool=True):
+    # LEGACY DO NOT USE
+    set_yaxis_log(cb.ax, maximum_amplitude, range_db, text)
