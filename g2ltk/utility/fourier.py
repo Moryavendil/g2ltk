@@ -596,7 +596,7 @@ def estimatesignalfrequency(z: np.ndarray, x: Optional[np.ndarray] = None,
 
 
 # find the edges of the peak (1D, everything is easy)
-def peak_contour1d(peak_x, z, peak_depth_dB, x=None, peak_max_length: Optional[float] = None):
+def peak_contour1d(peak_x, z, peak_depth_dB:Optional[int]=40, x=None, peak_max_length: Optional[float] = None):
     if x is None:
         x = np.arange(z.shape[0])
 
@@ -643,18 +643,29 @@ def peak_contour1d(peak_x, z, peak_depth_dB, x=None, peak_max_length: Optional[f
     #     x1_before = x1_intercept[x1_intercept < peak_x].max()
     # if len(x1_intercept[x1_intercept > peak_x] > 0):
     #     x1_after = x1_intercept[x1_intercept > peak_x].min()
+
+    log_debug(f'peak_contour1d: Around {peak_x} ({min_peak_depth_dB} dB) : {(x1_before, x1_after)}')
     return x1_before, x1_after
 
 
-def peak_vicinity1d(peak_x, z, peak_depth_dB, x=None):
+def peak_vicinity1d(peak_x, z, peak_depth_dB:Optional[int]=40, x=None, peak_contour: Optional[List] = None):
     if x is None:
         x = np.arange(z.shape[0])
-    x1_before, x1_after = peak_contour1d(peak_x=peak_x, z=z, peak_depth_dB=peak_depth_dB, x=x)
-    # return np.where((x1 >= x1_before)*(x1 <= x1_after))[0]
-    return ((x >= x1_before) * (x <= x1_after)).astype(bool)
+
+    if peak_contour is None:
+        peak_contour = peak_contour1d(peak_x=peak_x, z=z, peak_depth_dB=peak_depth_dB, x=x)
+    x1_before, x1_after = peak_contour
+
+    log_trace(f'peak_vicinity1d: Vicinity of {(x1_before, x1_after)} (around {peak_x})')
+
+    vicinity = (x >= x1_before) & (x <= x1_after)
+
+    log_debug(f'peak_vicinity1d: Found {np.sum(vicinity)} points in zone {(x1_before, x1_after)} (around {peak_x})')
+
+    return vicinity
 
 
-def power_near_peak1d(peak_x, z, peak_depth_dB, x=None, peak_vicinity: Optional[np.ndarray] = None):
+def power_near_peak1d(peak_x, z, peak_depth_dB:Optional[int]=40, x=None, peak_vicinity: Optional[np.ndarray] = None, peak_contour: Optional[List] = None):
     # powerlog_intercmor_incertitude = zmeanx_psd.max()/(10**(peak_depth_dB/10))
     # freq_for_intercept = utility.find_roots(freqs, zmeanx_psd - powerlog_intercmor_incertitude)
     # freqpre = freq_for_intercept[freq_for_intercept < freq_guess].max()
@@ -669,7 +680,7 @@ def power_near_peak1d(peak_x, z, peak_depth_dB, x=None, peak_vicinity: Optional[
     #
     log_debug(f'Measuring the power around     ({round(peak_x, 3)})')
     if peak_vicinity is None:
-        peak_vicinity = peak_vicinity1d(peak_x=peak_x, z=z, peak_depth_dB=peak_depth_dB, x=x)
+        peak_vicinity = peak_vicinity1d(peak_x=peak_x, z=z, peak_depth_dB=peak_depth_dB, x=x, peak_contour=peak_contour)
     pw = np.sum(z[peak_vicinity]) * step(x)
     log_debug(f'Power: {pw} (amplitude: {np.sqrt(pw*2)})')
     return pw
