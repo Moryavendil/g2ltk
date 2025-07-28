@@ -471,7 +471,7 @@ def rpsd1d(z: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', 
 def psd1d(z: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', zero_pad: Optional[int] = None,
           zero_pad_factor: Optional[float] = None) -> np.ndarray:
     log_info('Stop using psd1d, it is deprecated. Use rpsd1d instead.')
-    return psd1d(z, x=x, window=window, zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+    return rpsd1d(z, x=x, window=window, zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
 
 def ifft1d(zhat: np.ndarray, xdual: Optional[np.ndarray] = None):
     return fft.fftshift(fft.ifft(np.fft.ifftshift(zhat))) * span(xdual)
