@@ -24,6 +24,7 @@ def dual(arr: np.ndarray, zero_pad: Optional[int] = None, zero_pad_factor: Optio
 
     """
     N = arr.shape[0]
+    log_trace(f'dual: Called with {arr.shape} array, zp = {zero_pad}, zpf = {zero_pad_factor}')
 
     pad_width = None
     if zero_pad_factor is not None:
@@ -47,6 +48,8 @@ def dual(arr: np.ndarray, zero_pad: Optional[int] = None, zero_pad_factor: Optio
         pad_width = (0, 0)
 
     n = N + pad_width[0] + pad_width[1]
+
+    log_debug(f'dual: {N} -> {n}')
 
     return np.fft.fftshift(np.fft.fftfreq(n, step(arr)))
 
@@ -66,6 +69,7 @@ def rdual(arr: np.ndarray, zero_pad: Optional[int] = None, zero_pad_factor: Opti
 
     """
     N = arr.shape[0]
+    log_trace(f'rdual: Called with {arr.shape} array, zp = {zero_pad}, zpf = {zero_pad_factor}')
 
     pad_width = None
     if zero_pad_factor is not None:
@@ -90,12 +94,15 @@ def rdual(arr: np.ndarray, zero_pad: Optional[int] = None, zero_pad_factor: Opti
 
     n = N + pad_width[0] + pad_width[1]
 
+    log_debug(f'rdual: {N} -> {n}')
+
     return np.fft.rfftfreq(n, step(arr))
 
 
 def dual2d(x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
-           zero_pad: Optional[Tuple[int, int]] = None, zero_pad_factor: Optional[Union[int, Tuple[int, int]]] = None) -> Tuple[
-    np.ndarray, np.ndarray]:
+           zero_pad: Optional[Tuple[int, int]] = None,
+           zero_pad_factor: Optional[Union[int, Tuple[int, int]]] = None) -> Tuple[np.ndarray, np.ndarray]:
+    log_trace(f'dual2d: Called with {x.shape}x{y.shape} arrays, zp = {zero_pad}, zpf = {zero_pad_factor}')
     zero_pad_x, zero_pad_y = None, None
     if zero_pad is not None:
         try:
@@ -107,13 +114,16 @@ def dual2d(x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
     zero_pad_factor_x, zero_pad_factor_y = None, None
     if zero_pad_factor is not None:
         try:
-            float(zero_pad_factor[0]);
+            float(zero_pad_factor[0])
             float(zero_pad_factor[1])
+            log_trace('dual2d: zero_pad_factor seems to be a Tuple')
             zero_pad_factor_y, zero_pad_factor_x = zero_pad_factor
         except:
+            log_trace('dual2d: zero_pad_factor seems to NOT be a Tuple')
             try:
                 float(zero_pad_factor)
-                zero_pad_y, zero_pad_x = zero_pad_factor, zero_pad_factor
+                log_trace('dual2d: zero_pad_factor seems to be a number')
+                zero_pad_factor_y, zero_pad_factor_x = zero_pad_factor, zero_pad_factor
             except:
                 log_warning(f'dual2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
     return (dual(x, zero_pad=zero_pad_x, zero_pad_factor=zero_pad_factor_x),
@@ -121,8 +131,9 @@ def dual2d(x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
 
 
 def rdual2d(x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
-            zero_pad: Optional[Tuple[int, int]] = None, zero_pad_factor: Optional[Union[int, Tuple[int, int]]] = None) -> Tuple[
-    np.ndarray, np.ndarray]:
+            zero_pad: Optional[Tuple[int, int]] = None,
+            zero_pad_factor: Optional[Union[int, Tuple[int, int]]] = None) -> Tuple[np.ndarray, np.ndarray]:
+    log_trace(f'rdual2d: Called with {x.shape}x{y.shape} arrays, zp = {zero_pad}, zpf = {zero_pad_factor}')
     zero_pad_x, zero_pad_y = None, None
     if zero_pad is not None:
         try:
@@ -140,7 +151,7 @@ def rdual2d(x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
         except:
             try:
                 float(zero_pad_factor)
-                zero_pad_y, zero_pad_x = zero_pad_factor, zero_pad_factor
+                zero_pad_factor_y, zero_pad_factor_x = zero_pad_factor, zero_pad_factor
             except:
                 log_warning(f'dual2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
     return (rdual(x, zero_pad=zero_pad_x, zero_pad_factor=zero_pad_factor_x),
@@ -191,6 +202,8 @@ def prepare_signal_for_ft1d(arr: np.ndarray, window: str = 'hann',
     z_roll = np.roll(z_clean, pad_width[0] + N // 2)
 
     return z_roll
+
+
 def rft1d(arr: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', norm=None,
           zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> np.ndarray:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
@@ -217,8 +230,9 @@ def rft1d(arr: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann',
 
     return z_hat * step(x)
 
+
 def ft1d(arr: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', norm=None,
-          zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> np.ndarray:
+         zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> np.ndarray:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
     The unit is in amplitude/(inverse periode), e.g. V(s) -> V/Hz(Hz)
@@ -287,7 +301,7 @@ def prepare_signal_for_ft2d(arr: np.ndarray,
     elif winstyle == 'circular':
         z_win = z_nozero * filters.window(window, (Nt, Nx), warp_kwargs={'order': 3})
     else:
-        log_warning(f'Unrecognized 2d-windowing style: {winstyle}')
+        log_warning(f'Unrecognized 2d-windowing style: {winstyle}. Using no windowing at all.')
         z_win = z_nozero
 
     pad_width = None
@@ -344,6 +358,7 @@ def prepare_signal_for_ft2d(arr: np.ndarray,
     log_debug(f'ft2d: Old size ({Nt},{Nx}) | New size={z_roll.shape}')
 
     return z_roll
+
 
 def ft2d(arr: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None, window: str = 'hann',
          winstyle=None, norm=None,
@@ -429,7 +444,7 @@ def rft2d(arr: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarra
     return fft.fftshift(arr_hat, axes=0) * step(x) * step(y)
 
 
-def window_factor(window: str):
+def window_factor1d(window: str):
     """
     Returns the factor by which the energy is multiplied when the signal is windowed.
 
@@ -448,11 +463,39 @@ def window_factor(window: str):
     elif window == 'hann':
         return 8 / 3
     else:
-        return 1 / ((get_window(window, 10000) ** 2).sum() / 10000)
+        N = 10000
+        return 1 / ((get_window(window, N) ** 2).sum() / N)
+
+
+def window_factor2d(window: str, winstyle: Optional[str] = None):
+    """
+    Returns the factor by which the energy is multiplied when the signal is windowed.
+
+    Parameters
+    ----------
+    window
+
+    Returns
+    -------
+    :param winstyle:
+
+    """
+    if winstyle is None:
+        winstyle = 'outer'
+    winstyle = str(winstyle)
+    log_subtrace(f'ft2d: Using windowing | window={window} | style={winstyle}')
+    if winstyle == 'outer':
+        return window_factor1d(window)**2
+    elif winstyle == 'circular':
+        N = 1000
+        return 1 / (np.sum(filters.window(window, (N, N), warp_kwargs={'order': 3})**2)/N**2)
+    else:
+        log_warning(f'Unrecognized 2d-windowing style: {winstyle}.')
+        return 1
 
 
 def rpsd1d(z: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', zero_pad: Optional[int] = None,
-          zero_pad_factor: Optional[float] = None) -> np.ndarray:
+           zero_pad_factor: Optional[float] = None) -> np.ndarray:
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
     z_ft = rft1d(z, x=x, window=window, norm="backward", zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
@@ -461,20 +504,23 @@ def rpsd1d(z: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', 
     # It is the total energy (i.e., during all the sampling time) of the signal at this frequency
     # It is useful in itself for time-limited signals (impulsions)
     # if the unit of z(t) is [V(s)], then the unit of $ESD(z)$ is [V^2/Hz^2(Hz)]
-    esd = np.abs(z_ft) ** 2 * window_factor(window)
+    esd = np.abs(z_ft) ** 2 * window_factor1d(window)
     esd[1:] *= 2  # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is periodic, then PSD = ESD / duration
     # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
     return esd / span(x)
 
+
 def psd1d(z: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', zero_pad: Optional[int] = None,
           zero_pad_factor: Optional[float] = None) -> np.ndarray:
     log_info('Stop using psd1d, it is deprecated. Use rpsd1d instead.')
     return rpsd1d(z, x=x, window=window, zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
 
+
 def ifft1d(zhat: np.ndarray, xdual: Optional[np.ndarray] = None):
     return fft.fftshift(fft.ifft(np.fft.ifftshift(zhat))) * span(xdual)
+
 
 def rpsd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None, window: str = 'hann',
            winstyle=None,
@@ -514,7 +560,7 @@ def rpsd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray
     # It is the total energy (i.e., during all the sampling time) of the signal at this 2-frequency
     # It is useful in itself for space-time-limited signals (wavelets)
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $ESD(z)$ is [V^2/Hz^2/mm^{-2}(Hz, mm-1)]
-    esd = np.abs(y_ft) ** 2 * window_factor(window) ** 2
+    esd = np.abs(y_ft) ** 2 * window_factor2d(window, winstyle=winstyle) ** 2
     esd[:, 1:] *= 2  # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
     if not quantitative:
         esd[:, 0] *= 2  # we want to equilibrate "for the show". But it changes teh valeus to non-physical ones !
@@ -563,7 +609,7 @@ def psd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray]
     # It is the total energy (i.e., during all the sampling time) of the signal at this 2-frequency
     # It is useful in itself for space-time-limited signals (wavelets)
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $ESD(z)$ is [V^2/Hz^2/mm^{-2}(Hz, mm-1)]
-    esd = np.abs(y_ft) ** 2 * window_factor(window) ** 2
+    esd = np.abs(y_ft) ** 2 * window_factor2d(window, winstyle=winstyle) ** 2
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is 2-D periodic, then PSD = ESD / (duration_1.duration_2)
     # Thus if the unit of z(t, x) is [V(s, mm)], then the unit of PSD(z)$ is [V^2/Hz/mm^{-1}(Hz, mm-1)]
@@ -601,7 +647,7 @@ def estimatesignalfrequency(z: np.ndarray, x: Optional[np.ndarray] = None,
 
 
 # find the edges of the peak (1D, everything is easy)
-def peak_contour1d(peak_x, z, peak_depth_dB:Optional[int]=40, x=None, peak_max_length: Optional[float] = None):
+def peak_contour1d(peak_x, z, peak_depth_dB: Optional[int] = 40, x=None, peak_max_length: Optional[float] = None):
     if x is None:
         x = np.arange(z.shape[0])
 
@@ -653,7 +699,7 @@ def peak_contour1d(peak_x, z, peak_depth_dB:Optional[int]=40, x=None, peak_max_l
     return x1_before, x1_after
 
 
-def peak_vicinity1d(peak_x, z, peak_depth_dB:Optional[int]=40, x=None, peak_contour: Optional[List] = None):
+def peak_vicinity1d(peak_x, z, peak_depth_dB: Optional[int] = 40, x=None, peak_contour: Optional[List] = None):
     if x is None:
         x = np.arange(z.shape[0])
 
@@ -670,7 +716,8 @@ def peak_vicinity1d(peak_x, z, peak_depth_dB:Optional[int]=40, x=None, peak_cont
     return vicinity
 
 
-def power_near_peak1d(peak_x, z, peak_depth_dB:Optional[int]=40, x=None, peak_vicinity: Optional[np.ndarray] = None, peak_contour: Optional[List] = None):
+def power_near_peak1d(peak_x, z, peak_depth_dB: Optional[int] = 40, x=None, peak_vicinity: Optional[np.ndarray] = None,
+                      peak_contour: Optional[List] = None):
     # powerlog_intercmor_incertitude = zmeanx_psd.max()/(10**(peak_depth_dB/10))
     # freq_for_intercept = utility.find_roots(freqs, zmeanx_psd - powerlog_intercmor_incertitude)
     # freqpre = freq_for_intercept[freq_for_intercept < freq_guess].max()
@@ -687,7 +734,7 @@ def power_near_peak1d(peak_x, z, peak_depth_dB:Optional[int]=40, x=None, peak_vi
     if peak_vicinity is None:
         peak_vicinity = peak_vicinity1d(peak_x=peak_x, z=z, peak_depth_dB=peak_depth_dB, x=x, peak_contour=peak_contour)
     pw = np.sum(z[peak_vicinity]) * step(x)
-    log_debug(f'Power: {pw} (amplitude: {np.sqrt(pw*2)})')
+    log_debug(f'Power: {pw} (amplitude: {np.sqrt(pw * 2)})')
     return pw
 
 
@@ -715,9 +762,10 @@ def find_shapely_contours(contourgenerator, zintercept):
     multipolygons = []
     for i_poly in range(len(polygons_for_shapely)):
         points, offsets, outer_offsets = polygons_for_shapely[i_poly][0][0], polygons_for_shapely[i_poly][1][0], \
-        polygons_for_shapely[i_poly][2][0]
+            polygons_for_shapely[i_poly][2][0]
         multipolygon = \
-        from_ragged_array(GeometryType.MULTIPOLYGON, points, (offsets, outer_offsets, [0, len(outer_offsets) - 1]))[0]
+            from_ragged_array(GeometryType.MULTIPOLYGON, points, (offsets, outer_offsets, [0, len(outer_offsets) - 1]))[
+                0]
         # multipolygon = from_ragged_array(GeometryType.POLYGON, points, (offsets, outer_offsets)) # try to do a shapely Polygon is better if we really need to handle the holes
         multipolygons.append(multipolygon)
     return multipolygons
@@ -818,10 +866,17 @@ def peak_contour2d(peak_x: float, peak_y: float, z: np.ndarray, peak_depth_dB: f
     -------
 
     """
+    if len(z.shape) != 2:
+        log_warning(f'peak_contour2d: z should be a 2D array. Its shape is {z.shape}')
     if x is None:
         x = np.arange(z.shape[1])
+    else:
+        if len(x) != z.shape[1]:
+            log_warning(f'peak_contour2d: Shapes do not match. {z.shape} != {y.shape}x{x.shape}')
     if y is None:
         y = np.arange(z.shape[0])
+        if len(y) != z.shape[0]:
+            log_warning(f'peak_contour2d: Shapes do not match. {z.shape} != {y.shape}x{x.shape}')
     if peak_max_area is None:
         global peak_max_area_default
         peak_max_area = peak_max_area_default
