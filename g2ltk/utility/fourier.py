@@ -996,5 +996,5 @@ def power_near_peak2d(peak_x, peak_y, z, peak_depth_dB, x=None, y=None,
                                         peak_contours=peak_contours,
                                         peak_max_area=peak_max_area, peak_min_circularity=peak_min_circularity)
     pw = np.sum(z[peak_vicinity]) * step(x) * step(y)
-    log_debug(f'Power: {pw} (amplitude: {np.sqrt(pw) * np.sqrt(2)})')
+    log_debug(f'Power: {pw} (amplitude: {np.sqrt(2*pw)})')
     return pw
