@@ -451,7 +451,7 @@ def window_factor(window: str):
         return 1 / ((get_window(window, 10000) ** 2).sum() / 10000)
 
 
-def psd1d(z: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', zero_pad: Optional[int] = None,
+def rpsd1d(z: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', zero_pad: Optional[int] = None,
           zero_pad_factor: Optional[float] = None) -> np.ndarray:
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
@@ -467,6 +467,11 @@ def psd1d(z: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', z
     # Assuming that the signal is periodic, then PSD = ESD / duration
     # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
     return esd / span(x)
+
+def psd1d(z: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', zero_pad: Optional[int] = None,
+          zero_pad_factor: Optional[float] = None) -> np.ndarray:
+    log_info('Stop using psd1d, it is deprecated. Use rpsd1d instead.')
+    return psd1d(z, x=x, window=window, zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
 
 def ifft1d(zhat: np.ndarray, xdual: Optional[np.ndarray] = None):
     return fft.fftshift(fft.ifft(np.fft.ifftshift(zhat))) * span(xdual)
@@ -567,7 +572,7 @@ def psd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray]
 
 #
 def estimatesignalfrequency(z: np.ndarray, x: Optional[np.ndarray] = None,
-                            window: str = 'boxcar', zero_pad_factor: Optional[float] = 10.,
+                            window: str = 'boxcar', zero_pad_factor: Optional[int] = 16,
                             bounds=None) -> float:
     """Estimates the frequency of a signal
 
@@ -588,7 +593,7 @@ def estimatesignalfrequency(z: np.ndarray, x: Optional[np.ndarray] = None,
     if x is None:
         x = np.arange(len(z))
     fx: np.ndarray = rdual(x, zero_pad_factor=zero_pad_factor)
-    pw: np.ndarray = psd1d(z, x, window=window, zero_pad_factor=zero_pad_factor)
+    pw: np.ndarray = rpsd1d(z, x, window=window, zero_pad_factor=zero_pad_factor)
     if bounds is not None:
         pw = pw[(fx > bounds[0]) & (fx < bounds[1])]
         fx = fx[(fx > bounds[0]) & (fx < bounds[1])]
