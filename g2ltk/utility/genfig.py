@@ -38,9 +38,12 @@ figw_aps:Dict[str, float] = {'simple': 86 * in_per_mm, 'wide': 140 * in_per_mm, 
 # for JFM (2025)
 figw_jfm:Dict[str, float] = {'simple': 15*in_per_pc, 'wide': 21*in_per_pc, 'double': 32*in_per_pc,
                              'inset': 7*in_per_pc}
-# for thesis - WORK IN PROGRESS
+# for thesis
 figw_thesis:Dict[str, float] = {'simple': 70 * in_per_mm, 'wide': 110 * in_per_mm, 'double': 155 * in_per_mm,
-                               'inset': 35*in_per_mm, 'small': 50*in_per_mm}
+                                'inset': 35*in_per_mm, 'small': 50*in_per_mm}
+# for thesis presentation powerpoint
+figw_thezprez:Dict[str, float] = {'simple': 160 * in_per_mm, 'wide': 200 * in_per_mm, 'double': 300 * in_per_mm,
+                                'inset': 70*in_per_mm, 'small': 100*in_per_mm}
 # for viewing confort, on a screen
 figw_confort:Dict[str, float] = {'simple': 120*in_per_mm, 'wide': 190*in_per_mm, 'double': 250*in_per_mm,
                                  'inset': 60*in_per_mm}
@@ -180,11 +183,13 @@ thesis_latex_preamble = r"""%
 styledict_default = {'name': 'default', 'textfontsize': 12, 'fontsize': 10, 'latex_preamble': '%', 'figw': figw_confort}
 styledict_presentation = {'name': 'presentation', 'textfontsize': 20, 'fontsize': 18}
 styledict_thesis = {'name': 'thesis', 'textfontsize': 11, 'fontsize': 10, 'fontsize_inset': 9, 'latex_preamble': thesis_latex_preamble, 'figw': figw_thesis}
+styledict_thezprez = {'name': 'thezprez', 'textfontsize': 18, 'fontsize': 18, 'fontsize_inset': 16, 'latex_preamble': thesis_latex_preamble, 'figw': figw_thezprez}
 styledict_jfm = {'name': 'jfm', 'textfontsize': 10.5, 'fontsize': 9, 'latex_preamble': jfm_latex_preamble, 'figw': figw_jfm}
 styledict_aps = {'name': 'aps', 'figw': figw_aps}
 
 styledicts = {'jfm': styledict_jfm, 'aps': styledict_aps,
-              'presentation': styledict_presentation, 'thesis': styledict_thesis, 
+              'presentation': styledict_presentation,
+              'thesis': styledict_thesis, 'thezprez': styledict_thezprez,
               'default': styledict_default}
 
 def fetch_styledict(style:Optional[str]=None):
@@ -204,7 +209,7 @@ def styled(key:str, style:Optional[str]=None):
 general_latex_preamble = r"""%
 %%% PACKAGES
 %
-general_latex_preamble
+%general_latex_preamble
 
 %%% QOL
 %
@@ -428,7 +433,7 @@ LATEX_STYLE_THESIS = r"""
 """
 
 def latex_preamble(style=None):
-    if style=='thesis':
+    if style=='thesis' or style=='thezpresz':
         return LATEX_STYLE_THESIS
     style_specific_latex_preamble = styled('latex_preamble', style=style)
 
