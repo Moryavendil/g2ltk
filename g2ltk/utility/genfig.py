@@ -12,9 +12,19 @@ in_per_mm = 1 / 25.4
 in_per_pt = 0.01384
 in_per_pc = 0.16605
 # screen_dpi = 100 # default 100
-screen_dpi = 122.38 # 24'' 2560x1440 px screen
+# screen_dpi = 122.38 # 24'' 2560x1440 px screen
+screen_dpi = 92.60 # DELL U2414H 23.8'' FullHD
 # screen_dpi = 91.79 # 24'' FHD
 # screen_dpi = 165.63 # 13.3'' FHD
+
+
+# # To get DPI:
+# from PyQt5.QtWidgets import QApplication
+# import sys
+# app = QApplication(sys.argv)
+# screen = app.primaryScreen()
+# print("DPI:", screen.logicalDotsPerInch())
+# print("Physical DPI:", screen.physicalDotsPerInch())
 
 """ FIGURE STYLES
 JFM - Conform with the Journal of Fluid Mechanics template
@@ -185,7 +195,7 @@ styledict_presentation = {'name': 'presentation', 'textfontsize': 20, 'fontsize'
 styledict_thesis = {'name': 'thesis', 'textfontsize': 11, 'fontsize': 10, 'fontsize_inset': 9, 'latex_preamble': thesis_latex_preamble, 'figw': figw_thesis}
 styledict_thezprez = {'name': 'thezprez', 'textfontsize': 18, 'fontsize': 18, 'fontsize_inset': 16, 'latex_preamble': thesis_latex_preamble, 'figw': figw_thezprez}
 styledict_jfm = {'name': 'jfm', 'textfontsize': 10.5, 'fontsize': 9, 'latex_preamble': jfm_latex_preamble, 'figw': figw_jfm}
-styledict_aps = {'name': 'aps', 'figw': figw_aps}
+styledict_aps = {'name': 'aps', 'textfontsize': 10, 'fontsize': 9, 'fontsize_inset': 8, 'figw': figw_aps}
 
 styledicts = {'jfm': styledict_jfm, 'aps': styledict_aps,
               'presentation': styledict_presentation,
