@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "g2ltk"
+dynamic = ["version"]
+authors = [
+  { name="G2L", email="GDoubleL@proton.me" },
+]
+description = "Useful scripts."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+]
+keywords = [
+"image", "analysis", "measure"
+]
+dependencies = [
+    "pillow",
+    "contourpy >= 1.0",
+    "scipy >= 1.7",
+]
+
+[project.optional-dependencies]
+full = ["matplotlib", "pyqtgraph", "PyQt5"]
+
+[tool.hatch.version]
+path = "g2ltk/__init__.py"
+
+[project.scripts]
+pytojupy = "g2ltk.scripts:pytojupy"
+jupytopy = "g2ltk.scripts:jupytopy"
+
+[project.urls]
+Homepage = "https://github.com/Moryavendil/g2ltk"
+Issues = "https://github.com/Moryavendil/g2ltk/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["g2ltk"]  # since there is no src directory the `include` option is equivalent here
+
+[tool.hatch.build.targets.sdist]
+include = ["..."]
