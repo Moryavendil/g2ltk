@@ -20,16 +20,19 @@ keywords = [
 "image", "analysis", "measure"
 ]
 dependencies = [
-    "pillow",
     "contourpy >= 1.0",
     "scipy >= 1.7",
+    "colorama", # we should remove that
+    "scikit-image", # for 2D fft windowing
+    "shapely", # for 2D fft windowing
+    "numpy >= 1.20", # for typing
 ]
 
 [project.optional-dependencies]
 full = ["matplotlib", "pyqtgraph", "PyQt5"]
 
 [tool.hatch.version]
-path = "g2ltk/__init__.py"
+path = "src/g2ltk/__init__.py"
 
 [project.scripts]
 pytojupy = "g2ltk.scripts:pytojupy"
@@ -39,8 +42,8 @@ jupytopy = "g2ltk.scripts:jupytopy"
 Homepage = "https://github.com/Moryavendil/g2ltk"
 Issues = "https://github.com/Moryavendil/g2ltk/issues"
 
-[tool.hatch.build.targets.wheel]
-packages = ["g2ltk"]  # since there is no src directory the `include` option is equivalent here
-
-[tool.hatch.build.targets.sdist]
-include = ["..."]
+#[tool.hatch.build.targets.wheel]
+#packages = ["g2ltk"]  # when there is no src directory the `include` option is equivalent here
+#
+#[tool.hatch.build.targets.sdist]
+#include = ["..."]
