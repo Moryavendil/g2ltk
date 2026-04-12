@@ -94,16 +94,6 @@ def der(y: np.ndarray, x: Optional[Union[np.ndarray, float]] = None, order: int 
         diffoperator = diffoperator**order
     return diffoperator(y)
 
-# peaks (min and max) finding
-def dirty_laplacian(x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    # gives the second derivative of y(x)
-
-    # TODO: implement this properly for uneven spacing. Using gradient(gradient()) ?
-    # TODO: USE PATHON PACKAGE findiff https://github.com/maroba/findiff
-    ddx = (x[2:] + x[:-2]) / 2
-    ddy = (y[2:] - 2 * y[1:-1] + y[:-2]) / ((x[2:] - x[:-2]) / 2) ** 2
-    return ddx, ddy
-
 
 def find_extrema(x: np.ndarray, y: np.ndarray, peak_category: str = 'all'):
     """
@@ -132,10 +122,10 @@ def find_extrema(x: np.ndarray, y: np.ndarray, peak_category: str = 'all'):
         return roots
 
     ### SECOND DERIVATIVE for sign
-    ddx, ddy = dirty_laplacian(x, y)
+    ddy = der(y, x, order=2)
 
     ### INTERPOLATE TO KNOW THE SIGN
-    is_max = np.interp(roots, ddx, ddy) < 0
+    is_max = np.interp(roots, x, ddy) < 0
     is_min = np.bitwise_not(is_max)
 
     if peak_category == 'min':
