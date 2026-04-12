@@ -6,8 +6,8 @@ from skimage import filters  # filters.window for 2D FFT windowing
 from scipy import fft
 
 from .. import log_error, log_warning, log_info, log_debug, log_trace, log_subtrace
-
-from . import floatarray1D, complexarray1D, step, span, interp_roots, find_global_max, attenuate_power
+from g2ltk.peakfinder import step, span, interp_roots, find_global_max
+from . import floatarray1D, complexarray1D, attenuate_power
 
 
 ### Dual: changing from real space to frequency space

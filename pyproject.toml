@@ -26,6 +26,7 @@ dependencies = [
     "scikit-image", # for 2D fft windowing
     "shapely", # for 2D fft windowing
     "numpy >= 1.20", # for typing
+    "findiff", # for finite differences
 ]
 
 [project.optional-dependencies]
