@@ -293,7 +293,7 @@ def estimatesignalfrequency(z: floatarray1D, x: Optional[floatarray1D] = None,
     if bounds is not None:
         pw = pw[(fx > bounds[0]) & (fx < bounds[1])]
         fx = fx[(fx > bounds[0]) & (fx < bounds[1])]
-    return find_global_max(fx, pw)
+    return find_global_max(pw, x=fx)
 
 
 # find the edges of the peak (1D, everything is easy)
@@ -308,7 +308,7 @@ def peak_contour1d(peak_x, z: floatarray1D, peak_depth_dB: Optional[int] = 40, x
 
     while peak_depth_dB > 0:  # infinite loop, return is in it
         zintercept = attenuate_power(z[peak_index], peak_depth_dB)
-        x1_intercept = interp_roots(x, z - zintercept)
+        x1_intercept = interp_roots(z - zintercept, x=x)
         x1_before = peak_x
         x1_after = peak_x
         if len(x1_intercept[x1_intercept < peak_x] > 0):

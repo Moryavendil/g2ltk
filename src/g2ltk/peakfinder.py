@@ -41,13 +41,13 @@ def argval(arr: np.ndarray, val: Union[int, float]) -> np.ndarray[tuple[int], np
 
 
 # root finding
-def interp_unexplicit_roots(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+def interp_unexplicit_roots(y: np.ndarray, x: Optional[np.ndarray] = None) -> np.ndarray:
     s = np.abs(np.diff(np.sign(y))).astype(bool) * (y[:-1] != 0)
 
     return x[:-1][s] + np.diff(x)[s] / (np.abs(y[1:][s] / y[:-1][s]) + 1)
 
 
-def interp_roots(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+def interp_roots(y: np.ndarray, x: Optional[np.ndarray] = None) -> np.ndarray:
     """Finds the roots of y(x) using linear interpolation
 
     Parameters
@@ -63,8 +63,10 @@ def interp_roots(x: np.ndarray, y: np.ndarray) -> np.ndarray:
         The list of x for which y(x) should be zeros
 
     """
+    if x is None:
+        x = np.arange(len(y))
 
-    return np.unique(np.concatenate((x[y == 0], interp_unexplicit_roots(x, y))))
+    return np.unique(np.concatenate((x[y == 0], interp_unexplicit_roots(y, x=x))))
 
 
 # Finite difference
@@ -95,7 +97,7 @@ def der(y: np.ndarray, x: Optional[Union[np.ndarray, float]] = None, order: int 
     return diffoperator(y)
 
 
-def find_extrema(x: np.ndarray, y: np.ndarray, peak_category: str = 'all'):
+def find_extrema(y: np.ndarray, x: Optional[np.ndarray] = None, peak_category: str = 'all'):
     """
 
     Parameters
@@ -112,12 +114,14 @@ def find_extrema(x: np.ndarray, y: np.ndarray, peak_category: str = 'all'):
     If peak_category=='minmax' : minimums, maximums
     else : all, minimums, maximums
     """
+    if x is None:
+        x = np.arange(len(y))
 
     ### FIRST DERIVATIVE
     dy = np.gradient(y, x)
 
     ### ROOTS OF THE FIRST DERIVATIVE
-    roots = interp_roots(x, dy)
+    roots = interp_roots(dy, x=x)
     if peak_category == 'raw':
         return roots
 
@@ -137,7 +141,9 @@ def find_extrema(x: np.ndarray, y: np.ndarray, peak_category: str = 'all'):
     return roots, roots[is_min], roots[is_max]
 
 
-def find_global_peak(x: np.ndarray, y: np.ndarray, peak_category: str = 'raw') -> Optional[float]:
+def find_global_peak(y: np.ndarray, x: Optional[np.ndarray] = None, peak_category: str = 'raw') -> Optional[float]:
+    if x is None:
+        x = np.arange(len(y))
     gross_peak_position = None
     if peak_category == 'raw' or peak_category == 'all' or peak_category == 'minmax':
         peak_category = 'raw'
@@ -151,14 +157,14 @@ def find_global_peak(x: np.ndarray, y: np.ndarray, peak_category: str = 'raw') -
         return None
 
     try:
-        peaks_positions = find_extrema(x, y, peak_category)
+        peaks_positions = find_extrema(y, x=x, peak_category=peak_category)
         precise_peak_position = peaks_positions[argval(peaks_positions, gross_peak_position)]
         return precise_peak_position
     except:
         return gross_peak_position
 
 
-def find_global_max(x: np.ndarray, y: np.ndarray) -> Optional[float]:
+def find_global_max(y: np.ndarray, x: Optional[np.ndarray] = None) -> Optional[float]:
     """
     Finds the global maximum of a function y(x).
     It first takes the maximum and then gets a subpixel resolution by taking the point when the derivative vanishes.
@@ -167,7 +173,7 @@ def find_global_max(x: np.ndarray, y: np.ndarray) -> Optional[float]:
     :param y:
     :return:
     """
-    return find_global_peak(x, y, 'max')
+    return find_global_peak(y, x, 'max')
 
 
 def correct_limits(arr: np.ndarray) -> Tuple[float, float]:

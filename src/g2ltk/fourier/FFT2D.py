@@ -6,7 +6,7 @@ from skimage import filters  # filters.window for 2D FFT windowing
 from scipy import fft
 
 from .. import log_error, log_warning, log_info, log_debug, log_trace, log_subtrace
-from g2ltk.peakfinder import step, span, interp_roots, find_global_max
+from g2ltk.peakfinder import step, span
 from . import floatarray1D, floatarray2D, complexarray1D, complexarray2D, attenuate_power
 from .FFT1D import dual1d, rdual1d
 
