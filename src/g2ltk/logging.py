@@ -3,6 +3,14 @@ from colorama import Fore # change display text color
 
 from g2ltk import force_print, throw_G2L_warning
 
+"""
+This absolutely horrendous portion of code is not meant to be read or used by anyone other than me.
+
+Everything here should be scraped and rebuilt using Python's standard logging library.
+
+I am just too lazy to do that for now.
+"""
+
 verbose_codes:Dict[str, int] = {'critical': 0,
                                 'error': 10,
                                 'warning': 20,
