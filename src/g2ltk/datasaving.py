@@ -4,7 +4,7 @@ import os # to navigate in the directories
 # import shutil # to remove directories
 
 from g2ltk import __version__
-from g2ltk import logging, rivuletfinding, datareading
+from g2ltk import logging, rivuletfinding, videoreading
 
 
 save_directory:str = 'analysis_files'
@@ -270,7 +270,7 @@ def fetch_or_generate_data_from_parameters(datatype:str, parameters:dict, verbos
         total_fns_explicit = total_fns
         if total_fns is None:
             acquisition_path = rivuletfinding.get_acquisition_path_from_parameters(**parameters)
-            total_fns_explicit = np.arange(datareading.get_number_of_available_frames(acquisition_path))
+            total_fns_explicit = np.arange(videoreading.get_number_of_available_frames(acquisition_path))
         logging.log_debug(f'Data to generate: {len(total_fns_explicit)} frames', verbose)
 
         chunk_size:int = 500

@@ -5,7 +5,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.optimize import curve_fit # to fit functions
 
-from . import datareading, datasaving, utility, logging
+from . import videoreading, datasaving, utility, logging
 from . import force_print
 
 # Custom typing
@@ -252,7 +252,7 @@ def bos_framewise(frame:np.ndarray, **kwargs)->np.ndarray:
 
     ### Step 1: Alter the image
     # 1.1 : resize (if needed)
-    l = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
+    l = videoreading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
     l_origin = l.copy()
     l_origin -= l_origin.min()
 
@@ -350,7 +350,7 @@ def borders_framewise(frame:np.ndarray, prominence:float = 1, do_fit:bool=False,
 
     ### Step 1: Alter the image
     # 1.1 : resize (if needed)
-    l = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
+    l = videoreading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
     l_origin = l.copy()
     l_origin -= l_origin.min()
 
@@ -459,7 +459,7 @@ def bol_framewise(frame:np.ndarray, borders_for_this_frame = None, **kwargs)-> n
 
     ### Step 1: Alter the image
     # 1.1 : resize (if needed)
-    l = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
+    l = videoreading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
     l_origin = l.copy()
     l_origin -= l_origin.min()
 
@@ -532,7 +532,7 @@ def fwhmol_framewise(frame:np.ndarray, borders_for_this_frame = None, **kwargs)-
 
     ### Step 1: Alter the image
     # 1.1 : resize (if needed)
-    l = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
+    l = videoreading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
     l_origin = l.copy()
     l_origin -= l_origin.min()
 
@@ -608,7 +608,7 @@ def bos_videowise(frames:np.ndarray, **kwargs)->np.ndarray: # WORK IN PROGRESS
 
     ### Step 1: Alter the image
     # 1.1 : resize (if needed)
-    l = datareading.resize_frames(frames, resize_factor=kwargs['resize_factor'])
+    l = videoreading.resize_frames(frames, resize_factor=kwargs['resize_factor'])
     l_origin = l.copy() - l.min() # DEBUG
 
     # 1.2 remove z median
@@ -827,7 +827,7 @@ def borders(frame:np.ndarray, do_fit:bool = False, w0:float = 1., **kwargs) -> n
         if not key in kwargs.keys():
             kwargs[key] = default_kwargs[key]
 
-    frame_resized = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
+    frame_resized = videoreading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
     height, width = frame_resized.shape
 
     zz = np.zeros((width, 4), dtype=float)
@@ -880,13 +880,13 @@ def borders(frame:np.ndarray, do_fit:bool = False, w0:float = 1., **kwargs) -> n
 def get_acquisition_path_from_parameters(**parameters) -> str:
     # Dataset selection
     dataset = parameters.get('dataset', 'unspecified-dataset')
-    if not datareading.is_this_a_dataset(dataset):
+    if not videoreading.is_this_a_dataset(dataset):
         print(f'WARNING (RVFD): Is not a dataset: {dataset}.')
 
     # Acquisition selection
     acquisition = parameters.get('acquisition', 'unspecified-acquisition')
-    acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
-    if not(datareading.is_this_a_video(acquisition_path)):
+    acquisition_path = videoreading.generate_acquisition_path(acquisition, dataset=dataset)
+    if not(videoreading.is_this_a_video(acquisition_path)):
         print(f'WARNING (RVFD): There is no acquisition named {acquisition} for the dataset {dataset}.')
 
     return acquisition_path
@@ -899,7 +899,7 @@ def get_frames_from_parameters(**parameters):
     framenumbers = parameters.get('framenumbers', None)
 
     # Data fetching
-    frames = datareading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
+    frames = videoreading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
     # length, height, width = frames.shape
 
     frames = frames.astype(float, copy=False)
@@ -913,13 +913,13 @@ def get_frames_from_parameters(**parameters):
 def find_bos(**parameters):
     # Dataset selection
     dataset = parameters.get('dataset', 'unspecified-dataset')
-    if not datareading.is_this_a_dataset(dataset):
+    if not videoreading.is_this_a_dataset(dataset):
         print(f'WARNING (RVFD): Is not a dataset: {dataset}.')
 
     # Acquisition selection
     acquisition = parameters.get('acquisition', 'unspecified-acquisition')
-    acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
-    if not(datareading.is_this_a_video(acquisition_path)):
+    acquisition_path = videoreading.generate_acquisition_path(acquisition, dataset=dataset)
+    if not(videoreading.is_this_a_video(acquisition_path)):
         print(f'WARNING (RVFD): There is no acquisition named {acquisition} for the dataset {dataset}.')
 
     # Parameters getting
@@ -927,7 +927,7 @@ def find_bos(**parameters):
     framenumbers = parameters.get('framenumbers', None)
 
     # Data fetching
-    frames = datareading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
+    frames = videoreading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
     length, height, width = frames.shape
 
     global default_kwargs
