@@ -7,7 +7,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from g2ltk import datareading, datasaving, utility, logging
+from g2ltk import videoreading
+from g2ltk.rivulets import utility
 
 utility.configure_mpl()
 
@@ -15,23 +16,23 @@ utility.configure_mpl()
 # <codecell>
 
 ### Datasets display
-datareading.set_default_root_path('../')
-datareading.describe_root_path()
+videoreading.set_default_root_path('../')
+videoreading.describe_root_path()
 
 
 # <codecell>
 
 ### Dataset selection & acquisitions display
-dataset = datareading.find_dataset(None)
-datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
+dataset = videoreading.find_dataset(None)
+videoreading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
 
 
 # <codecell>
 
-acquisitions:utility.Dict[str, utility.Tuple[float, float]] = {}
-for acquisition in datareading.find_available_videos(dataset=dataset, videotype='gcv'):
-    acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
-    acquisitions[acquisition] = datareading.get_monotonic_timebound(acquisition_path, unit='s')
+acquisitions: utility.Dict[str, utility.Tuple[float, float]] = {}
+for acquisition in videoreading.find_available_videos(dataset=dataset, videotype='gcv'):
+    acquisition_path = videoreading.generate_acquisition_path(acquisition, dataset=dataset)
+    acquisitions[acquisition] = videoreading.get_monotonic_timebound(acquisition_path, unit='s')
 
 tmin = min([acquisitions[acquisition][0] for acquisition in acquisitions])
 tmax = max([acquisitions[acquisition][1] for acquisition in acquisitions])
@@ -41,7 +42,7 @@ tmax = max([acquisitions[acquisition][1] for acquisition in acquisitions])
 
 import os
 
-scaledata_folder = datareading.generate_dataset_path(dataset=dataset)
+scaledata_folder = videoreading.generate_dataset_path(dataset=dataset)
 
 date = None
 # date = '2025-03-07'

@@ -2,7 +2,7 @@ from typing import Optional, Any, Tuple, Dict, List, Union
 import numpy as np
 import math
 
-from .. import log_error, log_warning, log_info, log_debug, log_trace, log_subtrace
+from g2ltk import log_error, log_warning, log_info, log_debug, log_trace, log_subtrace
 
 from . import step, span, find_roots, find_global_max, correct_limits, attenuate_power
 

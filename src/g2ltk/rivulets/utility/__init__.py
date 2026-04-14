@@ -1,7 +1,7 @@
 from typing import Optional, Any, Tuple, Dict, List, Union
 import numpy as np
 
-from .. import set_verbose, log_error, log_warn, log_warning, log_info, log_subinfo, log_debug, log_trace, log_subtrace
+from g2ltk import set_verbose, log_error, log_warn, log_warning, log_info, log_subinfo, log_debug, log_trace, log_subtrace
 
 ###### MATHS
 

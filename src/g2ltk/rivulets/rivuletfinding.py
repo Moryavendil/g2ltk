@@ -5,8 +5,9 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.optimize import curve_fit # to fit functions
 
-from . import videoreading, datasaving, utility, logging
-from . import force_print
+from g2ltk import videoreading, logging
+from g2ltk.rivulets import utility, datasaving
+from g2ltk import force_print
 
 # Custom typing
 Meta = Dict[str, str]

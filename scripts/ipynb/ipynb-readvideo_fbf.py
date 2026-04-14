@@ -11,13 +11,14 @@ import matplotlib.pyplot as plt
 
 from matplotlib.colors import Normalize # colormaps
 
-from g2ltk import set_verbose, datareading, datasaving, utility, rivuletfinding
+from g2ltk import videoreading
+from g2ltk.rivulets import utility
 
 utility.configure_mpl()
 
 ### Datasets display
-datareading.set_default_root_path('../')
-datareading.describe_root_path()
+videoreading.set_default_root_path('../')
+videoreading.describe_root_path()
 
 
 # <codecell>
@@ -25,8 +26,8 @@ datareading.describe_root_path()
 ### Dataset selection & acquisitions display
 dataset = 'meandersspeed_zoom'
 
-datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
-dataset_path = datareading.generate_dataset_path(dataset)
+videoreading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
+dataset_path = videoreading.generate_dataset_path(dataset)
 
 
 # <codecell>
@@ -34,19 +35,19 @@ dataset_path = datareading.generate_dataset_path(dataset)
 # Acquisition selection
 acquisition = 'ha_n140f500a1000_gcv'
 acquisition_path = os.path.join(dataset_path, acquisition)
-datareading.is_this_a_video(acquisition_path)
+videoreading.is_this_a_video(acquisition_path)
 
 
 # <codecell>
 
 # Parameters definition
-framenumbers = datareading.format_framenumbers(acquisition_path, None)
+framenumbers = videoreading.format_framenumbers(acquisition_path, None)
 roi = None, None, None, None  #start_x, start_y, end_x, end_y
 # Data fetching
-datareading.describe_acquisition(dataset, acquisition, framenumbers=framenumbers, subregion=roi)
-length, height, width = datareading.get_geometry(acquisition_path, framenumbers=framenumbers, subregion=roi)
-acquisition_frequency = datareading.get_acquisition_frequency(acquisition_path, unit="Hz")
-t = datareading.get_times(acquisition_path, framenumbers=framenumbers, unit='s')
+videoreading.describe_acquisition(dataset, acquisition, framenumbers=framenumbers, subregion=roi)
+length, height, width = videoreading.get_geometry(acquisition_path, framenumbers=framenumbers, subregion=roi)
+acquisition_frequency = videoreading.get_acquisition_frequency(acquisition_path, unit="Hz")
+t = videoreading.get_times(acquisition_path, framenumbers=framenumbers, unit='s')
 # Colorscale option
 relative_colorscale: bool = True
 saturate_a_bit: bool = True
@@ -89,9 +90,9 @@ def update_display():
     global i, fig
     global t, length
     i = i % length
-    ax.set_title(f't = {utility.format_videotime(t[i], finaltime_s=t[-1])} - frame {framenumbers[i]} ({i+1}/{length})')
+    ax.set_title(f't = {utility.format_videotime(t[i], finaltime_s=t[-1])} - frame {framenumbers[i]} ({i + 1}/{length})')
 
-    frame = datareading.get_frame(acquisition_path, i, subregion=roi)
+    frame = videoreading.get_frame(acquisition_path, i, subregion=roi)
     if dataset == 'illustrations' and acquisition == '1200_s_break_gcv':
         frame[11, :] = frame[10, :]
 
@@ -127,7 +128,7 @@ i = 0 # time
 ### ANIMATED ELEMENTS
 
 # frame
-img = ax.imshow(datareading.get_frame(acquisition_path, i, subregion=roi), origin='lower', vmin = vmin_absolutecmap, vmax = vmax_absolutecmap
+img = ax.imshow(videoreading.get_frame(acquisition_path, i, subregion=roi), origin='lower', vmin = vmin_absolutecmap, vmax = vmax_absolutecmap
                 # , aspect='auto'
                 )
 if not see_image:

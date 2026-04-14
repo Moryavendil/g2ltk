@@ -7,7 +7,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from g2ltk import datareading, datasaving, utility, rivuletfinding
+from g2ltk import videoreading
+from g2ltk.rivulets import rivuletfinding, utility
 
 utility.configure_mpl()
 
@@ -15,22 +16,22 @@ utility.configure_mpl()
 # <codecell>
 
 ### Datasets display
-datareading.set_default_root_path('../')
-datareading.describe_root_path()
+videoreading.set_default_root_path('../')
+videoreading.describe_root_path()
 
 
 # <codecell>
 
 ### Dataset selection & acquisitions display
-dataset = datareading.find_dataset(None)
-datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
+dataset = videoreading.find_dataset(None)
+videoreading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
 
 
 # <codecell>
 
 ### Acquisition selection
 acquisition = None
-acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
+acquisition_path = videoreading.generate_acquisition_path(acquisition, dataset=dataset)
 
 
 # <codecell>
@@ -42,7 +43,7 @@ acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=da
 # --------------
 
 ### portion of the video that is of interest to us
-framenumbers = np.arange(datareading.get_number_of_available_frames(acquisition_path))
+framenumbers = np.arange(videoreading.get_number_of_available_frames(acquisition_path))
 roi = None, None, None, None  #start_x, start_y, end_x, end_y
 
 # Rivulet detection
@@ -69,13 +70,13 @@ framenumbers = np.arange(400)
 # <codecell>
 
 # Data fetching
-length, height, width = datareading.get_geometry(acquisition_path, framenumbers = framenumbers, subregion=roi)
-acquisition_frequency = datareading.get_acquisition_frequency(acquisition_path, unit="Hz")
+length, height, width = videoreading.get_geometry(acquisition_path, framenumbers = framenumbers, subregion=roi)
+acquisition_frequency = videoreading.get_acquisition_frequency(acquisition_path, unit="Hz")
 
-t = datareading.get_t_frames(acquisition_path, framenumbers=framenumbers)
-x = datareading.get_x_px(acquisition_path, framenumbers = framenumbers, subregion=roi, resize_factor=rivfinding_params['resize_factor'])
+t = videoreading.get_t_frames(acquisition_path, framenumbers=framenumbers)
+x = videoreading.get_x_px(acquisition_path, framenumbers = framenumbers, subregion=roi, resize_factor=rivfinding_params['resize_factor'])
 
-frames = datareading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
+frames = videoreading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
 
 
 # <codecell>
@@ -99,7 +100,7 @@ from scipy.ndimage import gaussian_filter
 
 ### Step 1: Alter the image
 # 1.1 : resize (if needed)
-l = datareading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
+l = videoreading.resize_frame(frame, resize_factor=kwargs['resize_factor'])
 l_origin = l.copy()
 l_origin -= l_origin.min()
 
@@ -156,10 +157,10 @@ z_channel = z2D[top:bot, :]           # z coordinate
 # <codecell>
 
 fig, axes = plt.subplots(nrows=4, ncols=1, sharex=True, sharey=True)
-axes[0].imshow(l, aspect='auto', extent=utility.correct_extent(x1D,z1D))
-axes[1].imshow(is_channel, aspect='auto', extent=utility.correct_extent(x1D,z1D))
-axes[2].imshow(z_channel, aspect='auto', extent=utility.correct_extent(x1D,z1D))
-axes[3].imshow(l_channel, aspect='auto', extent=utility.correct_extent(x1D,z1D))
+axes[0].imshow(l, aspect='auto', extent=utility.correct_extent(x1D, z1D))
+axes[1].imshow(is_channel, aspect='auto', extent=utility.correct_extent(x1D, z1D))
+axes[2].imshow(z_channel, aspect='auto', extent=utility.correct_extent(x1D, z1D))
+axes[3].imshow(l_channel, aspect='auto', extent=utility.correct_extent(x1D, z1D))
 plt.tight_layout()
 
 

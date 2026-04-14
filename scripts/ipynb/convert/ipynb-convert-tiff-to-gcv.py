@@ -7,7 +7,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from g2ltk import datareading, datasaving, utility, logging
+from g2ltk import videoreading, logging
+from g2ltk.rivulets import utility
 
 utility.configure_mpl()
 
@@ -20,27 +21,27 @@ utility.configure_mpl()
 # <codecell>
 
 ### Datasets display
-datareading.set_default_root_path('../')
-datareading.describe_root_path()
+videoreading.set_default_root_path('../')
+videoreading.describe_root_path()
 
 
 # <codecell>
 
 ### Dataset selection & acquisitions display
-dataset = datareading.find_dataset(None)
-datareading.describe_dataset(dataset=dataset, videotype='tiff', makeitshort=True)
+dataset = videoreading.find_dataset(None)
+videoreading.describe_dataset(dataset=dataset, videotype='tiff', makeitshort=True)
 
 
 # <codecell>
 
-infotable = datareading.obtain_metainfo(dataset)
+infotable = videoreading.obtain_metainfo(dataset)
 
 
 # <codecell>
 
-for acquisition in datareading.find_available_videos(dataset=dataset, videotype='tiff'):
+for acquisition in videoreading.find_available_videos(dataset=dataset, videotype='tiff'):
 
-    acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
+    acquisition_path = videoreading.generate_acquisition_path(acquisition, dataset=dataset)
 
     logging.log_debug(f'dataset: {dataset} | acquisition: {acquisition}')
     for colname in ['title', 'acquisition_frequency', 'exposure_time']:
@@ -57,10 +58,10 @@ for acquisition in datareading.find_available_videos(dataset=dataset, videotype=
     logging.log_info(f'acquisition: {acquisition} | fps={acquisition_frequency} | texp={exposure_time}')
 
     # Parameters definition
-    framenumbers = np.arange(datareading.get_number_of_available_frames(acquisition_path))
+    framenumbers = np.arange(videoreading.get_number_of_available_frames(acquisition_path))
     roi = None, None, None, None  #start_x, start_y, end_x, end_y
 
-    datareading.convert_tiff_to_gcv(acquisition_path, acquisition_frequency, exposure_time, framenumbers=framenumbers, subregion=roi)
+    videoreading.convert_tiff_to_gcv(acquisition_path, acquisition_frequency, exposure_time, framenumbers=framenumbers, subregion=roi)
 
 
 # <markdowncell>
@@ -72,23 +73,23 @@ for acquisition in datareading.find_available_videos(dataset=dataset, videotype=
 # <codecell>
 
 ### TEST NOW
-acquisition_gcv = datareading.find_available_videos(dataset=dataset, videotype='tiff')[0] + '_gcv'
+acquisition_gcv = videoreading.find_available_videos(dataset=dataset, videotype='tiff')[0] + '_gcv'
 
-acquisition_path = datareading.generate_acquisition_path(acquisition_gcv, dataset=dataset)
-datareading.is_this_a_video(acquisition_path)
+acquisition_path = videoreading.generate_acquisition_path(acquisition_gcv, dataset=dataset)
+videoreading.is_this_a_video(acquisition_path)
 
 
 # <codecell>
 
 # Parameters definition
-mxfn = datareading.get_number_of_available_frames(acquisition_path)
+mxfn = videoreading.get_number_of_available_frames(acquisition_path)
 framenumbers = np.array([0, mxfn//2, mxfn-1])
 roi = None, None, None, None  #start_x, start_y, end_x, end_y
 
 
 # <codecell>
 
-frames = datareading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
+frames = videoreading.get_frames(acquisition_path, framenumbers = framenumbers, subregion=roi)
 length, height, width = frames.shape
 
 

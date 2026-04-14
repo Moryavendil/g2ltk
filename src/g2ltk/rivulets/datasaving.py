@@ -4,8 +4,8 @@ import os # to navigate in the directories
 # import shutil # to remove directories
 
 from g2ltk import __version__
-from g2ltk import logging, rivuletfinding, videoreading
-
+from g2ltk import logging, videoreading
+from g2ltk.rivulets import rivuletfinding
 
 save_directory:str = 'analysis_files'
 index_name:str = 'index'

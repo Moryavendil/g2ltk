@@ -10,27 +10,28 @@ import matplotlib.pyplot as plt
 
 from matplotlib.colors import Normalize # colormaps
 
-from g2ltk import datareading, datasaving, utility, rivuletfinding
+from g2ltk import videoreading
+from g2ltk.rivulets import rivuletfinding, utility, datasaving
 
 utility.configure_mpl()
 
 ### Datasets display
-datareading.set_default_root_path('../')
-datareading.describe_root_path()
+videoreading.set_default_root_path('../')
+videoreading.describe_root_path()
 
 
 # <codecell>
 
 ### Dataset selection & acquisitions display
-dataset = datareading.find_dataset(None)
-datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
+dataset = videoreading.find_dataset(None)
+videoreading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
 
 
 # <codecell>
 
 ### Acquisition selection
 acquisition = 'q60_gcv'
-acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
+acquisition_path = videoreading.generate_acquisition_path(acquisition, dataset=dataset)
 
 
 # <codecell>
@@ -53,7 +54,7 @@ rivfinding_params = {
 }
 
 # portion of the video that is of interest to us
-framenumbers = np.arange(datareading.get_number_of_available_frames(acquisition_path))
+framenumbers = np.arange(videoreading.get_number_of_available_frames(acquisition_path))
 roi = None, None, None, None  #start_x, start_y, end_x, end_y
 
 
@@ -65,12 +66,12 @@ compute_before = False
 # <codecell>
 
 # Data fetching
-datareading.describe_acquisition(dataset, acquisition, framenumbers = framenumbers, subregion=roi)
+videoreading.describe_acquisition(dataset, acquisition, framenumbers = framenumbers, subregion=roi)
 
-length, height, width = datareading.get_geometry(acquisition_path, framenumbers = framenumbers, subregion=roi)
+length, height, width = videoreading.get_geometry(acquisition_path, framenumbers = framenumbers, subregion=roi)
 
-t = datareading.get_t_frames(acquisition_path, framenumbers=framenumbers)
-x = datareading.get_x_px(acquisition_path, framenumbers = framenumbers, subregion=roi, resize_factor=rivfinding_params['resize_factor'])
+t = videoreading.get_t_frames(acquisition_path, framenumbers=framenumbers)
+x = videoreading.get_x_px(acquisition_path, framenumbers = framenumbers, subregion=roi, resize_factor=rivfinding_params['resize_factor'])
 
 if compute_before:
     borders = datasaving.fetch_or_generate_data('borders', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
@@ -81,8 +82,8 @@ if compute_before:
 # <codecell>
 
 # Real-unit data
-acquisition_frequency = datareading.get_acquisition_frequency(acquisition_path, unit="Hz")
-t_s = datareading.get_t_s(acquisition_path, framenumbers=framenumbers)
+acquisition_frequency = videoreading.get_acquisition_frequency(acquisition_path, unit="Hz")
+t_s = videoreading.get_t_s(acquisition_path, framenumbers=framenumbers)
 
 
 # <codecell>
@@ -134,7 +135,7 @@ def update_display():
     i = i % length
     ax_img.set_title(f't = {utility.format_videotime(t[i], finaltime_s=t[-1])} s - frame {framenumbers[i]} ({i + 1}/{length})')
 
-    frame = datareading.get_frame(acquisition_path, i, subregion=roi)
+    frame = videoreading.get_frame(acquisition_path, i, subregion=roi)
 
     global see_image, median_correc, saturate_a_bit
     global img
@@ -191,7 +192,7 @@ i = 0 # time
 ### ANIMATED ELEMENTS
 
 # frame
-frame1 = datareading.get_frame(acquisition_path, i, subregion=roi)  
+frame1 = videoreading.get_frame(acquisition_path, i, subregion=roi)  
 img = ax_img.imshow(frame1, origin='lower', vmin = vmin_absolutecmap, vmax = vmax_absolutecmap
                   # , aspect='auto'
                   )

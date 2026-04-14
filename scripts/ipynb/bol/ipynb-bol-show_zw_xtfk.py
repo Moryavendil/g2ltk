@@ -7,7 +7,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from g2ltk import datareading, datasaving, utility, logging
+from g2ltk import videoreading
+from g2ltk.rivulets import utility, datasaving
 
 utility.configure_mpl()
 
@@ -15,22 +16,22 @@ utility.configure_mpl()
 # <codecell>
 
 ### Datasets display
-datareading.set_default_root_path('../')
-datareading.describe_root_path()
+videoreading.set_default_root_path('../')
+videoreading.describe_root_path()
 
 
 # <codecell>
 
 ### Dataset selection & acquisitions display
-dataset = datareading.find_dataset(None)
-datareading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
+dataset = videoreading.find_dataset(None)
+videoreading.describe_dataset(dataset=dataset, videotype='gcv', makeitshort=True)
 
 
 # <codecell>
 
 ### Acquisition selection
 acquisition = None
-acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=dataset)
+acquisition_path = videoreading.generate_acquisition_path(acquisition, dataset=dataset)
 
 
 # <codecell>
@@ -42,7 +43,7 @@ acquisition_path = datareading.generate_acquisition_path(acquisition, dataset=da
 # --------------
 
 ### portion of the video that is of interest to us
-framenumbers = np.arange(datareading.get_number_of_available_frames(acquisition_path))
+framenumbers = np.arange(videoreading.get_number_of_available_frames(acquisition_path))
 roi = None, None, None, None  #start_x, start_y, end_x, end_y
 
 # Rivulet detection
@@ -80,7 +81,7 @@ range_dB_visu = 80
 # ------------
 
 # conversion factor
-fr_per_s = datareading.get_acquisition_frequency(acquisition_path)
+fr_per_s = videoreading.get_acquisition_frequency(acquisition_path)
 px_per_mm = 0.
 px_per_um = px_per_mm * 1e3
 
@@ -88,12 +89,12 @@ px_per_um = px_per_mm * 1e3
 # <codecell>
 
 # Data fetching
-datareading.describe_acquisition(dataset, acquisition, framenumbers = framenumbers, subregion=roi)
+videoreading.describe_acquisition(dataset, acquisition, framenumbers = framenumbers, subregion=roi)
 
-length, height, width = datareading.get_geometry(acquisition_path, framenumbers = framenumbers, subregion=roi)
+length, height, width = videoreading.get_geometry(acquisition_path, framenumbers = framenumbers, subregion=roi)
 
-t = datareading.get_t_frames(acquisition_path, framenumbers=framenumbers)
-x = datareading.get_x_px(acquisition_path, framenumbers = framenumbers, subregion=roi, resize_factor=rivfinding_params['resize_factor'])
+t = videoreading.get_t_frames(acquisition_path, framenumbers=framenumbers)
+x = videoreading.get_x_px(acquisition_path, framenumbers = framenumbers, subregion=roi, resize_factor=rivfinding_params['resize_factor'])
 
 z_raw = datasaving.fetch_or_generate_data('bol', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
 w_raw = datasaving.fetch_or_generate_data('fwhmol', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
@@ -264,9 +265,9 @@ ax.legend()
 Z = z_tmp.copy()
 W = w_tmp.copy()
 
-k_visu, f_visu = utility.fourier.rdual2d(x, t, zero_pad_factor=zero_pad_factor_visu)
-Z_pw = utility.fourier.rpsd2d(Z, x, t, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
-W_pw = utility.fourier.rpsd2d(W, x, t, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
+k_visu, f_visu = g2ltk.rivulets.utility.fourier.rdual2d(x, t, zero_pad_factor=zero_pad_factor_visu)
+Z_pw = g2ltk.rivulets.utility.fourier.rpsd2d(Z, x, t, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
+W_pw = g2ltk.rivulets.utility.fourier.rpsd2d(W, x, t, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
 
 
 # <codecell>
@@ -316,8 +317,8 @@ utility.set_ticks_log_cb(cb, vmax_w, range_db=range_dB_visu)
 
 ### REAL UNITS
 
-t_s = datareading.get_t_s(acquisition_path, framenumbers)
-x_mm = datareading.get_x_mm(acquisition_path, framenumbers, subregion=roi, resize_factor=rivfinding_params['resize_factor'], px_per_mm=px_per_mm)
+t_s = videoreading.get_t_s(acquisition_path, framenumbers)
+x_mm = videoreading.get_x_mm(acquisition_path, framenumbers, subregion=roi, resize_factor=rivfinding_params['resize_factor'], px_per_mm=px_per_mm)
 
 Z_mm = Z / px_per_mm
 W_mm = W / px_per_mm
@@ -325,9 +326,9 @@ W_mm = W / px_per_mm
 
 # <codecell>
 
-k_visu_mm, f_visu_mm = utility.fourier.rdual2d(x_mm, t_s, zero_pad_factor=zero_pad_factor_visu)
-Z_pw_mm = utility.fourier.rpsd2d(Z_mm, x_mm, t_s, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
-W_pw_mm = utility.fourier.rpsd2d(W_mm, x_mm, t_s, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
+k_visu_mm, f_visu_mm = g2ltk.rivulets.utility.fourier.rdual2d(x_mm, t_s, zero_pad_factor=zero_pad_factor_visu)
+Z_pw_mm = g2ltk.rivulets.utility.fourier.rpsd2d(Z_mm, x_mm, t_s, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
+W_pw_mm = g2ltk.rivulets.utility.fourier.rpsd2d(W_mm, x_mm, t_s, window=fft_window_visu, zero_pad_factor=zero_pad_factor_visu)
 
 
 # <codecell>
@@ -344,7 +345,7 @@ ax.set_ylabel('$t$ [s]')
 plt.colorbar(imz, ax=ax, label='$z$ [mm]')
 
 ax = axes[0,1]
-im_zpw = ax.imshow(Z_pw_mm, extent=utility.correct_extent(k_visu_mm, f_visu_mm), norm='log', vmax=Z_pw_mm.max(), vmin = Z_pw_mm.max()/10**(range_dB_visu / 10), cmap='viridis', **imshow_kw)
+im_zpw = ax.imshow(Z_pw_mm, extent=utility.correct_extent(k_visu_mm, f_visu_mm), norm='log', vmax=Z_pw_mm.max(), vmin =Z_pw_mm.max() / 10 ** (range_dB_visu / 10), cmap='viridis', **imshow_kw)
 ax.set_xlabel(r'$k$ [mm$^{-1}$]')
 ax.set_ylabel(r'$f$ [Hz]')
 cb = plt.colorbar(im_zpw, ax=ax, label=r'mm$^2$/(Hz.mm$^{-1}$)')
@@ -357,7 +358,7 @@ ax.set_ylabel('$t$ [s]')
 plt.colorbar(imz, ax=ax, label='$z$ [mm]')
 
 ax = axes[1,1]
-im_zpw = ax.imshow(W_pw_mm, extent=utility.correct_extent(k_visu_mm, f_visu_mm), norm='log', vmax=Z_pw_mm.max(), vmin = Z_pw_mm.max()/10**(range_dB_visu / 10), cmap='viridis', **imshow_kw)
+im_zpw = ax.imshow(W_pw_mm, extent=utility.correct_extent(k_visu_mm, f_visu_mm), norm='log', vmax=Z_pw_mm.max(), vmin =Z_pw_mm.max() / 10 ** (range_dB_visu / 10), cmap='viridis', **imshow_kw)
 ax.set_xlabel(r'$k$ [mm$^{-1}$]')
 ax.set_ylabel(r'$f$ [Hz]')
 cb = plt.colorbar(im_zpw, ax=ax, label=r'mm$^2$/(Hz.mm$^{-1}$)')

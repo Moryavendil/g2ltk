@@ -1,20 +1,18 @@
-from typing import Optional, Any, Tuple, Dict, List
 import numpy as np
 
 
 ###### MATHS
 
-import math
-from scipy.interpolate import CubicSpline, make_smoothing_spline # for cubic interpolation
+from scipy.interpolate import make_smoothing_spline # for cubic interpolation
 from scipy.optimize import curve_fit
-from scipy.ndimage import map_coordinates
 # filetring
-from scipy.signal import savgol_filter, butter, filtfilt, correlate, correlation_lags, find_peaks
+from scipy.signal import savgol_filter, find_peaks
 # hilbert transform
 from scipy.signal import hilbert, hilbert2
-from scipy.stats import linregress
 
-from g2ltk import utility, logging
+from g2ltk import logging
+from g2ltk.rivulets import utility
+
 
 ### ### BRIDGE FINDING
 
