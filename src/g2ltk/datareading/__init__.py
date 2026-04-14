@@ -3,13 +3,6 @@ from typing import Optional, Tuple, List, Union
 import cv2
 import numpy as np
 
-# import cv2 # to manipulate images and videos
-# import os # to navigate in the directories
-# import shutil # to remove directories
-
-# from .. import display, throw_G2L_warning, log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
-# from .. import logging
-
 # Custom typing
 Framenumbers = Optional[Union[np.ndarray, List[int]]]
 Subregion = Optional[

@@ -3,7 +3,7 @@ import numpy as np
 import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 
-from .. import datasaving, logging
+from .. import logging
 
 ###### LOSSY COMPRESSED VIDEO (mp4) READING
 
@@ -108,114 +108,6 @@ def get_frames_mp4(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np
     mp4video.release()
 
     return frames
-
-def get_chronos_timestamps_from_mp4_video(**parameters) -> Optional[np.ndarray]:
-    # Dataset selection
-    dataset = parameters.get('dataset', 'unspecified-dataset')
-    dataset_path = '../' + dataset
-    if not(os.path.isdir(dataset_path)):
-        print(f'ERROR: There is no dataset {dataset}.')
-        return None
-
-    # Acquisition selection
-    acquisition = parameters.get('acquisition', 'unspecified-acquisition')
-    acquisition_path = os.path.join(dataset_path, acquisition)
-    if not (is_this_a_mp4(acquisition_path)):
-        acquisition_path = acquisition_path.replace('tiff', 'mp4')
-        if not (is_this_a_mp4(acquisition_path)):
-            print(f'ERROR: There is no acquisition named {acquisition} for the dataset {dataset}.')
-            return None
-
-    # Parameters getting
-    roi = parameters.get('roi', None)
-    framenumbers = parameters.get('framenumbers', None)
-
-    # Data fetching
-    frames = get_frames_mp4(acquisition_path, framenumbers=framenumbers, subregion=roi)
-    length, height, width = frames.shape
-
-    raw_tstamps = frames[:, -40:, :]
-
-    threshold_luminosity = 185
-
-    tstamps = raw_tstamps[:, 6:29, :] > threshold_luminosity
-
-    # Separate the letters
-    offset = 9
-    letter_width = 16
-    n_letters = (tstamps.shape[2] - offset) // letter_width
-
-    letters = np.empty((tstamps.shape[0], n_letters, tstamps.shape[1], letter_width))
-
-    for i_frame in range(tstamps.shape[0]):
-        for i_letter in range(n_letters):
-            letters[i_frame][i_letter] = tstamps[i_frame, :,
-                                         offset + i_letter * letter_width:offset + (i_letter + 1) * letter_width]
-
-    # Check that the letters are well formatted
-    residue = np.sum([np.sum([np.sum(letter) % 4 for letter in letter_sequence]) for letter_sequence in letters])
-    if residue > 0:
-        # todo error here
-        print("ERROR: non zero residue")
-        return None
-
-    # Fetch the dict
-    letters_dict_parameters = {'datatype': 'h264_timestamp_letters_dict'}
-    try:
-        letters_dict = datasaving.fetch_saved_data(letters_dict_parameters)
-    except:
-        # todo error here
-        print("ERROR: no timestamp letters dict saved")
-        return None
-
-    placeholder_letter = 'X'
-
-    # Transform to letters
-    letters_formatted = np.full((letters.shape[0], letters.shape[1]), placeholder_letter, dtype=str)
-
-    for i_key, key in enumerate(letters_dict.keys()):
-        print(f'{i_key+1}/{len(letters_dict.keys())}\r', end='')
-        for i_frame in range(tstamps.shape[0]):
-            for i_letter in range(n_letters):
-                if letters_formatted[i_frame][i_letter] == placeholder_letter and (letters[i_frame][i_letter] == letters_dict[key]).all():
-                    letters_formatted[i_frame][i_letter] = key
-
-    # Check that it works
-    if placeholder_letter in letters_formatted:
-        # todo error
-        print("ERROR: Unrecognized letter")
-        return None
-
-    timestamps = [''.join(letters_sequence) for letters_sequence in letters_formatted]
-
-    all_times = np.zeros(len(timestamps), dtype=float)
-    all_framenumbers = np.zeros(len(timestamps), dtype=int)
-
-    for i_timestamp, timestamp in enumerate(timestamps):
-        framenumber = int(timestamp.split('/')[0]) - 1
-        time = float(timestamp.split('T=')[1].split('s')[0])
-        all_framenumbers[i_timestamp] = framenumber
-        all_times[i_timestamp] = time
-
-    print(f'Nb of framenumbers: {len(all_framenumbers)}')
-    print(f'Max fnb: {all_framenumbers.max()}')
-    print(f'Min fnb: {all_framenumbers.min()}')
-    print(f'First fnb: {all_framenumbers[0]}')
-    print(f'Last fnb: {all_framenumbers[-1]}')
-    print(f'ones: {np.sum((all_framenumbers[1:]-all_framenumbers[:-1]) == 1)}')
-    print(f'doublons: {np.sum((all_framenumbers[1:]-all_framenumbers[:-1]) == 0)}')
-    print(f'timeshifts: {np.sum((all_framenumbers[1:]-all_framenumbers[:-1]) < 0)}')
-    print(f'gaps: {np.sum((all_framenumbers[1:]-all_framenumbers[:-1]) > 1)}')
-
-    are_ok = all_framenumbers >= all_framenumbers[0]
-    all_framenumbers_ok = all_framenumbers[are_ok]
-    all_times_ok = all_times[are_ok]
-
-    t = np.zeros(len(all_times_ok), dtype=float)
-    framenumbers = all_framenumbers_ok - all_framenumbers_ok.min()
-    t[framenumbers] = all_times_ok
-
-    return t
 
 def get_chronos_acquisition_frequency_from_mp4_video(**parameters) -> Optional[float]:
     t = get_chronos_timestamps_from_mp4_video(**parameters)

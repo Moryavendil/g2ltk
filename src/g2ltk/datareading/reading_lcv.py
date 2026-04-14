@@ -3,8 +3,6 @@ import numpy as np
 import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 
-from .. import utility
-
 ###### LOSSLESSLY COMPRESSED VIDEO (lcv) READING
 
 def find_available_lcv(dataset_path: str) ->List[str]:
