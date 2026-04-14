@@ -13,9 +13,11 @@ fill_between_kw_default = {'lw':0.0}
 # This is from https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
 cb_magic_args = {'fraction':0.046, 'pad':0.04}
 '''
-You can correct for the case where image is too wide using this trick: im_ratio = data.shape[0]/data.shape[1] plt.colorbar(im,fraction=0.046*im_ratio, pad=0.04) where data is your image
+You can correct for the case where image is too wide using this trick: 
+im_ratio = data.shape[0]/data.shape[1] plt.colorbar(im,fraction=0.046*im_ratio, pad=0.04) where data is your image
 
-The shrink keyword argument, which defaults to 1.0, may also be useful for further fine tuned adjustments. I found that shrink=0.9 helped get it just right when I had two square subplots side by side
+The shrink keyword argument, which defaults to 1.0, may also be useful for further fine tuned adjustments. 
+I found that shrink=0.9 helped get it just right when I had two square subplots side by side
 '''
 
 
