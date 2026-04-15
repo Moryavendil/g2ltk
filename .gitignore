@@ -9,6 +9,7 @@ out/
 
 # libraries
 __pycache__/
+dist/
 
 # temporary files
 deleteme_*
