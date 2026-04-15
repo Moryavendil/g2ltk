@@ -28,7 +28,7 @@ print(bcolors.HEADER + f"Current tagged version: '{gitversion or '[None]'}'" + b
 # This is a dirty hack to avoid writing the proper "from .. import g2ltk" which ncessitates being in a package
 import os
 import sys
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
+sys.path.insert(1, os.path.join(sys.path[0], '../src'))
 import g2ltk
 
 toolsversion = g2ltk.__version__
