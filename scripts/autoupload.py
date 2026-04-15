@@ -59,6 +59,7 @@ subprocess.run(f"git push origin tag {versiontext}", shell=True)
 
 print(bcolors.HEADER + 'Incrementing __version__.' + bcolors.ENDC)
 
+
 toolsversion_new = toolsversion
 
 toolsversion_compo = toolsversion.split('.')
@@ -83,15 +84,16 @@ if toolsversion_new == toolsversion:
     print(bcolors.OKGREEN + 'COULD NOT UPDATE VERSION NUMBER' + bcolors.ENDC)
     sys.exit(300)
 
-with open('g2ltk/__init__.py', 'r') as f:
+
+with open('src/g2ltk/__init__.py', 'r') as f:
     txt = f.read()
 
 txt = txt.replace(f"__version__ = '{toolsversion}'", f"__version__ = '{toolsversion_new}'")
 
-with open('g2ltk/__init__.py', 'w') as f:
+with open('src/g2ltk/__init__.py', 'w') as f:
     f.write(txt)
 
 
-subprocess.run(f"git add g2ltk/__init__.py", shell=True)
+subprocess.run(f"git add src/g2ltk/__init__.py", shell=True)
 subprocess.run(f'git commit -m "Increment version number to {toolsversion_new}"', shell=True)
 subprocess.run(f"git push", shell=True)
