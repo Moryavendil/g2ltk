@@ -2,7 +2,7 @@ from typing import Optional, Any, Tuple, Dict, List, Union
 import numpy as np
 import os # to navigate in the directories
 
-from .. import logging
+from .. import customlog
 
 from . import are_there_missing_frames, format_framenumbers
 
@@ -23,7 +23,7 @@ def is_this_a_gcv(acquisition_path:str) -> bool:
     :param acquisition_path:
     :return:
     """
-    logging.log_subtrace(f'func: is_this_a_gcv ({acquisition_path})')
+    customlog.log_subtrace(f'func: is_this_a_gcv ({acquisition_path})')
     gcv_path = acquisition_path + '.gcv'
     # check that we indeed have a folder containing the right files
     if not os.path.isdir(gcv_path): return False
@@ -37,14 +37,14 @@ def is_this_a_gcv(acquisition_path:str) -> bool:
     if len(files) == 3:
         rawvideofiles = [f for f in files if f.endswith('.raw')]
         if len(rawvideofiles) != 1:
-            logging.log_trace(f'Video {acquisition_path}: {3} files: stamps, meta but no rawvideo?')
+            customlog.log_trace(f'Video {acquisition_path}: {3} files: stamps, meta but no rawvideo?')
             return False
     elif len(files) == 2:
-        # logging.log_warning(f'Video {acquisition_path}: No rawvideo file!')
-        logging.log_trace(f'Video {acquisition_path}: It is a GCV without a rawvideo file!')
+        # customlog.log_warning(f'Video {acquisition_path}: No rawvideo file!')
+        customlog.log_trace(f'Video {acquisition_path}: It is a GCV without a rawvideo file!')
         return True
     else:
-        logging.log_trace(f'Video {acquisition_path}: {len(files)} files?! Too much to be a gcv.')
+        customlog.log_trace(f'Video {acquisition_path}: {len(files)} files?! Too much to be a gcv.')
         return False
     return True
 
@@ -53,7 +53,7 @@ def get_number_of_available_frames_gcv(acquisition_path:str) -> int:
     n_frames_rawvideo = get_number_of_available_frames_rawvideo(acquisition_path)
 
     if (n_frames_stamps != n_frames_rawvideo) and (n_frames_rawvideo > 0):
-        logging.log_warning(f'Video {acquisition_path}: The stamps file mentions {n_frames_stamps} frames while there are {n_frames_rawvideo} frames availables in the raw video file.')
+        customlog.log_warning(f'Video {acquisition_path}: The stamps file mentions {n_frames_stamps} frames while there are {n_frames_rawvideo} frames availables in the raw video file.')
     if n_frames_rawvideo > 0:
         return n_frames_rawvideo
     return n_frames_stamps
@@ -66,7 +66,7 @@ def get_acquisition_frequency_gcv(acquisition_path:str, unit = None) -> float:
     if unit == 'Hz':
         factor  = 1
     else:
-        logging.log_warning(f'Unrecognized frequency unit : {unit}')
+        customlog.log_warning(f'Unrecognized frequency unit : {unit}')
 
     meta_info = retrieve_meta(acquisition_path)
     freq_meta = float(meta_info['captureFrequency']) # Hz
@@ -118,21 +118,21 @@ def retrieve_meta(acquisition_path: str) -> Meta:
             for line in meta_file.readlines():
                 if '=' in line:
                     if line.count('=') > 1:
-                        logging.throw_G2L_warning(f'Ambiguity when parsing the {acquisition_path} meta file: is there a rogue "=" somewhere in it?.')
+                        customlog.throw_G2L_warning(f'Ambiguity when parsing the {acquisition_path} meta file: is there a rogue "=" somewhere in it?.')
                     variable = line[:-1].split('=')[0]
                     value = '='.join( line[:-1].split('=')[1:] )
                     meta[variable] = value
                 else:
-                    logging.throw_G2L_warning(f'Could not parse correctly the {acquisition_path} meta file.')
+                    customlog.throw_G2L_warning(f'Could not parse correctly the {acquisition_path} meta file.')
     except:
         raise(Exception(f'ERROR: Problem with the {acquisition_path} meta file (probably it could not be opened).'))
 
-    logging.log_subtrace(f'Video {acquisition_path}: Metafile content: meta={meta}')
+    customlog.log_subtrace(f'Video {acquisition_path}: Metafile content: meta={meta}')
 
     return meta
 
 def get_frame_geometry_gcv(acquisition_path: str) -> Tuple[int, int]:
-    logging.log_subtrace('func:get_frame_geometry_gcv')
+    customlog.log_subtrace('func:get_frame_geometry_gcv')
     # returns the geometry from the metafile, in the format width, height
     meta:Meta = retrieve_meta(acquisition_path)
 
@@ -154,8 +154,8 @@ def get_frame_geometry_gcv(acquisition_path: str) -> Tuple[int, int]:
     # width:int = int(meta.get('subRegionWidth', '0'))
     # height:int = int(meta.get('subRegionHeight', '0'))
 
-    logging.log_debug(f'Video {acquisition_path}: Retrieved frame geometry from metafile.')
-    logging.log_trace(f'Video {acquisition_path}: Frame geometry: (w,h)=({width},{height})')
+    customlog.log_debug(f'Video {acquisition_path}: Retrieved frame geometry from metafile.')
+    customlog.log_trace(f'Video {acquisition_path}: Frame geometry: (w,h)=({width},{height})')
 
     return width, height
 
@@ -180,7 +180,7 @@ def retrieve_stamps(acquisition_path:str) -> Stamps:
                     camera_time.append(line[:-1].split('\t')[1])     # The time given by the camera, in ns (int)
                     computer_time.append(line[:-1].split('\t')[2])   # The time given by the computer, in ms (int)
                 else:
-                    logging.throw_G2L_warning(f'Could not parse correctly the {acquisition_path} stamps file.')
+                    customlog.throw_G2L_warning(f'Could not parse correctly the {acquisition_path} stamps file.')
     except:
         raise(Exception(f'ERROR: Problem with the {acquisition_path} stamps file (probably it could not be opened).'))
     #Todo: check if a typecasting error can happen here ?
@@ -213,8 +213,8 @@ def missing_framenumbers_gcv(acquisition_path: str) -> List:
         all_missing_chunks.append([])
         for j in range(missing_gaps[i]):
             all_missing_chunks[i].append(first_missing_frames[i] + j)
-    logging.log_trace(f'Missing frames for {acquisition_path}:')
-    logging.log_trace(f'{all_missing_chunks}')
+    customlog.log_trace(f'Missing frames for {acquisition_path}:')
+    customlog.log_trace(f'{all_missing_chunks}')
     return all_missing_chunks
 
 def identify_missing_framenumbers(framenumbers:np.ndarray, verbose:Optional[int]=None) -> np.ndarray:
@@ -340,21 +340,21 @@ def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, e
         print('End frame < 0')
         return None
     if end_framenumber > last_framenumber:
-        logging.log_warning(f'The requested end frame ({end_framenumber}) is after the last recorded frame ({last_framenumber}).', verbose=verbose)
-        logging.log_warning(f'Changing the end frame to {last_framenumber}. You might get less frames than expected.', verbose=verbose)
+        customlog.log_warning(f'The requested end frame ({end_framenumber}) is after the last recorded frame ({last_framenumber}).', verbose=verbose)
+        customlog.log_warning(f'Changing the end frame to {last_framenumber}. You might get less frames than expected.', verbose=verbose)
         end_framenumber = last_framenumber
 
     ### Check for missing frames
     missing_framenumbers = identify_missing_framenumbers(all_framenumbers, verbose=verbose)
     if not len(missing_framenumbers) == 0:
-        logging.log_warning(f'There are missing frames ! Frames {list(missing_framenumbers)} are missing.', verbose=verbose)
+        customlog.log_warning(f'There are missing frames ! Frames {list(missing_framenumbers)} are missing.', verbose=verbose)
     # here MF means missing frame (abbreviated for code lisibility)
     MFs_after_start = missing_framenumbers >= start_framenumber
     MFs_before_end = missing_framenumbers <= end_framenumber
     MFs_in_requested_interval = MFs_after_start * MFs_before_end
     there_are_MFs_in_the_request_interval:bool = 1 in MFs_in_requested_interval
     if there_are_MFs_in_the_request_interval:
-        logging.log_warning(f'There are missing frames in the requested interval. The returned frames will not be evenly spaced.', verbose=verbose)
+        customlog.log_warning(f'There are missing frames in the requested interval. The returned frames will not be evenly spaced.', verbose=verbose)
 
     frames_correctly_spaced = (all_framenumbers - start_framenumber) % interval == 0
     frames_after_start = all_framenumbers >= start_framenumber
@@ -375,7 +375,7 @@ def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, e
         # This happens either if
         # (a) there were missing frames (should be a warning before telling that from the index function) or
         # (b) something elsed foired in this function, a supplementary check should not hurt !
-        logging.log_warning('STAMPS ARE NOT COHERENT WITH VIDEO', verbose=verbose)
+        customlog.log_warning('STAMPS ARE NOT COHERENT WITH VIDEO', verbose=verbose)
 
     return stamps_wanted
 
@@ -388,16 +388,16 @@ def get_number_of_available_frames_rawvideo(acquisition_path: str) -> int:
     rawvideofiles = [f for f in os.listdir(gcv_path) if f.endswith('.raw')]
     if len(rawvideofiles) == 0:
         # At this point, we were already warned a dozen times by is_this_a_gcv, so no need to spam the user
-        # logging.log_warning(f'Video {acquisition_path}: No rawvideo frames available.')
+        # customlog.log_warning(f'Video {acquisition_path}: No rawvideo frames available.')
         return 0
     elif len(rawvideofiles) > 2:
-        logging.log_warning(f'Video {acquisition_path}: More than one rawvideo?!')
+        customlog.log_warning(f'Video {acquisition_path}: More than one rawvideo?!')
         return 0
 
     rawvideo_filename = rawvideofiles[0]
     rawvideo_path = os.path.join(gcv_path, rawvideo_filename)
     if not(os.path.isfile(rawvideo_path)):
-        logging.log_warning(f'Video {acquisition_path}: No rawvideo file.')
+        customlog.log_warning(f'Video {acquisition_path}: No rawvideo file.')
         return 0
     f = open(rawvideo_path, "rb")
     f.seek(0, 2)
@@ -407,7 +407,7 @@ def get_number_of_available_frames_rawvideo(acquisition_path: str) -> int:
     img_s:int = img_w * img_h
     n_frames_tot:int = file_size // img_s
     if img_s == 0 or file_size % img_s != 0:
-        logging.log_warning(f'Video {acquisition_path}: Bad formatting of rawvideo file')
+        customlog.log_warning(f'Video {acquisition_path}: Bad formatting of rawvideo file')
     return n_frames_tot
 
 def get_frames_rawvideo(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:

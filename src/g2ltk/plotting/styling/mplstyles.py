@@ -2,7 +2,7 @@
 
 import matplotlib.pyplot as plt
 
-from g2ltk.logging import log_debug
+from g2ltk.customlog import log_debug
 from . import styled, get_screen_DPI, set_figw
 
 # Default visible at : https://matplotlib.org/stable/users/explain/customizing.html (at leas version 3.10)

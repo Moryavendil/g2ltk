@@ -5,7 +5,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.optimize import curve_fit # to fit functions
 
-from g2ltk import videoreading, logging
+from g2ltk import videoreading, customlog
 from g2ltk.rivulets import utility, datasaving
 from g2ltk import force_print
 
@@ -147,15 +147,15 @@ def borders_linewise(z_line:np.ndarray, l_line:np.ndarray, **kwargs):
 
     zdiff:float = np.abs(z1 - z2)
     space_ok = zdiff < kwargs['max_rivulet_width']
-    logging.log_trace(f"space_ok (Dz < {kwargs['max_rivulet_width']}): {space_ok}")
+    customlog.log_trace(f"space_ok (Dz < {kwargs['max_rivulet_width']}): {space_ok}")
     if not space_ok:
-        logging.log_warning(f"space not ok (Dz = {zdiff} >= {kwargs['max_rivulet_width']})")
+        customlog.log_warning(f"space not ok (Dz = {zdiff} >= {kwargs['max_rivulet_width']})")
 
     ydiff:float = np.abs(y1 - y2)
     ydiff_ok = ydiff < kwargs['max_borders_luminosity_difference']
-    logging.log_trace(f"ydiff_ok (Ds < {kwargs['max_borders_luminosity_difference']}): {ydiff_ok}")
+    customlog.log_trace(f"ydiff_ok (Ds < {kwargs['max_borders_luminosity_difference']}): {ydiff_ok}")
     if not ydiff_ok:
-        logging.log_warning(f"ydiff not ok (Ds = {ydiff_ok} >= {kwargs['max_borders_luminosity_difference']})")
+        customlog.log_warning(f"ydiff not ok (Ds = {ydiff_ok} >= {kwargs['max_borders_luminosity_difference']})")
 
     if space_ok * ydiff_ok: # There are 2 peaks
         if z1 < z2:
@@ -408,7 +408,7 @@ def borders_framewise(frame:np.ndarray, prominence:float = 1, do_fit:bool=False,
                                                 width=kwargs['borders_width'],
                                                 prominence=kwargs['borders_prominence'])
         except:
-            logging.log_error(f'Error in bimax line {i_l}')
+            customlog.log_error(f'Error in bimax line {i_l}')
 
     z1, y1, z2, y2 = bmax[:,0], bmax[:,1], bmax[:,2], bmax[:,3]
     x1, x2 = x1D.copy(), x1D.copy()
@@ -417,16 +417,16 @@ def borders_framewise(frame:np.ndarray, prominence:float = 1, do_fit:bool=False,
     zdiff:np.ndarray = np.abs(z1 - z2)
     space_ok = zdiff < kwargs['max_rivulet_width']
     if (1 - space_ok).sum() > 0:
-        logging.log_warning(f'Too spaced away (> {kwargs["max_rivulet_width"]} resized px): {(1 - space_ok).sum()} pts', verbose=kwargs['verbose'])
+        customlog.log_warning(f'Too spaced away (> {kwargs["max_rivulet_width"]} resized px): {(1 - space_ok).sum()} pts', verbose=kwargs['verbose'])
 
     # remove too different peaks
     ydiff:np.ndarray = np.abs(y1 - y2)
     ydiff_ok = ydiff < kwargs['max_borders_luminosity_difference']
     if (1 - ydiff_ok).sum() > 0:
-        logging.log_warning(f'Border framewise collapse: max_borders_luminosity_difference not respected', verbose=kwargs['verbose'])
-        logging.log_subinfo(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1 - ydiff_ok).sum()} pts', verbose=kwargs['verbose'])
-        logging.log_debug(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): min = {ydiff.min()} | median = {np.median(ydiff)} |  max = {ydiff.max()} ', verbose=kwargs['verbose'])
-        logging.log_subtrace(f'Bad values: {ydiff[~ydiff_ok]}', verbose=kwargs['verbose'])
+        customlog.log_warning(f'Border framewise collapse: max_borders_luminosity_difference not respected', verbose=kwargs['verbose'])
+        customlog.log_subinfo(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1 - ydiff_ok).sum()} pts', verbose=kwargs['verbose'])
+        customlog.log_debug(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): min = {ydiff.min()} | median = {np.median(ydiff)} |  max = {ydiff.max()} ', verbose=kwargs['verbose'])
+        customlog.log_subtrace(f'Bad values: {ydiff[~ydiff_ok]}', verbose=kwargs['verbose'])
 
     # There are 2 peaks
     deuxmax = space_ok * ydiff_ok
@@ -663,18 +663,18 @@ def bos_videowise(frames:np.ndarray, **kwargs)->np.ndarray: # WORK IN PROGRESS
     # 3.3 the approximate position (resolution = size of the rivulet, a minima 1 pixel)
     riv_pos_approx = np.argmax(s_channel, axis=1, keepdims=True) + z_channel[:, 0:1:, :]
 
-    # logging.log_info(f's {s_channel.shape} --(argmax)-> {np.argmax(s_channel, axis=1, keepdims=True).shape}')
-    # logging.log_info(f'+ z {z_channel[:, 0:1:, :].shape}')
-    # logging.log_info(f'= riv_pos_approx {riv_pos_approx.shape}')
+    # customlog.log_info(f's {s_channel.shape} --(argmax)-> {np.argmax(s_channel, axis=1, keepdims=True).shape}')
+    # customlog.log_info(f'+ z {z_channel[:, 0:1:, :].shape}')
+    # customlog.log_info(f'= riv_pos_approx {riv_pos_approx.shape}')
 
     # 3.4 identify the zone around the rivulet
     z_top = np.maximum(riv_pos_approx - approx_rivulet_size, np.zeros_like(riv_pos_approx))
     z_bot = np.minimum(riv_pos_approx + approx_rivulet_size, s_channel.shape[0] * np.ones_like(riv_pos_approx))
     around_the_rivulet = (z_channel >= z_top) & (z_channel <= z_bot)
 
-    # logging.log_info(f'riv_pos_approx {riv_pos_approx.shape} + approx_rivulet_size {approx_rivulet_size.shape}')
-    # logging.log_info(f'? np.zeros_like(riv_pos_approx) {np.zeros_like(riv_pos_approx).shape}')
-    # logging.log_info(f'= z_top {z_top.shape}')
+    # customlog.log_info(f'riv_pos_approx {riv_pos_approx.shape} + approx_rivulet_size {approx_rivulet_size.shape}')
+    # customlog.log_info(f'? np.zeros_like(riv_pos_approx) {np.zeros_like(riv_pos_approx).shape}')
+    # customlog.log_info(f'= z_top {z_top.shape}')
 
 
     ### Step 4: compute the center fo mass
@@ -946,12 +946,12 @@ def find_bos(**parameters):
         # we first try the faster videowise
         rivs = bos_videowise(frames, **parameters)
     except:
-        logging.log_error('bos_videowise failed. trying framewise to identify the problematic frame.')
+        customlog.log_error('bos_videowise failed. trying framewise to identify the problematic frame.')
         for framenumber in range(length):
             try:
                 rivs[framenumber] = bos_framewise(frames[framenumber], **parameters)
             except:
-                logging.log_error(f'Error doint bos_framewise on frame {framenumber}')
+                customlog.log_error(f'Error doint bos_framewise on frame {framenumber}')
 
     return rivs
 
@@ -975,13 +975,13 @@ def find_borders(**parameters):
         if (framenumber+1)%5 == 0:
             force_print(f'Borders finding ({round(100*(framenumber+1)/length, 2)} %)', end = '\r')
     force_print(f'', end = '\r')
-    logging.log_debug(f'Borders found', verbose=parameters['verbose'])
+    customlog.log_debug(f'Borders found', verbose=parameters['verbose'])
 
     return brds
 
 def find_bol(verbose:int = 1, **parameters):
     # First we need the borders
-    logging.log_debug('find_bol: fetching borders')
+    customlog.log_debug('find_bol: fetching borders')
     borders_for_this_video = datasaving.fetch_or_generate_data_from_parameters('borders', parameters, verbose=verbose)
 
     # Then the frames
@@ -1003,7 +1003,7 @@ def find_bol(verbose:int = 1, **parameters):
         if (framenumber+1)%5 == 0:
             force_print(f'BOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
     force_print(f'', end = '\r')
-    logging.log_debug(f'BOL computed', verbose=parameters['verbose'])
+    customlog.log_debug(f'BOL computed', verbose=parameters['verbose'])
 
     return rivs
 
@@ -1030,7 +1030,7 @@ def find_fwhmol(verbose:int = 1, **parameters):
         if (framenumber+1)%5 == 0:
             force_print(f'FWHMOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
     force_print(f'', end = '\r')
-    logging.log_debug(f'FWHMOL computed', verbose=parameters['verbose'])
+    customlog.log_debug(f'FWHMOL computed', verbose=parameters['verbose'])
 
     return ws
 

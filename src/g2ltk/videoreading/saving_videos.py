@@ -4,7 +4,7 @@ import os
 import cv2 # to manipulate images and videos
 
 from .. import force_print, throw_G2L_warning
-from .. import logging
+from .. import customlog
 
 from . import are_there_missing_frames, resize_frames, find_available_videos, get_frames, get_times, format_framenumbers
 from . import generate_acquisition_path
@@ -53,7 +53,7 @@ def save_frames_to_video(video_rawpath:str, frames:np.ndarray, fps:float = 25., 
 def save_acquisition_to_video(acquisition_path:str, do_timestamp:bool = True, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
     if not(is_this_a_gcv(acquisition_path)) and not(is_this_a_t16(acquisition_path)):
         # todo error ERROR here
-        logging.log_error(f'WAW waow kois')
+        customlog.log_error(f'WAW waow kois')
         return
 
     frames = get_frames(acquisition_path, framenumbers = None, subregion=None)
@@ -107,10 +107,10 @@ def save_acquisition_to_video(acquisition_path:str, do_timestamp:bool = True, fp
                          fps = fps, filetype=filetype, codec=codec, resize_factor=resize_factor)
 
 def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
-    logging.log_info(f'Saving all the gcv acquisition in the dataset: {dataset}')
+    customlog.log_info(f'Saving all the gcv acquisition in the dataset: {dataset}')
 
     available_acquisitions =  find_available_videos(dataset=dataset, videotype='gcv')
-    logging.log_info(f'The following acquisition will be saved: {available_acquisitions}')
+    customlog.log_info(f'The following acquisition will be saved: {available_acquisitions}')
 
     for acquisition in available_acquisitions:
         acquisition_path = generate_acquisition_path(acquisition, dataset=dataset)
@@ -124,7 +124,7 @@ def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., 
 def convert_tiff_to_gcv(acquisition_path, acquisition_frequency, exposure_time, framenumbers=None, subregion=None):
     gcv_path = acquisition_path + '_gcv' + '.gcv'
     if os.path.isdir(gcv_path):
-        logging.log_warn(f'FILE "{gcv_path}" ALREADY EXISTS. Aborting.')
+        customlog.log_warn(f'FILE "{gcv_path}" ALREADY EXISTS. Aborting.')
         return
     os.makedirs(gcv_path)
     metafilepath = os.path.join(gcv_path, 'metainfo.meta')

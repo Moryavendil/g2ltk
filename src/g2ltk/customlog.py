@@ -6,7 +6,7 @@ from g2ltk import force_print, throw_G2L_warning
 """
 This absolutely horrendous portion of code is not meant to be read or used by anyone other than me.
 
-Everything here should be scraped and rebuilt using Python's standard logging library.
+Everything here should be scraped and rebuilt using Python's standard customlog library.
 
 I am just too lazy to do that for now.
 """

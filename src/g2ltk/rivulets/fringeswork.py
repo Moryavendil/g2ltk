@@ -10,7 +10,7 @@ from scipy.signal import savgol_filter, find_peaks
 # hilbert transform
 from scipy.signal import hilbert, hilbert2
 
-from g2ltk import logging
+from g2ltk import customlog
 from g2ltk.rivulets import utility
 
 
@@ -221,7 +221,7 @@ def prepare_signal_for_hilbert(signal, x=None, oversample=True, usesplines=False
         x = np.arange(len(signal))
     x_hilbert = x.astype(float, copy=True)
     signal_hilbert = signal.astype(float, copy=True)
-    logging.log_trace(f'given {x_hilbert.shape} ; {signal_hilbert.shape}')
+    customlog.log_trace(f'given {x_hilbert.shape} ; {signal_hilbert.shape}')
     # we want to gain a bit in resolution especially on the edges where the extrema can be very close
     if oversample:
         x_oversampled = np.linspace(x.min(), x.max(), len(x) + (len(x)-1)*2, endpoint=True)
@@ -232,7 +232,7 @@ def prepare_signal_for_hilbert(signal, x=None, oversample=True, usesplines=False
         # we smooth everything a bit to ease the phase reconstruction process via Hilbert transform
         hilbert_spline = make_smoothing_spline(x, signal, lam=None)
         signal_hilbert = hilbert_spline(x_hilbert)
-    logging.log_trace(f'returning {x_hilbert.shape} ; {signal_hilbert.shape}')
+    customlog.log_trace(f'returning {x_hilbert.shape} ; {signal_hilbert.shape}')
     return x_hilbert, signal_hilbert
 
 def hilbert_transform(signal, x=None, oversample=True, usesplines=False, symmetrize=True):

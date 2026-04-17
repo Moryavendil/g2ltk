@@ -4,7 +4,7 @@ import os # to navigate in the directories
 # import shutil # to remove directories
 
 from g2ltk import __version__
-from g2ltk import logging, videoreading
+from g2ltk import customlog, videoreading
 from g2ltk.rivulets import rivuletfinding
 
 save_directory:str = 'analysis_files'
@@ -50,12 +50,12 @@ def clean_index(index:Dict[str, Any], verbose:Optional[int]=None):
 
     # Remove the items
     for item in [i for i in bad_items if (i in index)]:  # run across the items that are indeed in the index
-        logging.log_info(f'Removing item {item} from index since it no longer exists (did you delete it manually?)', verbose)
+        customlog.log_info(f'Removing item {item} from index since it no longer exists (did you delete it manually?)', verbose)
         index.pop(item)
-        logging.log_debug(f'Removed item {item} from index', verbose)
+        customlog.log_debug(f'Removed item {item} from index', verbose)
         file_path = os.path.join(save_directory, item)
         if os.path.isfile(file_path): os.remove(file_path)
-        logging.log_debug(f'Deleted file {file_path}', verbose)
+        customlog.log_debug(f'Deleted file {file_path}', verbose)
     set_index(index)
 
 ### OBTAIN THE INDEX OF SAID CATEGORY
@@ -75,7 +75,7 @@ def get_items(parameters: dict, total_match:bool = False, verbose:Optional[int]=
     index = get_index(verbose=verbose)
     items = []
     # search the index
-    logging.log_subtrace(f'Searching the index for the parameters: {parameters}', verbose)
+    customlog.log_subtrace(f'Searching the index for the parameters: {parameters}', verbose)
     for candidate_file_name in index.keys():
         candidate_parameters = index[candidate_file_name]
         parameters_match = True
@@ -91,12 +91,12 @@ def get_items(parameters: dict, total_match:bool = False, verbose:Optional[int]=
                 same_parameters_values = np.prod(np.array(same_parameters_values))
             if same_parameters_values: # here the file is the one we search
                 items.append(candidate_file_name)
-    logging.log_trace(f'Found {len(items)} item(s) with {"totally" if total_match else "partially"} matching parameter.', verbose)
-    logging.log_subtrace(f'Items: {items}', verbose)
+    customlog.log_trace(f'Found {len(items)} item(s) with {"totally" if total_match else "partially"} matching parameter.', verbose)
+    customlog.log_subtrace(f'Items: {items}', verbose)
     return items
 
 def framenumbers_available(parameters: dict, verbose:Optional[int]=None) -> Optional[np.ndarray]:
-    logging.log_debug(f'Searching for saved framenumbers for {parameters["acquisition"]} ({parameters["dataset"]})', verbose)
+    customlog.log_debug(f'Searching for saved framenumbers for {parameters["acquisition"]} ({parameters["dataset"]})', verbose)
     # get the items
     items = get_items(parameters, total_match=False, verbose=verbose)
 
@@ -107,18 +107,18 @@ def framenumbers_available(parameters: dict, verbose:Optional[int]=None) -> Opti
     for item in items: # run across the items that are indeed in the index
         file_path = os.path.join(save_directory, item)
         if os.path.isfile(file_path):
-            logging.log_trace(f'Fetching a number of framenumbers from "{item}"', verbose)
+            customlog.log_trace(f'Fetching a number of framenumbers from "{item}"', verbose)
             framenumbers = index[item].get('framenumbers', np.empty(0, int))
             return framenumbers # return the first one
         else:
-            logging.log_warning(f'File {file_path} does not exist ?!', verbose)
+            customlog.log_warning(f'File {file_path} does not exist ?!', verbose)
 
 
     return np.empty(0, int)
 
 ### GETS THE DATA OF SAID CATEGORY CORRESPONDING TO SAID CONDITION
 def fetch_saved_data(parameters: dict, verbose:Optional[int]=None) -> Any:
-    logging.log_debug(f'Fetching {parameters.get("datatype", "data")} for {parameters.get("acquisition", "???")} ({parameters.get("dataset", "???")})', verbose)
+    customlog.log_debug(f'Fetching {parameters.get("datatype", "data")} for {parameters.get("acquisition", "???")} ({parameters.get("dataset", "???")})', verbose)
 
     # get the items
     items = get_items(parameters, total_match=False, verbose=verbose)
@@ -126,10 +126,10 @@ def fetch_saved_data(parameters: dict, verbose:Optional[int]=None) -> Any:
     for item in items: # run across the items that are indeed in the index
         file_path = os.path.join(save_directory, item)
         if os.path.isfile(file_path):
-            logging.log_trace(f'Fetching data from file "{item}"', verbose)
+            customlog.log_trace(f'Fetching data from file "{item}"', verbose)
             return np.load(file_path, allow_pickle=True)['data'][()] # return the first one
 
-    logging.log_warning(f'Did not find the right stuff ?')
+    customlog.log_warning(f'Did not find the right stuff ?')
     return None
 
 ### ERASE ALL RECORDINGS OF SAID CATEGORY CORRESPONDING TO SAID CONDITION
@@ -142,7 +142,7 @@ def erase_items(parameters: dict, total_match:bool = False, verbose:Optional[int
     :return:
     """
     if parameters is None: return None
-    logging.log_trace(f'Removing items', verbose)
+    customlog.log_trace(f'Removing items', verbose)
     # open the index
     index = get_index(verbose=verbose)
     # get the items to remove
@@ -150,20 +150,20 @@ def erase_items(parameters: dict, total_match:bool = False, verbose:Optional[int
     # Remove the items
     for item in [i for i in items if (i in index)]:  # run across the items that are indeed in the index
         index.pop(item)
-        logging.log_trace(f'    Removed item {item} from index', verbose)
+        customlog.log_trace(f'    Removed item {item} from index', verbose)
         file_path = os.path.join(save_directory, item)
         if os.path.isfile(file_path): os.remove(file_path)
-        logging.log_trace(f'    Deleted file {file_path}', verbose)
+        customlog.log_trace(f'    Deleted file {file_path}', verbose)
     # save the modified index
     set_index(index)
 
 ### ERASE ALL
 def erase_all(verbose:Optional[int]=None) -> None:
-    logging.log_error('Function unimplemented')
+    customlog.log_error('Function unimplemented')
 
 ### ERASE ALL RECORDINGS OF SAID CATEGORY CORRESPONDING TO SAID CONDITION
 def nuke_all(verbose:Optional[int]=None) -> None:
-    logging.log_info(f'Nuking EVERYTHING', verbose)
+    customlog.log_info(f'Nuking EVERYTHING', verbose)
     for file in os.listdir(save_directory):
         if os.path.isfile(os.path.join(save_directory, file)): os.remove(os.path.join(save_directory, file))
     os.rmdir(save_directory)
@@ -179,17 +179,17 @@ def add_item_to_index(item:str, parameters: dict, remove_similar_older_entries:b
     index[item] = parameters
     # Save the updated index
     set_index(index)
-    logging.log_trace(f'Added item {item} to index', verbose)
+    customlog.log_trace(f'Added item {item} to index', verbose)
 
 ### SAVES THE DATA OF SAID CATEGORY CORRESPONDING TO SAID CONDITION
 def save_data(data: Any, parameters: dict, verbose:Optional[int]=None) -> None:
     if parameters is None:
-        logging.log_warning('(save_data) parameters are None')
+        customlog.log_warning('(save_data) parameters are None')
         return None
     if data is None:
-        logging.log_warning('(save_data) data is None')
+        customlog.log_warning('(save_data) data is None')
         return None
-    logging.log_trace(f'Saving an item', verbose)
+    customlog.log_trace(f'Saving an item', verbose)
     # generate the filename / item name
     filename = generate_appropriate_filename(parameters)
     # save the new index
@@ -197,17 +197,17 @@ def save_data(data: Any, parameters: dict, verbose:Optional[int]=None) -> None:
     # save the file
     np.savez(os.path.join(save_directory, filename), data=data)
     # end
-    logging.log_trace(f'Saved an item named {filename}', verbose)
+    customlog.log_trace(f'Saved an item named {filename}', verbose)
 
 ### TO GENERATE DATA
 def data_generating_fn(parameters:Dict[str, Any], verbose:int=1):
     datatype = parameters.get('datatype', None)
-    logging.log_debug(f'Generating data: {datatype}', verbose)
+    customlog.log_debug(f'Generating data: {datatype}', verbose)
     if datatype is None:
-        logging.log_error('datatype is None ?!', verbose)
+        customlog.log_error('datatype is None ?!', verbose)
         return None
     elif datatype == 'cos': # COS is the old name of BOS
-        logging.log_warning(f"[DEPRECATED] 'cos' data is now called 'bos'")
+        customlog.log_warning(f"[DEPRECATED] 'cos' data is now called 'bos'")
         return rivuletfinding.find_bos(**parameters)
     elif datatype == 'bos':
         return rivuletfinding.find_bos(**parameters)
@@ -218,7 +218,7 @@ def data_generating_fn(parameters:Dict[str, Any], verbose:int=1):
     elif datatype == 'bol':
         return rivuletfinding.find_bol(verbose=verbose, **parameters)
     else:
-        logging.log_error(f'datatype not understood: {datatype}', verbose)
+        customlog.log_error(f'datatype not understood: {datatype}', verbose)
         return None
 
 def fetch_or_generate_data(datatype:str, dataset:str, acquisition:str, verbose:Optional[int]=None, **kwargs):
@@ -227,8 +227,8 @@ def fetch_or_generate_data(datatype:str, dataset:str, acquisition:str, verbose:O
     return fetch_or_generate_data_from_parameters(datatype, parameters, verbose=verbose)
 
 def fetch_or_generate_data_from_parameters(datatype:str, parameters:dict, verbose:int = None):
-    logging.log_subinfo(f'Fetching or generating data: {datatype}', verbose)
-    logging.log_subtrace(f'Parameters: {parameters}', verbose)
+    customlog.log_subinfo(f'Fetching or generating data: {datatype}', verbose)
+    customlog.log_subtrace(f'Parameters: {parameters}', verbose)
 
     parameters['datatype'] = datatype
 
@@ -239,13 +239,13 @@ def fetch_or_generate_data_from_parameters(datatype:str, parameters:dict, verbos
     parameters['framenumbers'] = parameters.get('framenumbers', None)
     available_fns = framenumbers_available(parameters, verbose=verbose)
     wanted_fns = parameters['framenumbers']
-    logging.log_trace(f'Wanted framenumbers "{wanted_fns}"', verbose)
-    logging.log_trace(f'Available framenumbers "{available_fns}"', verbose)
+    customlog.log_trace(f'Wanted framenumbers "{wanted_fns}"', verbose)
+    customlog.log_trace(f'Available framenumbers "{available_fns}"', verbose)
 
     # TODO solve bad behaviour here : if we have all the fns but we ask for none, the available_fns is None check fails and we have to compute again
 
     if available_fns is None: # si tout est dispo
-        logging.log_debug(f'All framenumbers available', verbose)
+        customlog.log_debug(f'All framenumbers available', verbose)
         data = fetch_saved_data(parameters, verbose=verbose) # prendre tout
         if wanted_fns is None: # si on demande tout
             return data # donner tout
@@ -255,37 +255,37 @@ def fetch_or_generate_data_from_parameters(datatype:str, parameters:dict, verbos
     else: # Si tout n'est pas dispo
         if wanted_fns is not None: # si on demande pas tout
             if np.sum(np.isin(available_fns, wanted_fns, assume_unique=True)) == len(wanted_fns): # si cette partie est incluse dans la partie disponible
-                logging.log_debug(f'{len(available_fns)} framenumbers available, {len(wanted_fns)} wanted. No need to generate data.', verbose)
+                customlog.log_debug(f'{len(available_fns)} framenumbers available, {len(wanted_fns)} wanted. No need to generate data.', verbose)
                 data = fetch_saved_data(parameters, verbose=verbose) # prendre tout
                 return data[np.isin(available_fns, wanted_fns, assume_unique=True)] # donner une partie
             else: # si on a des trucs mais la partie demandée on l'a pas
-                logging.log_debug(f'{len(available_fns)} framenumbers available, {len(wanted_fns)} wanted.', verbose)
+                customlog.log_debug(f'{len(available_fns)} framenumbers available, {len(wanted_fns)} wanted.', verbose)
                 total_fns = np.sort( np.unique( np.concatenate((wanted_fns, available_fns)) ) ) # on prend l'union des deux
         else: # si on demande tout
-            logging.log_debug('All framenumbers wanted', verbose)
+            customlog.log_debug('All framenumbers wanted', verbose)
             total_fns = None
 
         # Ici on va devoir générer total_fns.
-        logging.log_debug('We need to generate data', verbose)
+        customlog.log_debug('We need to generate data', verbose)
         total_fns_explicit = total_fns
         if total_fns is None:
             acquisition_path = rivuletfinding.get_acquisition_path_from_parameters(**parameters)
             total_fns_explicit = np.arange(videoreading.get_number_of_available_frames(acquisition_path))
-        logging.log_debug(f'Data to generate: {len(total_fns_explicit)} frames', verbose)
+        customlog.log_debug(f'Data to generate: {len(total_fns_explicit)} frames', verbose)
 
         chunk_size:int = 500
 
         # on y va chunk_size par chunk_size
         number_of_chunks:int = len(total_fns_explicit)//chunk_size+(len(total_fns_explicit)%chunk_size != 0)
-        logging.log_debug(f'Splitting data into {number_of_chunks} chunks of {chunk_size} frames', verbose)
+        customlog.log_debug(f'Splitting data into {number_of_chunks} chunks of {chunk_size} frames', verbose)
         # les chunk_size premiers
         parameters['framenumbers'] = total_fns_explicit[:chunk_size]
-        logging.log_info(f'Generating {datatype} (chunk 1/{number_of_chunks})', verbose)
+        customlog.log_info(f'Generating {datatype} (chunk 1/{number_of_chunks})', verbose)
         data = data_generating_fn(parameters, verbose=verbose) # on calcule
-        if data is None:logging.log_warning('The data generated is None', verbose)
+        if data is None:customlog.log_warning('The data generated is None', verbose)
         # puis on refait le calcul par groupe de 500
         for i in range(1, number_of_chunks):
-            logging.log_info(f'Generating {datatype} (chunk {i+1}/{number_of_chunks})', verbose)
+            customlog.log_info(f'Generating {datatype} (chunk {i+1}/{number_of_chunks})', verbose)
             parameters['framenumbers'] = total_fns_explicit[i*chunk_size:(i+1)*chunk_size]
             data = np.concatenate((data, data_generating_fn(parameters, verbose=verbose))) # on calcule
 

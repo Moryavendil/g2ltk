@@ -27,7 +27,7 @@ def throw_G2L_warning(text:str):
                   )
     sys.stderr.flush() ; force_print('') # force to display warning at runtime
 
-from .logging import *
+from .customlog import *
 
 log_info('Loading g2ltk version '+__version__)
 

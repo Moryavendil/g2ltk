@@ -1,7 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 
-from g2ltk.logging import log_debug
+from g2ltk.customlog import log_debug
 
 # conversion to in
 in_per_mm = 1 / 25.4
