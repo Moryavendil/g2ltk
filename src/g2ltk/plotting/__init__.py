@@ -45,6 +45,10 @@ def save_graphe(graph_name, imageonly=False, **kwargs):
         plt.savefig(raw_path + '.pdf', **kwargs)
         plt.savefig(raw_path + '.svg', **kwargs)
 
+def saveif(graph_name, imageonly=False, **kwargs):
+    if is_saveplot_activated():
+        save_graphe(graph_name, imageonly=imageonly, **kwargs)
+
 from .colorscheme import *
 
 from .figlayout import *
