@@ -6,7 +6,8 @@ from . import styled
 def latex_preamble(style=None):
     if style=='thesis' or style=='thezpresz':
         return LATEX_STYLE_THESIS
-    style_specific_latex_preamble = styled('latex_preamble', style=style)
+    title = styled('latex_preamble', style=style)
+    style_specific_latex_preamble = get_latex_preamble(title)
 
     return fr"""%
     %
@@ -18,14 +19,27 @@ def latex_preamble(style=None):
     %
     %"""
 
-general_latex_preamble = r"""%
-%%% PACKAGES
-%
-%general_latex_preamble
+def get_latex_preamble(title):
+    if title=='jfm':
+        return jfm_latex_preamble
+    if title=='thesis':
+        return thesis_latex_preamble
+    return "%"
 
+
+general_latex_preamble = r"""%
+%
 %%% QOL
 %
 \setlength{\parindent}{0pt}% no indent
+%"""
+
+jfm_latex_preamble = r"""%
+%
+%%% JFM
+%
+\usepackage{newtxtext}
+\usepackage{newtxmath}
 %"""
 
 
@@ -61,6 +75,30 @@ paper_specific_latex_preamble = r"""%
 \newcommand{\us}{{\ensuremath{u_s}}}
 \newcommand{\un}{{\ensuremath{u_n}}}
 %"""
+
+
+thesis_latex_preamble = r"""%
+%
+%%% THESIS
+%
+%%% Fonts and characters
+% Encoding
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+%
+% Font : Erewhon (Utopia-inspired)
+\usepackage{amsmath}			% Permet de taper des formules mathématiques
+\usepackage{amssymb}			% Permet d'utiliser des symboles mathématiques
+\usepackage{amsfonts}			% Permet d'utiliser des polices mathématiques
+\usepackage[erewhon]{newtxmath} % font for math : utopia for bold greek. option: [frenchmath] makes everything ugly
+\usepackage{erewhon} % font for text : simili-utopia
+%
+% Special symbols
+\usepackage[french,english]{babel} % Languages
+\usepackage{pifont} % dingbats
+\usepackage{circledsteps} % faire des trucs en dedans de ronds
+%"""
+
 
 LATEX_STYLE_THESIS = r"""
 %%% Fonts and characters
@@ -244,33 +282,3 @@ LATEX_STYLE_THESIS = r"""
 %
 """
 
-
-jfm_latex_preamble = r"""%
-%
-%%% JFM
-%
-\usepackage{newtxtext}
-\usepackage{newtxmath}
-%"""
-
-thesis_latex_preamble = r"""%
-%
-%%% THESIS
-%
-%%% Fonts and characters
-% Encoding
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
-%
-% Font : Erewhon (Utopia-inspired)
-\usepackage{amsmath}			% Permet de taper des formules mathématiques
-\usepackage{amssymb}			% Permet d'utiliser des symboles mathématiques
-\usepackage{amsfonts}			% Permet d'utiliser des polices mathématiques
-\usepackage[erewhon]{newtxmath} % font for math : utopia for bold greek. option: [frenchmath] makes everything ugly
-\usepackage{erewhon} % font for text : simili-utopia
-%
-% Special symbols
-\usepackage[french,english]{babel} % Languages
-\usepackage{pifont} % dingbats
-\usepackage{circledsteps} % faire des trucs en dedans de ronds
-%"""

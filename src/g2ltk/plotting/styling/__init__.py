@@ -15,8 +15,6 @@ def styled(key:str, style:Optional[str]=None):
 
     return styledict.get(key, styledict_default.get(key, None))
 
-from latexstyles import *
-
 """ FIGURE STYLES
 JFM - Conform with the Journal of Fluid Mechanics template
 * textsize: 32 pc (=134.96 mm) | single column
@@ -58,19 +56,15 @@ set_figw(figw_confort)
 
 styledict_default = {'name': 'default', 'textfontsize': 12, 'fontsize': 10, 'latex_preamble': '%', 'figw': figw_confort}
 styledict_presentation = {'name': 'presentation', 'textfontsize': 20, 'fontsize': 18}
-styledict_thesis = {'name': 'thesis', 'textfontsize': 11, 'fontsize': 10, 'fontsize_inset': 9, 'latex_preamble': thesis_latex_preamble, 'figw': figw_thesis}
-styledict_thezprez = {'name': 'thezprez', 'textfontsize': 18, 'fontsize': 18, 'fontsize_inset': 16, 'latex_preamble': thesis_latex_preamble, 'figw': figw_thezprez}
-styledict_jfm = {'name': 'jfm', 'textfontsize': 10.5, 'fontsize': 9, 'latex_preamble': jfm_latex_preamble, 'figw': figw_jfm}
+styledict_thesis = {'name': 'thesis', 'textfontsize': 11, 'fontsize': 10, 'fontsize_inset': 9, 'latex_preamble': 'thesis', 'figw': figw_thesis}
+styledict_thezprez = {'name': 'thezprez', 'textfontsize': 18, 'fontsize': 18, 'fontsize_inset': 16, 'latex_preamble': 'thesis', 'figw': figw_thezprez}
+styledict_jfm = {'name': 'jfm', 'textfontsize': 10.5, 'fontsize': 9, 'latex_preamble': 'jfm', 'figw': figw_jfm}
 styledict_aps = {'name': 'aps', 'textfontsize': 10, 'fontsize': 9, 'fontsize_inset': 8, 'figw': figw_aps}
 
 styledicts = {'jfm': styledict_jfm, 'aps': styledict_aps,
               'presentation': styledict_presentation,
               'thesis': styledict_thesis, 'thezprez': styledict_thezprez,
               'default': styledict_default}
-
-
-
-
 
 def get_screen_DPI():
     # # To get DPI:
@@ -89,4 +83,6 @@ def get_screen_DPI():
 
     return screen_dpi
 
-from mplstyles import configure_mpl
+from .latexstyles import *
+
+from .mplstyles import configure_mpl
