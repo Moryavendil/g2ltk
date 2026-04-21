@@ -104,12 +104,13 @@ def rdual1d(arr: floatarray1D, zero_pad: Optional[int] = None, zero_pad_factor: 
     return np.fft.rfftfreq(n, step(arr))
 
 ### FT: computing the Fourier Transform
-def prepare_signal_for_ft1d(arr: complexarray1D, window: str = 'hann',
+def prepare_signal_for_ft1d(arr: complexarray1D,
+                            window: str = 'hann', remove_mean: bool = True,
                             zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> complexarray1D:
     N = arr.shape[0]
 
     # Removing mean
-    z_nozero = arr - np.mean(arr)
+    z_nozero = arr - np.mean(arr)*remove_mean
 
     # windowing
     z_win = z_nozero * get_window(window, N)
@@ -145,7 +146,8 @@ def prepare_signal_for_ft1d(arr: complexarray1D, window: str = 'hann',
     return z_roll
 
 
-def rft1d(arr: floatarray1D, x: Optional[floatarray1D] = None, window: str = 'hann', norm=None,
+def rft1d(arr: floatarray1D, x: Optional[floatarray1D] = None,
+          window: str = 'hann', remove_mean: bool = True, norm=None,
           zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> complexarray1D:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
@@ -166,14 +168,16 @@ def rft1d(arr: floatarray1D, x: Optional[floatarray1D] = None, window: str = 'ha
     """
     log_trace(f'rft2d: Computing 2-D FFT of array of shape {arr.shape}')
 
-    z_roll = prepare_signal_for_ft1d(arr, window=window, zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+    z_roll = prepare_signal_for_ft1d(arr, window=window, remove_mean=remove_mean,
+                                     zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
 
     z_hat = fft.rfft(z_roll, norm=norm, n=z_roll.shape[0])
 
     return z_hat * step(x)
 
 
-def ft1d(arr: complexarray1D, x: Optional[floatarray1D] = None, window: str = 'hann', norm=None,
+def ft1d(arr: complexarray1D, x: Optional[floatarray1D] = None,
+         window: str = 'hann', remove_mean: bool = True, norm=None,
          zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> complexarray1D:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
@@ -194,7 +198,8 @@ def ft1d(arr: complexarray1D, x: Optional[floatarray1D] = None, window: str = 'h
     """
     log_trace(f'rft2d: Computing 2-D FFT of array of shape {arr.shape}')
 
-    arr_prepared = prepare_signal_for_ft1d(arr, window=window, zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+    arr_prepared = prepare_signal_for_ft1d(arr, window=window, remove_mean=remove_mean,
+                                           zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
 
     z_hat = fft.fft(arr_prepared, norm=norm, n=arr_prepared.shape[0])
 
@@ -231,11 +236,13 @@ def window_factor1d(window: str):
 
 
 
-def psd1d(z: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', zero_pad: Optional[int] = None,
-          zero_pad_factor: Optional[float] = None) -> floatarray1D:
+def psd1d(z: np.ndarray, x: Optional[np.ndarray] = None,
+          window: str = 'hann', remove_mean: bool = True,
+          zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> floatarray1D:
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
-    z_ft = rft1d(z, x=x, window=window, norm="backward", zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+    z_ft = rft1d(z, x=x, window=window, remove_mean=remove_mean, norm="backward",
+                 zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the only thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this frequency
@@ -248,11 +255,13 @@ def psd1d(z: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', z
     return esd / span(x)
 
 
-def rpsd1d(z: floatarray1D, x: Optional[np.ndarray] = None, window: str = 'hann', zero_pad: Optional[int] = None,
-           zero_pad_factor: Optional[float] = None) -> floatarray1D:
+def rpsd1d(z: floatarray1D, x: Optional[np.ndarray] = None,
+           window: str = 'hann', remove_mean: bool = True,
+           zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> floatarray1D:
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
-    z_ft = rft1d(z, x=x, window=window, norm="backward", zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+    z_ft = rft1d(z, x=x, window=window, norm="backward", remove_mean=remove_mean,
+                 zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the only thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this frequency
