@@ -110,7 +110,8 @@ def prepare_signal_for_ft1d(arr: complexarray1D,
     N = arr.shape[0]
 
     # Removing mean
-    z_nozero = arr - np.mean(arr)*remove_mean
+    log_trace(f'rft1d: Mean removal: {remove_mean}')
+    z_nozero = arr.copy() - np.mean(arr)*remove_mean
 
     # windowing
     z_win = z_nozero * get_window(window, N)
@@ -132,15 +133,15 @@ def prepare_signal_for_ft1d(arr: complexarray1D,
             log_warning(f'rft2d: What is this zero-padding "{zero_pad}" ? I made it None')
             pad_width = None
 
-    log_subtrace(f'rft2d: Padding (artificially better resolution) | pad={pad_width}')
+    log_subtrace(f'rft1d: Padding (artificially better resolution) | pad={pad_width}')
     if pad_width is None:
         pad_width = (0, 0)
     z_pad = np.pad(z_win, pad_width=pad_width, mode='constant', constant_values=0)
 
     # z_treated -= np.mean(z_treated) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
-    z_clean = z_pad - np.mean(z_pad)
+    z_clean = z_pad - np.mean(z_pad)*remove_mean
 
-    log_subtrace(f'rft2d: Rolling (restoring phase) | pad={pad_width}')
+    log_subtrace(f'rft1d: Rolling (restoring phase) | pad={pad_width}')
     z_roll = np.roll(z_clean, pad_width[0] + N // 2)
 
     return z_roll
@@ -158,6 +159,7 @@ def rft1d(arr: floatarray1D, x: Optional[floatarray1D] = None,
     arr
     x
     window
+    remove_mean
     norm
     zero_pad
     zero_pad_factor
@@ -166,7 +168,7 @@ def rft1d(arr: floatarray1D, x: Optional[floatarray1D] = None,
     -------
 
     """
-    log_trace(f'rft2d: Computing 2-D FFT of array of shape {arr.shape}')
+    log_trace(f'rft2d: Computing 1-D FFT of array of shape {arr.shape}')
 
     z_roll = prepare_signal_for_ft1d(arr, window=window, remove_mean=remove_mean,
                                      zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
@@ -188,6 +190,7 @@ def ft1d(arr: complexarray1D, x: Optional[floatarray1D] = None,
     arr
     x
     window
+    remove_mean
     norm
     zero_pad
     zero_pad_factor
@@ -196,7 +199,7 @@ def ft1d(arr: complexarray1D, x: Optional[floatarray1D] = None,
     -------
 
     """
-    log_trace(f'rft2d: Computing 2-D FFT of array of shape {arr.shape}')
+    log_trace(f'rft2d: Computing 1-D FFT of array of shape {arr.shape}')
 
     arr_prepared = prepare_signal_for_ft1d(arr, window=window, remove_mean=remove_mean,
                                            zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
@@ -241,7 +244,7 @@ def psd1d(z: np.ndarray, x: Optional[np.ndarray] = None,
           zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> floatarray1D:
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
-    z_ft = rft1d(z, x=x, window=window, remove_mean=remove_mean, norm="backward",
+    z_ft = ft1d(z, x=x, window=window, remove_mean=remove_mean, norm="backward",
                  zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the only thing we can really measure with discretized inputs and FFT
