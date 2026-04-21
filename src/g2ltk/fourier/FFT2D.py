@@ -10,6 +10,8 @@ from g2ltk.peakfinder import step, span
 from . import floatarray1D, floatarray2D, complexarray1D, complexarray2D, attenuate_power
 from .FFT1D import dual1d, rdual1d
 
+default_window = 'boxcar'
+
 ### Dual: changing from real space to frequency space
 def dual2d(x: floatarray1D, y: floatarray1D,
            zero_pad: Optional[Tuple[int, int]] = None,
@@ -72,8 +74,7 @@ def rdual2d(x: floatarray1D, y: floatarray1D,
 ### FT: computing the Fourier Transform
 
 def prepare_signal_for_ft2d(arr: complexarray2D,
-                            window: str = 'hann',
-                            winstyle=None,
+                            window: str = default_window, winstyle=None, remove_mean: bool = True,
                             zero_pad: Optional[Tuple[int, int]] = None,
                             zero_pad_factor: Optional[Union[int, Tuple[int, int]]] = None,
                             shift: Optional[Tuple[int, int]] = None) -> complexarray2D:
@@ -103,7 +104,7 @@ def prepare_signal_for_ft2d(arr: complexarray2D,
     Nt, Nx = arr.shape
 
     # Removing mean
-    z_nozero = arr - np.mean(arr)
+    z_nozero = arr - np.mean(arr) * remove_mean
 
     if winstyle is None:
         winstyle = 'outer'
@@ -148,7 +149,7 @@ def prepare_signal_for_ft2d(arr: complexarray2D,
 
     log_subtrace(f'ft2d: Removing (0,0)-freq component: {True}')
     # z_clean -= np.mean(z_win) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
-    z_clean = z_pad - np.mean(z_pad)
+    z_clean = z_pad - np.mean(z_pad) * remove_mean
 
     # log_subtrace(f'rft2d: Rolling (restoring phase) | pad={pad_width}')
     # z_roll = np.roll(z_clean, (pad_width[0][0]+Nt//2, pad_width[1][0]+Nx//2), axis = (0, 1))
@@ -173,8 +174,8 @@ def prepare_signal_for_ft2d(arr: complexarray2D,
     return z_roll
 
 
-def ft2d(arr: complexarray2D, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None, window: str = 'hann',
-         winstyle=None, norm=None,
+def ft2d(arr: complexarray2D, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
+         window: str = default_window, winstyle=None, remove_mean: bool = True, norm=None,
          zero_pad: Optional[Tuple[int, int]] = None, zero_pad_factor: Optional[Tuple[float, float]] = None,
          shift: Optional[Tuple[int, int]] = None) -> complexarray2D:
     """
@@ -205,7 +206,7 @@ def ft2d(arr: complexarray2D, x: Optional[np.ndarray] = None, y: Optional[np.nda
     if ((Nx_x is not None) and (Nx_x != Nx_arr)) or ((Nt_t is not None) and (Nt_t != Nt_arr)):
         log_warning(f'ft2d: array is shaped {arr.shape} != {Nt_t} x {Nx_x}')
 
-    arr_prepared = prepare_signal_for_ft2d(arr, window=window, winstyle=winstyle,
+    arr_prepared = prepare_signal_for_ft2d(arr, window=window, winstyle=winstyle, remove_mean=remove_mean,
                                            zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
                                            shift=shift)
 
@@ -214,8 +215,8 @@ def ft2d(arr: complexarray2D, x: Optional[np.ndarray] = None, y: Optional[np.nda
     return fft.fftshift(arr_hat) * step(x) * step(y)
 
 
-def rft2d(arr: floatarray2D, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None, window: str = 'hann',
-          winstyle=None, norm=None,
+def rft2d(arr: floatarray2D, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
+          window: str = default_window, winstyle=None, remove_mean: bool = True, norm=None,
           zero_pad: Optional[Tuple[int, int]] = None, zero_pad_factor: Optional[Tuple[float, float]] = None,
           shift: Optional[Tuple[int, int]] = None) -> complexarray2D:
     """
@@ -248,7 +249,7 @@ def rft2d(arr: floatarray2D, x: Optional[np.ndarray] = None, y: Optional[np.ndar
     if ((Nx_x is not None) and (Nx_x != Nx_arr)) or ((Nt_t is not None) and (Nt_t != Nt_arr)):
         log_warning(f'ft2d: array is shaped {arr.shape} != {Nt_t} x {Nx_x}')
 
-    arr_prepared = prepare_signal_for_ft2d(arr, window=window, winstyle=winstyle,
+    arr_prepared = prepare_signal_for_ft2d(arr, window=window, winstyle=winstyle, remove_mean=remove_mean,
                                            zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
                                            shift=shift)
 
@@ -286,8 +287,8 @@ def window_factor2d(window: str, winstyle: Optional[str] = None):
         return 1
 
 
-def psd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None, window: str = 'hann',
-          winstyle=None,
+def psd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
+          window: str = default_window, winstyle=None, remove_mean: bool = True,
           zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None,
           shift: Optional[Tuple[int, int]] = None) -> np.ndarray:
     """
@@ -317,7 +318,7 @@ def psd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray]
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $\hat{z}$ is [V/(Hz.mm^{-1})(Hz, mm-1)]
     y_ft = ft2d(z, x=x, y=y, window=window, winstyle=winstyle,
-                norm="backward",
+                remove_mean=remove_mean, norm="backward",
                 zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
                 shift=shift)
     ### Step 2 : compute the ESD (Energy Spectral Density)
@@ -331,8 +332,8 @@ def psd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray]
     # Thus if the unit of z(t, x) is [V(s, mm)], then the unit of PSD(z)$ is [V^2/Hz/mm^{-1}(Hz, mm-1)]
     return esd / span(x) / span(y)
 
-def rpsd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None, window: str = 'hann',
-           winstyle=None,
+def rpsd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
+           window: str = default_window, winstyle=None, remove_mean: bool = True,
            zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None,
            shift: Optional[Tuple[int, int]] = None) -> np.ndarray:
     """
@@ -361,7 +362,7 @@ def rpsd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray
     log_trace('rpsd2d: Computing a 2-D PSD')
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $\hat{z}$ is [V/(Hz.mm^{-1})(Hz, mm-1)]
-    y_ft = rft2d(z, x=x, y=y, window=window, winstyle=winstyle, norm="backward",
+    y_ft = rft2d(z, x=x, y=y, window=window, winstyle=winstyle, remove_mean=remove_mean, norm="backward",
                  zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
                  shift=shift)
     ### Step 2 : compute the ESD (Energy Spectral Density)
