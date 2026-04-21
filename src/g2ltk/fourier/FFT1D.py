@@ -10,6 +10,8 @@ from g2ltk.peakfinder import step, span, interp_roots, find_global_max
 from . import floatarray1D, complexarray1D, attenuate_power
 
 
+default_window: str = 'boxcar'
+
 ### Dual: changing from real space to frequency space
 def dual1d(arr: floatarray1D, zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> floatarray1D:
     """
@@ -105,7 +107,7 @@ def rdual1d(arr: floatarray1D, zero_pad: Optional[int] = None, zero_pad_factor: 
 
 ### FT: computing the Fourier Transform
 def prepare_signal_for_ft1d(arr: complexarray1D,
-                            window: str = 'hann', remove_mean: bool = True,
+                            window: str = default_window, remove_mean: bool = True,
                             zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> complexarray1D:
     N = arr.shape[0]
 
@@ -148,7 +150,7 @@ def prepare_signal_for_ft1d(arr: complexarray1D,
 
 
 def rft1d(arr: floatarray1D, x: Optional[floatarray1D] = None,
-          window: str = 'hann', remove_mean: bool = True, norm=None,
+          window: str = default_window, remove_mean: bool = True, norm=None,
           zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> complexarray1D:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
@@ -179,7 +181,7 @@ def rft1d(arr: floatarray1D, x: Optional[floatarray1D] = None,
 
 
 def ft1d(arr: complexarray1D, x: Optional[floatarray1D] = None,
-         window: str = 'hann', remove_mean: bool = True, norm=None,
+         window: str = default_window, remove_mean: bool = True, norm=None,
          zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> complexarray1D:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
@@ -240,7 +242,7 @@ def window_factor1d(window: str):
 
 
 def psd1d(z: np.ndarray, x: Optional[np.ndarray] = None,
-          window: str = 'hann', remove_mean: bool = True,
+          window: str = default_window, remove_mean: bool = True,
           zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> floatarray1D:
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
@@ -259,7 +261,7 @@ def psd1d(z: np.ndarray, x: Optional[np.ndarray] = None,
 
 
 def rpsd1d(z: floatarray1D, x: Optional[np.ndarray] = None,
-           window: str = 'hann', remove_mean: bool = True,
+           window: str = default_window, remove_mean: bool = True,
            zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> floatarray1D:
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
