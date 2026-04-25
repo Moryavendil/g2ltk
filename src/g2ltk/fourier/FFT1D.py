@@ -10,8 +10,8 @@ from .. import log_error, log_warning, log_info, log_debug, log_trace, log_subtr
 from g2ltk.peakfinder import step, span, interp_roots, find_global_max
 from . import floatarray1D, complexarray1D, attenuate_power
 
-
 default_window: str = 'boxcar'
+
 
 ### Dual: changing from real space to frequency space
 def dual1d(arr: floatarray1D,
@@ -108,6 +108,7 @@ def rdual1d(arr: floatarray1D,
 
     return np.fft.rfftfreq(n, step(arr))
 
+
 ### FT: computing the Fourier Transform
 def prepare_signal_for_ft1d(arr: complexarray1D,
                             window: str = default_window, remove_mean: bool = True,
@@ -117,7 +118,7 @@ def prepare_signal_for_ft1d(arr: complexarray1D,
 
     # Removing mean
     log_trace(f'rft1d: Mean removal: {remove_mean}')
-    z_nozero = arr.copy() - np.mean(arr)*remove_mean
+    z_nozero = arr.copy() - np.mean(arr) * remove_mean
 
     # windowing
     z_win = z_nozero * get_window(window, N)
@@ -145,7 +146,7 @@ def prepare_signal_for_ft1d(arr: complexarray1D,
     z_pad = np.pad(z_win, pad_width=pad_width, mode='constant', constant_values=0)
 
     # z_treated -= np.mean(z_treated) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
-    z_clean = z_pad - np.mean(z_pad)*remove_mean
+    z_clean = z_pad - np.mean(z_pad) * remove_mean
 
     if shift is None: shift = 0
     log_subtrace(f'rft1d: Rolling (restoring phase) | pad={pad_width} | shift={shift}')
@@ -249,14 +250,13 @@ def window_factor1d(window: str):
         return 1 / ((get_window(window, N) ** 2).sum() / N)
 
 
-
 def psd1d(z: np.ndarray, x: Optional[np.ndarray] = None,
           window: str = default_window, remove_mean: bool = True,
           zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> floatarray1D:
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
     z_ft = ft1d(z, x=x, window=window, remove_mean=remove_mean, norm="backward",
-                 zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+                zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the only thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this frequency
@@ -287,6 +287,7 @@ def rpsd1d(z: floatarray1D, x: Optional[np.ndarray] = None,
     # Assuming that the signal is periodic, then PSD = ESD / duration
     # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
     return esd / span(x)
+
 
 ### QOL functions
 
@@ -320,7 +321,7 @@ def estimatesignalfrequency(z: floatarray1D, x: Optional[floatarray1D] = None,
 
 
 # find the edges of the peak (1D, everything is easy)
-def peak_contour1d(peak_x, z: floatarray1D, peak_depth_dB: Optional[int] = 40, x: Optional[floatarray1D]=None,
+def peak_contour1d(peak_x, z: floatarray1D, peak_depth_dB: Optional[int] = 40, x: Optional[floatarray1D] = None,
                    peak_max_length: Optional[float] = None):
     if x is None:
         x = np.arange(z.shape[0])
@@ -373,7 +374,7 @@ def peak_contour1d(peak_x, z: floatarray1D, peak_depth_dB: Optional[int] = 40, x
     return x1_before, x1_after
 
 
-def peak_vicinity1d(peak_x, z: floatarray1D, peak_depth_dB: Optional[int] = 40, x: Optional[floatarray1D]=None,
+def peak_vicinity1d(peak_x, z: floatarray1D, peak_depth_dB: Optional[int] = 40, x: Optional[floatarray1D] = None,
                     peak_contour: Optional[List] = None):
     if x is None:
         x = np.arange(z.shape[0])
@@ -391,7 +392,7 @@ def peak_vicinity1d(peak_x, z: floatarray1D, peak_depth_dB: Optional[int] = 40, 
     return vicinity
 
 
-def power_near_peak1d(peak_x, z: floatarray1D, peak_depth_dB: Optional[int] = 40, x: Optional[floatarray1D]=None,
+def power_near_peak1d(peak_x, z: floatarray1D, peak_depth_dB: Optional[int] = 40, x: Optional[floatarray1D] = None,
                       peak_vicinity: Optional[np.ndarray] = None,
                       peak_contour: Optional[List] = None):
     # integrate the PSD along the peak
@@ -406,3 +407,72 @@ def power_near_peak1d(peak_x, z: floatarray1D, peak_depth_dB: Optional[int] = 40
     pw = np.sum(z[peak_vicinity]) * step(x)
     log_debug(f'Power: {pw} (amplitude: {np.sqrt(pw * 2)})')
     return pw
+
+
+# find the phase and amplitude of the signal
+
+def estimate_phase(sig, x: Optional[floatarray1D] = None, frequency: Optional[float] = None) -> float:
+    """
+    Estimates the phase of the signal at a given frequency.
+
+    If the frequency is unspecified, try to estimate it automatically.
+
+    Parameters
+    ----------
+    sig
+    x
+    frequency
+
+    Returns
+    -------
+
+    """
+    if x is None: x = np.arange(sig.shape[0])
+    if frequency is None: frequency = estimatesignalfrequency(sig, x=x)
+    return np.angle(np.sum(sig * np.exp(-1j * 2 * np.pi * frequency * x)))
+
+
+def hilbert(sig: floatarray1D, symmetrize=True, remove_mean=True) -> floatarray1D:
+    """
+    Performs a Hilbert transform of the signal.
+
+    This is mainly a wrapper for scipy.signal.hilbert,
+    only here the signal is symmetrized to diminish boundary effects.
+
+    Parameters
+    ----------
+    sig
+    symmetrize
+    remove_mean
+
+    Returns
+    -------
+
+    """
+    sig_prepared = np.concatenate((sig, sig[::-1])) if symmetrize else sig.copy()
+    if remove_mean: sig_prepared -= sig_prepared.mean()
+    return signal.hilbert(sig_prepared)[:len(sig)]
+
+
+def synchronous_enveloppe_detection(sig, x: Optional[floatarray1D] = None, frequency: Optional[float] = None,
+                                    phase: Optional[float] = None) -> floatarray1D:
+    """
+    Performs synchronous detection / coherent demodulation.
+
+    Parameters
+    ----------
+    sig
+    x
+    frequency
+    phase
+
+    Returns
+    -------
+
+    """
+    if x is None: x = np.arange(sig.shape[0])
+    if frequency is None: frequency = estimatesignalfrequency(sig, x=x)
+    if phase is None: phase = estimate_phase(sig, x=x, frequency=frequency)
+    fs = 1 / step(x)
+    b, a = signal.butter(4, frequency * 2 / 3, btype='lowpass', analog=False, fs=fs)
+    return signal.filtfilt(b, a, 2 * sig * np.cos(2 * np.pi * frequency * x + phase))
