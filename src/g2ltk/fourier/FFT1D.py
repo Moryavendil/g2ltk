@@ -1,6 +1,7 @@
 from typing import Optional, Any, Tuple, Dict, List, Union
 import numpy as np
 import math
+from scipy import signal
 from scipy.signal.windows import get_window  # FFT windowing
 from skimage import filters  # filters.window for 2D FFT windowing
 from scipy import fft
@@ -13,7 +14,8 @@ from . import floatarray1D, complexarray1D, attenuate_power
 default_window: str = 'boxcar'
 
 ### Dual: changing from real space to frequency space
-def dual1d(arr: floatarray1D, zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> floatarray1D:
+def dual1d(arr: floatarray1D,
+           zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> floatarray1D:
     """
     Returns the dual, i.e. the frequencies.
 
@@ -60,7 +62,8 @@ def dual1d(arr: floatarray1D, zero_pad: Optional[int] = None, zero_pad_factor: O
     return np.fft.fftshift(np.fft.fftfreq(n, step(arr)))
 
 
-def rdual1d(arr: floatarray1D, zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> floatarray1D:
+def rdual1d(arr: floatarray1D,
+            zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> floatarray1D:
     """Returns the dual, i.e. the frequencies, in a numpy.fft.rfft-compatible style.
 
     The unit is the inverse, e.g. time (s)-> frequency (Hz).
@@ -108,7 +111,8 @@ def rdual1d(arr: floatarray1D, zero_pad: Optional[int] = None, zero_pad_factor: 
 ### FT: computing the Fourier Transform
 def prepare_signal_for_ft1d(arr: complexarray1D,
                             window: str = default_window, remove_mean: bool = True,
-                            zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> complexarray1D:
+                            zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None,
+                            shift: Optional[int] = None) -> complexarray1D:
     N = arr.shape[0]
 
     # Removing mean
@@ -143,15 +147,17 @@ def prepare_signal_for_ft1d(arr: complexarray1D,
     # z_treated -= np.mean(z_treated) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
     z_clean = z_pad - np.mean(z_pad)*remove_mean
 
-    log_subtrace(f'rft1d: Rolling (restoring phase) | pad={pad_width}')
-    z_roll = np.roll(z_clean, pad_width[0] + N // 2)
+    if shift is None: shift = 0
+    log_subtrace(f'rft1d: Rolling (restoring phase) | pad={pad_width} | shift={shift}')
+    z_roll = np.roll(z_clean, -pad_width[0] - shift)
 
     return z_roll
 
 
 def rft1d(arr: floatarray1D, x: Optional[floatarray1D] = None,
           window: str = default_window, remove_mean: bool = True, norm=None,
-          zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> complexarray1D:
+          zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None,
+          shift: Optional[int] = None) -> complexarray1D:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
     The unit is in amplitude/(inverse period), e.g. V(s) -> V/Hz(Hz)
@@ -173,7 +179,8 @@ def rft1d(arr: floatarray1D, x: Optional[floatarray1D] = None,
     log_trace(f'rft2d: Computing 1-D FFT of array of shape {arr.shape}')
 
     z_roll = prepare_signal_for_ft1d(arr, window=window, remove_mean=remove_mean,
-                                     zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+                                     zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
+                                     shift=shift)
 
     z_hat = fft.rfft(z_roll, norm=norm, n=z_roll.shape[0])
 
@@ -182,7 +189,8 @@ def rft1d(arr: floatarray1D, x: Optional[floatarray1D] = None,
 
 def ft1d(arr: complexarray1D, x: Optional[floatarray1D] = None,
          window: str = default_window, remove_mean: bool = True, norm=None,
-         zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> complexarray1D:
+         zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None,
+         shift: Optional[int] = None) -> complexarray1D:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
     The unit is in amplitude/(inverse period), e.g. V(s) -> V/Hz(Hz)
@@ -204,7 +212,8 @@ def ft1d(arr: complexarray1D, x: Optional[floatarray1D] = None,
     log_trace(f'rft2d: Computing 1-D FFT of array of shape {arr.shape}')
 
     arr_prepared = prepare_signal_for_ft1d(arr, window=window, remove_mean=remove_mean,
-                                           zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+                                           zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
+                                           shift=shift)
 
     z_hat = fft.fft(arr_prepared, norm=norm, n=arr_prepared.shape[0])
 
