@@ -12,6 +12,12 @@ from .FFT1D import dual1d, rdual1d
 
 default_window = 'boxcar'
 
+# todo fix shifts phas emust be coherent with np.fft.fft
+# todo fix directions, (axis0, axis 1) must correspond to x, y...
+# todo because for now x and y are interverted?!
+# todo or keep it idc but make it generlizable
+# todo like axis n, n-1, 3,2, 1, 0  = ?, ?, ..., ?, z y x
+
 ### Dual: changing from real space to frequency space
 def dual2d(x: floatarray1D, y: floatarray1D,
            zero_pad: Optional[Tuple[int, int]] = None,

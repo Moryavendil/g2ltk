@@ -110,18 +110,18 @@ def rdual1d(arr: floatarray1D,
 
 
 ### FT: computing the Fourier Transform
-def prepare_signal_for_ft1d(arr: complexarray1D,
+def prepare_signal_for_ft1d(sig: complexarray1D,
                             window: str = default_window, remove_mean: bool = True,
                             zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None,
                             shift: Optional[int] = None) -> complexarray1D:
-    N = arr.shape[0]
+    N = sig.shape[0]
 
     # Removing mean
     log_trace(f'rft1d: Mean removal: {remove_mean}')
-    z_nozero = arr.copy() - np.mean(arr) * remove_mean
+    sig_nozero = sig.copy() - np.mean(sig) * remove_mean
 
     # windowing
-    z_win = z_nozero * get_window(window, N)
+    sig_windowed = sig_nozero * get_window(window, N)
 
     pad_width = None
     if zero_pad_factor is not None:
@@ -143,19 +143,19 @@ def prepare_signal_for_ft1d(arr: complexarray1D,
     log_subtrace(f'rft1d: Padding (artificially better resolution) | pad={pad_width}')
     if pad_width is None:
         pad_width = (0, 0)
-    z_pad = np.pad(z_win, pad_width=pad_width, mode='constant', constant_values=0)
+    sig_padded = np.pad(sig_windowed, pad_width=pad_width, mode='constant', constant_values=0)
 
     # z_treated -= np.mean(z_treated) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
-    z_clean = z_pad - np.mean(z_pad) * remove_mean
+    sig_padded = sig_padded - np.mean(sig_padded) * remove_mean
 
     if shift is None: shift = 0
     log_subtrace(f'rft1d: Rolling (restoring phase) | pad={pad_width} | shift={shift}')
-    z_roll = np.roll(z_clean, -pad_width[0] - shift)
+    sig_rolled = np.roll(sig_padded, -pad_width[0] - shift)
 
-    return z_roll
+    return sig_rolled
 
 
-def rft1d(arr: floatarray1D, x: Optional[floatarray1D] = None,
+def rft1d(sig: floatarray1D, x: Optional[floatarray1D] = None,
           window: str = default_window, remove_mean: bool = True, norm=None,
           zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None,
           shift: Optional[int] = None) -> complexarray1D:
@@ -165,7 +165,7 @@ def rft1d(arr: floatarray1D, x: Optional[floatarray1D] = None,
 
     Parameters
     ----------
-    arr
+    sig
     x
     window
     remove_mean
@@ -177,18 +177,18 @@ def rft1d(arr: floatarray1D, x: Optional[floatarray1D] = None,
     -------
 
     """
-    log_trace(f'rft2d: Computing 1-D FFT of array of shape {arr.shape}')
+    log_trace(f'rft2d: Computing 1-D FFT of array of shape {sig.shape}')
 
-    z_roll = prepare_signal_for_ft1d(arr, window=window, remove_mean=remove_mean,
+    sig_prepared = prepare_signal_for_ft1d(sig, window=window, remove_mean=remove_mean,
                                      zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
                                      shift=shift)
 
-    z_hat = fft.rfft(z_roll, norm=norm, n=z_roll.shape[0])
+    sig_hat = fft.rfft(sig_prepared, norm=norm, n=sig_prepared.shape[0])
 
-    return z_hat * step(x)
+    return sig_hat * step(x)
 
 
-def ft1d(arr: complexarray1D, x: Optional[floatarray1D] = None,
+def ft1d(sig: complexarray1D, x: Optional[floatarray1D] = None,
          window: str = default_window, remove_mean: bool = True, norm=None,
          zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None,
          shift: Optional[int] = None) -> complexarray1D:
@@ -198,7 +198,7 @@ def ft1d(arr: complexarray1D, x: Optional[floatarray1D] = None,
 
     Parameters
     ----------
-    arr
+    sig
     x
     window
     remove_mean
@@ -210,19 +210,19 @@ def ft1d(arr: complexarray1D, x: Optional[floatarray1D] = None,
     -------
 
     """
-    log_trace(f'rft2d: Computing 1-D FFT of array of shape {arr.shape}')
+    log_trace(f'rft2d: Computing 1-D FFT of array of shape {sig.shape}')
 
-    arr_prepared = prepare_signal_for_ft1d(arr, window=window, remove_mean=remove_mean,
+    sig_prepared = prepare_signal_for_ft1d(sig, window=window, remove_mean=remove_mean,
                                            zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
                                            shift=shift)
 
-    z_hat = fft.fft(arr_prepared, norm=norm, n=arr_prepared.shape[0])
+    sig_hat = fft.fft(sig_prepared, norm=norm, n=sig_prepared.shape[0])
 
-    return fft.fftshift(z_hat) * step(x)
+    return fft.fftshift(sig_hat) * step(x)
 
 
-def ifft1d(zhat: complexarray1D, xdual: Optional[np.ndarray] = None):
-    return fft.fftshift(fft.ifft(np.fft.ifftshift(zhat))) * span(xdual)
+def ifft1d(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None):
+    return fft.fftshift(fft.ifft(np.fft.ifftshift(sig_hat))) * span(xdual)
 
 
 ### Power:
@@ -250,38 +250,38 @@ def window_factor1d(window: str):
         return 1 / ((get_window(window, N) ** 2).sum() / N)
 
 
-def psd1d(z: np.ndarray, x: Optional[np.ndarray] = None,
+def psd1d(sig: np.ndarray, x: Optional[np.ndarray] = None,
           window: str = default_window, remove_mean: bool = True,
           zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> floatarray1D:
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
-    z_ft = ft1d(z, x=x, window=window, remove_mean=remove_mean, norm="backward",
-                zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+    sig_hat = ft1d(sig, x=x, window=window, remove_mean=remove_mean, norm="backward",
+                   zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the only thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this frequency
     # It is useful in itself for time-limited signals (impulsions)
     # if the unit of z(t) is [V(s)], then the unit of $ESD(z)$ is [V^2/Hz^2(Hz)]
-    esd = np.abs(z_ft) ** 2 * window_factor1d(window)
+    esd = np.abs(sig_hat) ** 2 * window_factor1d(window)
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is periodic, then PSD = ESD / duration
     # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
     return esd / span(x)
 
 
-def rpsd1d(z: floatarray1D, x: Optional[np.ndarray] = None,
+def rpsd1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
            window: str = default_window, remove_mean: bool = True,
            zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> floatarray1D:
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
-    z_ft = rft1d(z, x=x, window=window, norm="backward", remove_mean=remove_mean,
+    sig_hat = rft1d(sig, x=x, window=window, norm="backward", remove_mean=remove_mean,
                  zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the only thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this frequency
     # It is useful in itself for time-limited signals (impulsions)
     # if the unit of z(t) is [V(s)], then the unit of $ESD(z)$ is [V^2/Hz^2(Hz)]
-    esd = np.abs(z_ft) ** 2 * window_factor1d(window)
+    esd = np.abs(sig_hat) ** 2 * window_factor1d(window)
     esd[1:] *= 2  # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is periodic, then PSD = ESD / duration
@@ -291,14 +291,14 @@ def rpsd1d(z: floatarray1D, x: Optional[np.ndarray] = None,
 
 ### QOL functions
 
-def estimatesignalfrequency(z: floatarray1D, x: Optional[floatarray1D] = None,
+def estimatesignalfrequency(sig: floatarray1D, x: Optional[floatarray1D] = None,
                             window: str = 'boxcar', zero_pad_factor: Optional[int] = 4,
                             bounds=None) -> float:
     """Estimates the frequency of a signal
 
     Parameters
     ----------
-    z
+    sig
     x
     window
         By default we use a rectangular ('boxcar') window since it is the most precise for single-frequency finding. But it is very sensitive to noise.
@@ -311,9 +311,9 @@ def estimatesignalfrequency(z: floatarray1D, x: Optional[floatarray1D] = None,
 
     """
     if x is None:
-        x = np.arange(len(z))
+        x = np.arange(len(sig))
     fx: floatarray1D = rdual1d(x, zero_pad_factor=zero_pad_factor)
-    pw: floatarray1D = rpsd1d(z, x, window=window, zero_pad_factor=zero_pad_factor)
+    pw: floatarray1D = rpsd1d(sig, x, window=window, zero_pad_factor=zero_pad_factor)
     if bounds is not None:
         pw = pw[(fx > bounds[0]) & (fx < bounds[1])]
         fx = fx[(fx > bounds[0]) & (fx < bounds[1])]
@@ -321,18 +321,17 @@ def estimatesignalfrequency(z: floatarray1D, x: Optional[floatarray1D] = None,
 
 
 # find the edges of the peak (1D, everything is easy)
-def peak_contour1d(peak_x, z: floatarray1D, peak_depth_dB: Optional[int] = 40, x: Optional[floatarray1D] = None,
+def peak_contour1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int] = 40, x: Optional[floatarray1D] = None,
                    peak_max_length: Optional[float] = None):
-    if x is None:
-        x = np.arange(z.shape[0])
+    if x is None: x = np.arange(sig_psd.shape[0])
 
     peak_index = np.argmin((x - peak_x) ** 2)
 
     min_peak_depth_dB = 10
 
     while peak_depth_dB > 0:  # infinite loop, return is in it
-        zintercept = attenuate_power(z[peak_index], peak_depth_dB)
-        x1_intercept = interp_roots(z - zintercept, x=x)
+        zintercept = attenuate_power(sig_psd[peak_index], peak_depth_dB)
+        x1_intercept = interp_roots(sig_psd - zintercept, x=x)
         x1_before = peak_x
         x1_after = peak_x
         if len(x1_intercept[x1_intercept < peak_x] > 0):
@@ -374,13 +373,12 @@ def peak_contour1d(peak_x, z: floatarray1D, peak_depth_dB: Optional[int] = 40, x
     return x1_before, x1_after
 
 
-def peak_vicinity1d(peak_x, z: floatarray1D, peak_depth_dB: Optional[int] = 40, x: Optional[floatarray1D] = None,
+def peak_vicinity1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int] = 40, x: Optional[floatarray1D] = None,
                     peak_contour: Optional[List] = None):
-    if x is None:
-        x = np.arange(z.shape[0])
+    if x is None: x = np.arange(sig_psd.shape[0])
 
     if peak_contour is None:
-        peak_contour = peak_contour1d(peak_x=peak_x, z=z, peak_depth_dB=peak_depth_dB, x=x)
+        peak_contour = peak_contour1d(peak_x=peak_x, sig_psd=sig_psd, peak_depth_dB=peak_depth_dB, x=x)
     x1_before, x1_after = peak_contour
 
     log_trace(f'peak_vicinity1d: Vicinity of {(x1_before, x1_after)} (around {peak_x})')
@@ -392,19 +390,35 @@ def peak_vicinity1d(peak_x, z: floatarray1D, peak_depth_dB: Optional[int] = 40, 
     return vicinity
 
 
-def power_near_peak1d(peak_x, z: floatarray1D, peak_depth_dB: Optional[int] = 40, x: Optional[floatarray1D] = None,
+def power_near_peak1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int] = 40, x: Optional[floatarray1D] = None,
                       peak_vicinity: Optional[np.ndarray] = None,
                       peak_contour: Optional[List] = None):
-    # integrate the PSD along the peak
+    """Integrates the PSD around a given peak.
+
+    Choose your windw with care
+
+    Parameters
+    ----------
+    peak_x
+    sig_psd
+    peak_depth_dB
+    x
+    peak_vicinity
+    peak_contour
+
+    Returns
+    -------
+
+    """
     log_debug(f'Measuring the power around     ({round(peak_x, 3)})')
     if peak_vicinity is None:
-        peak_vicinity = peak_vicinity1d(peak_x=peak_x, z=z, peak_depth_dB=peak_depth_dB, x=x, peak_contour=peak_contour)
+        peak_vicinity = peak_vicinity1d(peak_x=peak_x, sig_psd=sig_psd, peak_depth_dB=peak_depth_dB, x=x, peak_contour=peak_contour)
     # ### (abandoned) do a trapezoid integration
     # x_f = np.concatenate(([freqpre], freqs[(freqpre < freqs)*(freqs < freqpost)], [freqpost]))
     # y_f = np.concatenate(([np.interp(freqpre, freqs, zmeanx_psd)], zmeanx_psd[(freqpre < freqs)*(freqs < freqpost)], [np.interp(freqpost, freqs, zmeanx_psd)]))
     # p_ft_peak = trapezoid(y_f, x_f)
     ### Go bourrin (we are in log we do not care) : rectangular integration
-    pw = np.sum(z[peak_vicinity]) * step(x)
+    pw = np.sum(sig_psd[peak_vicinity]) * step(x)
     log_debug(f'Power: {pw} (amplitude: {np.sqrt(pw * 2)})')
     return pw
 
