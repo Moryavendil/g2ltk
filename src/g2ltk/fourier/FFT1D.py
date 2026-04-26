@@ -1,4 +1,4 @@
-from typing import Optional, Any, Tuple, Dict, List, Union
+from typing import Optional, Any, Tuple, Dict, List, Union, Literal
 import numpy as np
 import math
 from scipy import signal
@@ -12,6 +12,7 @@ from . import floatarray1D, complexarray1D, attenuate_power
 
 default_window: str = 'boxcar'
 
+detrend_dtype = Literal['constant', False]
 
 ### Dual: changing from real space to frequency space
 def dual1d(arr: floatarray1D,
@@ -288,11 +289,15 @@ def rpsd1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     return esd / span(x)
 
 def welch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
+            welch_factor: float = 1.,
             window: str = default_window, remove_mean: bool = True,
             zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None):
-    fs = 1/step(t)
-    detrend = 'constant' if remove_mean else False
-    f_welch, psd_welch =  signal.welch(sig, fs=fs, window=window, nperseg=256, nfft=256*zpf,
+    if zero_pad is None: raise NotImplementedError('zero_pad not implemented for welch1d')
+    fs = 1/step(x)
+    detrend: detrend_dtype = 'constant' if remove_mean else False
+    nperseg: int = int(len(sig)/welch_factor)
+    f_welch, psd_welch =  signal.welch(sig, fs=fs, window=window,
+                                       nperseg=nperseg, nfft=len(sig)*zero_pad_factor,
                                        return_onesided=False, scaling='density', detrend=detrend)
     f_welch, psd_welch = fft.fftshift(f_welch), fft.fftshift(psd_welch)
     return psd_welch

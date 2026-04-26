@@ -17,9 +17,9 @@ def is_regularly_spaced(arr: np.ndarray, tol=1e-6) -> bool:
 def step(arr: Optional[np.ndarray]) -> float:
     # Returns the spacing between points in a (hopefully) sorted and regularly spaced array
     if arr is None:
-        return 1
+        return 1.
     if is_regularly_spaced(arr):
-        return arr[1] - arr[0]
+        return float(arr[1] - arr[0])
     log_warning('NOT REGULARLY SPACED ARRAY!')
     return np.diff(arr).mean()
 
