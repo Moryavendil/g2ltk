@@ -31,7 +31,7 @@ def span(arr: Optional[np.ndarray]) -> float:
     # todo: This is allowed for convenience and fast prototyping, but should raise a warning
     if arr is None:
         return 1
-    return (len(arr) - 1) * step(arr)
+    return len(arr) * step(arr)
 
 
 # find index of value
