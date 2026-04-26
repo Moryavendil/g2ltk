@@ -24,6 +24,7 @@ def generate_sig1D(N):
 
 N_to_test = [20, 63, 1024, 6561, 16384] # small to big, even and odd
 window_to_test = ['boxcar', 'hann', 'hamming', 'tukey', 'blackman', 'flattop']
+zpf_to_test = [1, 2, 3, 4, 16, 64]
 
 @pytest.mark.parametrize("N", N_to_test)
 def test_dual1d(N):
@@ -77,12 +78,14 @@ def test_psd1d_definition(N, window):
 
 @pytest.mark.parametrize("N", N_to_test)
 @pytest.mark.parametrize("window", window_to_test)
-def test_psd1d_periodogram(N, window):
+@pytest.mark.parametrize("zero_pad_factor", zpf_to_test)
+def test_psd1d_periodogram(N, window, zero_pad_factor):
     t, sig = generate_sig1D(N)
-    psd_g2l = ft.psd1d(sig, x=t, remove_mean=True, window=window)
+    psd_g2l = ft.psd1d(sig, x=t, remove_mean=True, window=window, zero_pad_factor=zero_pad_factor)
 
     fs = 1/(t[1]-t[0])
     f_scipy, psd_scipy =  signal.periodogram(sig, fs=fs, window=window,
+                                             nfft=len(sig)*zero_pad_factor,
                                              return_onesided=False, scaling='density', detrend='constant')
     f_scipy, psd_scipy = fft.fftshift(f_scipy), fft.fftshift(psd_scipy)
 
