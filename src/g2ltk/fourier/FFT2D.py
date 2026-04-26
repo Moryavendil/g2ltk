@@ -266,7 +266,7 @@ def rft2d(arr: floatarray2D, x: Optional[np.ndarray] = None, y: Optional[np.ndar
 ### Power:
 from.FFT1D import window_factor1d
 
-def window_factor2d(window: str, winstyle: Optional[str] = None):
+def window_factor2d(window: str, winstyle: Optional[str] = None, NxNy: Tuple[int, int] = (16384, 16384)):
     """
     Returns the factor by which the energy is multiplied when the signal is windowed.
 
@@ -283,11 +283,11 @@ def window_factor2d(window: str, winstyle: Optional[str] = None):
         winstyle = 'outer'
     winstyle = str(winstyle)
     log_subtrace(f'ft2d: Using windowing | window={window} | style={winstyle}')
+    Nx, Ny = NxNy
     if winstyle == 'outer':
-        return window_factor1d(window)**2
+        return window_factor1d(window, Nx)*window_factor1d(window, Ny)
     elif winstyle == 'circular':
-        N = 1000
-        return 1 / (np.sum(filters.window(window, (N, N), warp_kwargs={'order': 3})**2)/N**2)
+        return 1 / (np.sum(filters.window(window, (Nx, Ny), warp_kwargs={'order': 3})**2)/(Nx*Ny))
     else:
         log_warning(f'Unrecognized 2d-windowing style: {winstyle}.')
         return 1
@@ -332,7 +332,7 @@ def psd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray]
     # It is the total energy (i.e., during all the sampling time) of the signal at this 2-frequency
     # It is useful in itself for space-time-limited signals (wavelets)
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $ESD(z)$ is [V^2/Hz^2/mm^{-2}(Hz, mm-1)]
-    esd = np.abs(y_ft) ** 2 * window_factor2d(window, winstyle=winstyle) ** 2
+    esd = np.abs(y_ft) ** 2 * window_factor2d(window, winstyle=winstyle, NxNy=z.shape) ** 2
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is 2-D periodic, then PSD = ESD / (duration_1.duration_2)
     # Thus if the unit of z(t, x) is [V(s, mm)], then the unit of PSD(z)$ is [V^2/Hz/mm^{-1}(Hz, mm-1)]
@@ -376,7 +376,7 @@ def rpsd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray
     # It is the total energy (i.e., during all the sampling time) of the signal at this 2-frequency
     # It is useful in itself for space-time-limited signals (wavelets)
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $ESD(z)$ is [V^2/Hz^2/mm^{-2}(Hz, mm-1)]
-    esd = np.abs(y_ft) ** 2 * window_factor2d(window, winstyle=winstyle) ** 2
+    esd = np.abs(y_ft) ** 2 * window_factor2d(window, winstyle=winstyle, NxNy=z.shape) ** 2
     esd[:, 1:] *= 2  # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is 2-D periodic, then PSD = ESD / (duration_1.duration_2)

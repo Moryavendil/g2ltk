@@ -43,6 +43,8 @@ def log_amplitude_cbticks(maximum_amplitude: float, range_db: Union[int, float])
     return cbticks_major, cbticklabels
 
 
+# TODO priority 1/5 replace remove_mean by detrend, for other types of detrending?
+
 ### FFT AND PSD COMPUTATIONS
 
 from .FFT1D import *

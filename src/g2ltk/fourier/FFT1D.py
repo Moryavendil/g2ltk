@@ -145,8 +145,8 @@ def prepare_signal_for_ft1d(sig: complexarray1D,
         pad_width = (0, 0)
     sig_padded = np.pad(sig_windowed, pad_width=pad_width, mode='constant', constant_values=0)
 
-    # z_treated -= np.mean(z_treated) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
-    sig_padded = sig_padded - np.mean(sig_padded) * remove_mean
+    # second mean removal. It is unorthodox, is it necessary?
+    # sig_padded = sig_padded - np.mean(sig_padded) * remove_mean
 
     if shift is None: shift = 0
     log_subtrace(f'rft1d: Rolling (restoring phase) | pad={pad_width} | shift={shift}')
@@ -221,13 +221,13 @@ def ft1d(sig: complexarray1D, x: Optional[floatarray1D] = None,
     return fft.fftshift(sig_hat) * step(x)
 
 
-def ifft1d(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None):
+def ift1d(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None):
     return fft.fftshift(fft.ifft(np.fft.ifftshift(sig_hat))) * span(xdual)
 
 
 ### Power:
 
-def window_factor1d(window: str):
+def window_factor1d(window: str, N: int = 16384):
     """
     Returns the factor by which the energy is multiplied when the signal is windowed.
 
@@ -246,7 +246,6 @@ def window_factor1d(window: str):
     elif window == 'hann':
         return 8 / 3
     else:
-        N = 10000
         return 1 / ((get_window(window, N) ** 2).sum() / N)
 
 
@@ -262,7 +261,7 @@ def psd1d(sig: np.ndarray, x: Optional[np.ndarray] = None,
     # It is the total energy (i.e., during all the sampling time) of the signal at this frequency
     # It is useful in itself for time-limited signals (impulsions)
     # if the unit of z(t) is [V(s)], then the unit of $ESD(z)$ is [V^2/Hz^2(Hz)]
-    esd = np.abs(sig_hat) ** 2 * window_factor1d(window)
+    esd = np.abs(sig_hat) ** 2 * window_factor1d(window, N=len(sig))
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is periodic, then PSD = ESD / duration
     # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
@@ -281,13 +280,22 @@ def rpsd1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     # It is the total energy (i.e., during all the sampling time) of the signal at this frequency
     # It is useful in itself for time-limited signals (impulsions)
     # if the unit of z(t) is [V(s)], then the unit of $ESD(z)$ is [V^2/Hz^2(Hz)]
-    esd = np.abs(sig_hat) ** 2 * window_factor1d(window)
+    esd = np.abs(sig_hat) ** 2 * window_factor1d(window, N=len(sig))
     esd[1:] *= 2  # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is periodic, then PSD = ESD / duration
     # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
     return esd / span(x)
 
+def welch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
+            window: str = default_window, remove_mean: bool = True,
+            zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None):
+    fs = 1/step(t)
+    detrend = 'constant' if remove_mean else False
+    f_welch, psd_welch =  signal.welch(sig, fs=fs, window=window, nperseg=256, nfft=256*zpf,
+                                       return_onesided=False, scaling='density', detrend=detrend)
+    f_welch, psd_welch = fft.fftshift(f_welch), fft.fftshift(psd_welch)
+    return psd_welch
 
 ### QOL functions
 
