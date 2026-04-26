@@ -222,7 +222,7 @@ def ft1d(sig: complexarray1D, x: Optional[floatarray1D] = None,
 
 
 def ift1d(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None):
-    return fft.fftshift(fft.ifft(np.fft.ifftshift(sig_hat))) * span(xdual)
+    return fft.ifft(np.fft.ifftshift(sig_hat)) * span(xdual)
 
 
 ### Power:
