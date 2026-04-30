@@ -243,7 +243,13 @@ def get_items(parameters: dict, total_match: bool = False) -> List[str]:
         # --- value check ---
         matches = []
         for key in query_keys:
-            result = np.prod(candidate_parameters[key] == parameters[key])
+            try:
+                result = np.prod(candidate_parameters[key] == parameters[key])
+            except ValueError:
+                customlog.log_debug(f'Failed to compare keys {key}')
+                customlog.log_trace(f'{key} [compared]: {parameters[key]}')
+                customlog.log_trace(f'{key} [candidate]: {candidate_parameters[key]}')
+                result = False
             # Collapse any remaining array dims to a scalar bool
             while np.asarray(result).shape != ():
                 result = np.prod(result)
