@@ -1,9 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Union
+from typing import Union, Tuple
 import math
 
+from g2ltk.peakfinder import step
 from g2ltk.fourier import attenuate_power
+
 
 # This is from https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
 cb_magic_args = {'fraction':0.046, 'pad':0.04}
@@ -14,6 +16,16 @@ im_ratio = data.shape[0]/data.shape[1] plt.colorbar(im,fraction=0.046*im_ratio, 
 The shrink keyword argument, which defaults to 1.0, may also be useful for further fine tuned adjustments. 
 I found that shrink=0.9 helped get it just right when I had two square subplots side by side
 '''
+def correct_limits(arr: np.ndarray) -> Tuple[float, float]:
+    return arr.min() - step(arr) / 2, arr.max() + step(arr) / 2
+
+def correct_extent(arr_x: np.ndarray, arr_y: np.ndarray, origin='upper') -> Tuple[float, float, float, float]:
+    xlim = correct_limits(arr_x)
+    ylim = correct_limits(arr_y)
+    if origin == 'upper':
+        return xlim[0], xlim[1], ylim[1], ylim[0]
+    elif origin == 'lower':
+        return xlim[0], xlim[1], ylim[0], ylim[1]
 
 def set_yaxis_rad(ax: plt.Axes):
     ax.set_yticks([-math.pi, -math.pi/2, 0, math.pi/2, math.pi], minor=False)
