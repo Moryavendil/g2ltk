@@ -61,7 +61,7 @@ def find_filename_without_duplicates(folder: str, name: str, extension: str = 't
     file_name = name
     while os.path.exists(os.path.join(folder, file_name + '.' + extension)):
         ID += 1
-        file_name = name + ' - ' + str(ID)
+        file_name = name + ' - ' + f'{ID:04}'
     return file_name + '.' + extension
 
 
@@ -353,7 +353,7 @@ def fetch_saved_data(parameters: dict) -> Any:
             customlog.log_trace(f'fetch_saved_data: loading "{item}"')
             return np.load(file_path, allow_pickle=True)['data'][()]
 
-    customlog.log_warning('fetch_saved_data: no matching file found')
+    customlog.log_subinfo('fetch_saved_data: no matching file found')
     return None
 
 
