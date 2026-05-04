@@ -8,7 +8,7 @@ in_per_mm = 1 / 25.4
 in_per_pt = 0.01384
 in_per_pc = 0.16605
 
-from .styling import configure_mpl, set_figw, latex_preamble
+from .styling import configure_mpl, set_figw, latex_preamble, figsize
 
 def activate_saveplot(activate=True, font_size=None, style=None):
     # use LaTeX
@@ -54,3 +54,5 @@ from .colorscheme import *
 from .figlayout import *
 
 from .axessetup import *
+
+from .voila import *

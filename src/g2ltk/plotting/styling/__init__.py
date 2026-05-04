@@ -1,7 +1,7 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple, Union
 import matplotlib.pyplot as plt
 from g2ltk.plotting import in_per_mm, in_per_pc
-
+from g2ltk import customlog
 
 def fetch_styledict(style:Optional[str]=None):
     if style is None:
@@ -83,6 +83,48 @@ def get_screen_DPI():
 
     return screen_dpi
 
+
+def figsize(w:Optional[Union[float, int, str]], h:Optional[Union[float, int, str]]=None,
+            ratio:Optional[float]=None, unit: str='mm') ->Tuple[float, float]:
+    default_width = 'simple'
+    width_in = figw[default_width]
+    if isinstance(w, str):
+        width_in = figw.get(w, None)
+        if width_in is None:
+            customlog.log_error(f'Unrecognized figsize: {w}. Using {default_width}.')
+            width_in = figw[default_width]
+    elif unit == 'mm':
+        width_in = float(w)*in_per_mm
+    elif unit == 'in':
+        width_in = float(w)
+    elif w is not None:
+        customlog.log_error('Unrecognized unit for figsize: {unit}'.format(unit=unit))
+
+    height_in = width_in / 1.618
+    if h is None:
+        if ratio is not None:
+            try:
+                ratio = float(ratio)
+            except:
+                customlog.log_error('This is not a ratio: {ratio}. Taking None instead.'.format(ratio=ratio))
+        if ratio is None:
+            ratio = 1.618
+        height_in = width_in / ratio # by default
+    else:
+        if isinstance(h, str):
+            height_in = figw.get(h, None)
+            if height_in is None:
+                customlog.log_error('Unrecognized figsize: {h}'.format(h=h))
+        elif unit == 'mm':
+            height_in = float(h)*in_per_mm
+        elif unit == 'in':
+            height_in = float(h)
+        else:
+            customlog.log_error('Unrecognized unit for figsize: {unit}'.format(unit=unit))
+
+    return (width_in, height_in)
+
 from .latexstyles import *
 
 from .mplstyles import configure_mpl
+

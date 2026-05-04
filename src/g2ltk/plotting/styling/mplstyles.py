@@ -11,7 +11,7 @@ from . import styled, get_screen_DPI, set_figw
 # lines, scatters and plots
 params_lines = {
     'lines.linewidth': 1.5, # default 1.5
-    'lines.markerfacecolor': 'w', # default 'auto'
+    # 'lines.markerfacecolor': 'w', # default 'auto'
     'lines.markersize': 5, # default 6          # marker size, in points
     "hist.bins": 100, # more bins by default (default 10)
     "errorbar.capsize": 3 # have small caps in errorbars (default 0)

@@ -6,45 +6,6 @@ from g2ltk.plotting import in_per_mm
 from g2ltk import log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
 
 
-def figsize(w:Optional[Union[float, int, str]], h:Optional[Union[float, int, str]]=None,
-            ratio:Optional[float]=None, unit: str='mm') ->Tuple[float, float]:
-    default_width = 'simple'
-    width_in = figw[default_width]
-    if isinstance(w, str):
-        width_in = figw.get(w, None)
-        if width_in is None:
-            log_error(f'Unrecognized figsize: {w}. Using {default_width}.')
-            width_in = figw[default_width]
-    elif unit == 'mm':
-        width_in = float(w)*in_per_mm
-    elif unit == 'in':
-        width_in = float(w)
-    elif w is not None:
-        log_error('Unrecognized unit for figsize: {unit}'.format(unit=unit))
-
-    height_in = width_in / 1.618
-    if h is None:
-        if ratio is not None:
-            try:
-                ratio = float(ratio)
-            except:
-                log_error('This is not a ratio: {ratio}. Taking None instead.'.format(ratio=ratio))
-        if ratio is None:
-            ratio = 1.618
-        height_in = width_in / ratio # by default
-    else:
-        if isinstance(h, str):
-            height_in = figw.get(h, None)
-            if height_in is None:
-                log_error('Unrecognized figsize: {h}'.format(h=h))
-        elif unit == 'mm':
-            height_in = float(h)*in_per_mm
-        elif unit == 'in':
-            height_in = float(h)
-        else:
-            log_error('Unrecognized unit for figsize: {unit}'.format(unit=unit))
-
-    return (width_in, height_in)
 
 def force_aspect_ratio(ax: plt.Axes, aspect=1):
     # old version, for images
