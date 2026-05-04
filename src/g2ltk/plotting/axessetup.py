@@ -65,3 +65,41 @@ def set_yaxis_log(ax: plt.Axes, maximum_amplitude:float, range_db:Union[int, flo
     ax.set_yticklabels(cbticklabels if text else [], minor=False)
     ax.set_yticks(cbticks_minor, minor=True)
     ax.set_yticklabels([], minor=True)
+
+def set_bottom_xlabels(axs: list[list[plt.Axes]], label: str):
+    for i in range(len(axs[-1])):
+        axs[-1][i].set_xlabel(label)
+        axs[0][i].xaxis.set_ticks_position('bottom')
+        axs[0][i].xaxis.set_label_position('bottom')
+
+def set_top_xlabels(axs: list[list[plt.Axes]], label: str):
+    for j in range(len(axs[0])):
+        axs[0][j].set_xlabel(label)
+        axs[0][j].xaxis.set_ticks_position('top')
+        axs[0][j].xaxis.set_label_position('top')
+
+def set_top_xlabels(axs: list[list[plt.Axes]], label: str):
+    for j in range(len(axs[0])):
+        axs[0][j].set_xlabel(label)
+        axs[0][j].xaxis.set_ticks_position('top')
+        axs[0][j].xaxis.set_label_position('top')
+
+
+def set_left_ylabels(axs: list[list[plt.Axes]], label: str):
+    for i in range(len(axs)):
+        axs[i][0].set_ylabel(label)
+        axs[i][0].yaxis.set_ticks_position('left')
+        axs[i][0].yaxis.set_label_position('left')
+
+
+def set_right_ylabels(axs: list[list[plt.Axes]], label: str):
+    for i in range(len(axs)):
+        axs[i][-1].set_ylabel(label)
+        axs[i][-1].yaxis.set_ticks_position('right')
+        axs[i][-1].yaxis.set_label_position('right')
+
+
+def grids(axs: list[list[plt.Axes]], which='major', axis='both', **kwargs):
+    for i in range(len(axs)):
+        for j in range(len(axs[i])):
+            axs[i][j].grid(which=which, axis=axis, **kwargs)
