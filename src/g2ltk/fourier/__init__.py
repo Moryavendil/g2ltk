@@ -16,6 +16,7 @@ floatarray2D = np.ndarray[tuple[int, ...], np.dtype[np.floating]]
 complexarray1D = np.ndarray[tuple[int, ...], np.dtype[np.inexact]]
 complexarray2D = np.ndarray[tuple[int, ...], np.dtype[np.inexact]]
 
+
 ### log
 def attenuate_power(value, attenuation_factor_dB):
     return value / math.pow(10, attenuation_factor_dB / 20)
@@ -50,3 +51,69 @@ def log_amplitude_cbticks(maximum_amplitude: float, range_db: Union[int, float])
 from .FFT1D import *
 
 from .FFT2D import *
+
+
+def dual(x: floatarray1D, y: floatarray1D, zero_pad_factor=None):
+    if y is None:
+        return dual1d(x, zero_pad_factor=zero_pad_factor)
+    return dual2d(x, y=y, zero_pad_factor=zero_pad_factor)
+
+
+def rdual(x: floatarray1D, zero_pad_factor=None):
+    return rdual1d(x, zero_pad_factor=zero_pad_factor)
+
+
+def ft(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
+       window: str = default_window, winstyle=None, remove_mean: bool = True,
+       zero_pad_factor=None, shift=None):
+    if np.ndim(sig) == 2:
+        return ft2d(sig, x=x, y=y, window=window, winstyle=winstyle, remove_mean=remove_mean,
+                    zero_pad_factor=zero_pad_factor, shift=shift)
+    if np.ndim(sig) == 1:
+        if y is not None:
+            raise RuntimeError('y given but sig is 1-D?')
+        if winstyle is not None:
+            raise RuntimeError('winstyle given but sig is 1-D?')
+        return ft1d(sig, x=x, window=window, remove_mean=remove_mean,
+                    zero_pad_factor=zero_pad_factor, shift=shift)
+    raise RuntimeError(f'?? Called ft but sig is {np.ndim(sig)}-dimensional')
+
+
+def ift(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None, ydual: Optional[np.ndarray] = None):
+    if np.ndim(sig_hat) == 2:
+        return ift2d(sig_hat, xdual=xdual, ydual=ydual)
+    if np.ndim(sig_hat) == 1:
+        if ydual is not None:
+            raise RuntimeError('ydual given but sig is 1-D?')
+        return ift1d(sig_hat, xdual=xdual)
+    raise RuntimeError(f'?? Called ft but sig_hat is {np.ndim(sig_hat)}-dimensional')
+
+
+def rft(sig, x: Optional[np.ndarray] = None,
+        window: str = default_window, remove_mean: bool = True,
+        zero_pad_factor=None, shift=None):
+    if np.ndim(sig) == 1:
+        return rft1d(sig, x=x, window=window, remove_mean=remove_mean,
+                     zero_pad_factor=zero_pad_factor, shift=shift)
+    raise RuntimeError(f'?? Called rft but sig is {np.ndim(sig)}-dimensional')
+
+
+def psd(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
+        window: str = default_window, winstyle=None, remove_mean: bool = True,
+        zero_pad_factor=None, welch_factor=None):
+    if np.ndim(sig) == 2:
+        if welch_factor is not None:
+            raise NotImplementedError('welch 2d not implemented yet')
+        return psd2d(sig, x=x, y=y, window=window, winstyle=winstyle, remove_mean=remove_mean,
+                     zero_pad_factor=zero_pad_factor)
+    if np.ndim(sig) == 1:
+        if y is not None:
+            raise RuntimeError('y given but sig is 1-D?')
+        if winstyle is not None:
+            raise RuntimeError('winstyle given but sig is 1-D?')
+        if welch_factor is not None:
+            return welch1d(sig, x=x, window=window, remove_mean=remove_mean,
+                           zero_pad_factor=zero_pad_factor, welch_factor=welch_factor)
+        return psd1d(sig, x=x, window=window, remove_mean=remove_mean,
+                     zero_pad_factor=zero_pad_factor)
+    raise RuntimeError('y given but sig is 1-D?')
