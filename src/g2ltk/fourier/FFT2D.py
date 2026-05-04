@@ -159,7 +159,8 @@ def prepare_signal_for_ft2d(arr: complexarray2D,
 
     # log_subtrace(f'rft2d: Rolling (restoring phase) | pad={pad_width}')
     # z_roll = np.roll(z_clean, (pad_width[0][0]+Nt//2, pad_width[1][0]+Nx//2), axis = (0, 1))
-    roll_offset = (pad_width[0][0] + Nt // 2, pad_width[1][0] + Nx // 2)
+    # roll_offset = (pad_width[0][0] + Nt // 2, pad_width[1][0] + Nx // 2)
+    roll_offset = (pad_width[0][0], pad_width[1][0])
 
     roll_shift = None
     if shift is not None:
@@ -262,6 +263,11 @@ def rft2d(arr: floatarray2D, x: Optional[np.ndarray] = None, y: Optional[np.ndar
     log_subtrace(f'rft2d: Computing fft, norm={norm} | shape={arr_prepared.shape}')
     arr_hat = fft.rfft2(arr_prepared, norm=norm, s=arr_prepared.shape)
     return fft.fftshift(arr_hat, axes=0) * step(x) * step(y)
+
+def ift2d(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None, ydual: Optional[np.ndarray] = None):
+    return fft.ifft2(np.fft.ifftshift(sig_hat)) * span(xdual) * span(ydual)
+
+
 
 ### Power:
 from.FFT1D import window_factor1d
