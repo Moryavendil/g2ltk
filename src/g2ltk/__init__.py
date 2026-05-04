@@ -29,7 +29,7 @@ def throw_G2L_warning(text:str):
 
 from .customlog import *
 
-log_info('Loading g2ltk version '+__version__)
+# log_info('Loading g2ltk version '+__version__)
 
 
 def display(text:str, flush:bool=True, end:str='\n', padding:bool=True, displaytype:str=""):
