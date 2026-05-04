@@ -141,3 +141,16 @@ def psd(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
         return psd1d(sig, x=x, window=window, remove_mean=remove_mean,
                      zero_pad_factor=zpf)
     raise RuntimeError('y given but sig is 1-D?')
+
+@alias_argument('zpf', 'zero_pad_factor')
+def rpsd(sig, x: Optional[np.ndarray] = None,
+        window: str = default_window, remove_mean: bool = True,
+        zpf=None, welch_factor=None):
+    if np.ndim(sig) == 1:
+        if welch_factor is not None:
+            raise NotImplementedError('rwelch1d not implemented yet')
+            return rwelch1d(sig, x=x, window=window, remove_mean=remove_mean,
+                           zero_pad_factor=zpf, welch_factor=welch_factor)
+        return rpsd1d(sig, x=x, window=window, remove_mean=remove_mean,
+                     zero_pad_factor=zpf)
+    raise RuntimeError(f'?? Called rpsd but sig is {np.ndim(sig)}-dimensional')
