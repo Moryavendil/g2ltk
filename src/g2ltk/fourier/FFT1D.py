@@ -157,7 +157,7 @@ def prepare_signal_for_ft1d(sig: complexarray1D,
 
 
 def rft1d(sig: floatarray1D, x: Optional[floatarray1D] = None,
-          window: str = default_window, remove_mean: bool = True, norm=None,
+          window: str = default_window, remove_mean: bool = True, norm: Optional[str]=None,
           zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None,
           shift: Optional[int] = None) -> complexarray1D:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
@@ -190,7 +190,7 @@ def rft1d(sig: floatarray1D, x: Optional[floatarray1D] = None,
 
 
 def ft1d(sig: complexarray1D, x: Optional[floatarray1D] = None,
-         window: str = default_window, remove_mean: bool = True, norm=None,
+         window: str = default_window, remove_mean: bool = True, norm: Optional[str]=None,
          zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None,
          shift: Optional[int] = None) -> complexarray1D:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
@@ -222,8 +222,8 @@ def ft1d(sig: complexarray1D, x: Optional[floatarray1D] = None,
     return fft.fftshift(sig_hat) * step(x)
 
 
-def ift1d(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None):
-    return fft.ifft(np.fft.ifftshift(sig_hat)) * span(xdual)
+def ift1d(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None, norm: Optional[str]=None):
+    return fft.ifft(np.fft.ifftshift(sig_hat), norm=norm) * span(xdual)
 
 
 ### Power:

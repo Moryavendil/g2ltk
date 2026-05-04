@@ -182,7 +182,7 @@ def prepare_signal_for_ft2d(arr: complexarray2D,
 
 
 def ft2d(arr: complexarray2D, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
-         window: str = default_window, winstyle=None, remove_mean: bool = True, norm=None,
+         window: str = default_window, winstyle=None, remove_mean: bool = True, norm: Optional[str]=None,
          zero_pad: Optional[Tuple[int, int]] = None, zero_pad_factor: Optional[Tuple[float, float]] = None,
          shift: Optional[Tuple[int, int]] = None) -> complexarray2D:
     """
@@ -223,7 +223,7 @@ def ft2d(arr: complexarray2D, x: Optional[np.ndarray] = None, y: Optional[np.nda
 
 
 def rft2d(arr: floatarray2D, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
-          window: str = default_window, winstyle=None, remove_mean: bool = True, norm=None,
+          window: str = default_window, winstyle=None, remove_mean: bool = True, norm: Optional[str]=None,
           zero_pad: Optional[Tuple[int, int]] = None, zero_pad_factor: Optional[Tuple[float, float]] = None,
           shift: Optional[Tuple[int, int]] = None) -> complexarray2D:
     """
@@ -264,8 +264,8 @@ def rft2d(arr: floatarray2D, x: Optional[np.ndarray] = None, y: Optional[np.ndar
     arr_hat = fft.rfft2(arr_prepared, norm=norm, s=arr_prepared.shape)
     return fft.fftshift(arr_hat, axes=0) * step(x) * step(y)
 
-def ift2d(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None, ydual: Optional[np.ndarray] = None):
-    return fft.ifft2(np.fft.ifftshift(sig_hat)) * span(xdual) * span(ydual)
+def ift2d(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None, ydual: Optional[np.ndarray] = None, norm: Optional[str]=None):
+    return fft.ifft2(np.fft.ifftshift(sig_hat), norm=norm) * span(xdual) * span(ydual)
 
 
 
