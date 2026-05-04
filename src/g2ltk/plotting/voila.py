@@ -9,7 +9,10 @@ def is_voila_active():
     # are_we_in_voila = ('SERVER_SOFTWARE' in os.environ and 'voila' in os.environ['SERVER_SOFTWARE']) or 'QUERY_STRING' in os.environ # also works
     return are_we_in_voila
 
-def apply_css():
+def apply_css(latex=False, font_size=18):
+    activate_saveplot(latex, font_size=font_size, style='prez')
+    plt.rcParams['figure.constrained_layout.use'] = False
+    plt.rcParams['figure.autolayout'] = True
     if not is_voila_active():
         HTML_string = """
         <style>
@@ -22,9 +25,6 @@ def apply_css():
         </style>
         """
     else:
-        activate_saveplot(False, font_size=18, style='prez')
-        plt.rcParams['figure.constrained_layout.use'] = False
-        plt.rcParams['figure.autolayout'] = True
         HTML_string = """<style>
     /* 1. HIDE BUTTONS & STYLE TOOLBAR */
     .jupyter-matplotlib-toolbar button[title="Download plot"],
@@ -203,7 +203,7 @@ def apply_css():
 
 import uuid
 
-def end_slide(label="Next"):
+def end_slide(label="Next ↓"):
     if not is_voila_active(): return
     uid = uuid.uuid4().hex[:8]
     display(HTML(f"""
@@ -222,7 +222,7 @@ def end_slide(label="Next"):
                 style='padding: 12px 32px; font-size: 18px; cursor: pointer;
                        border: 1.5px solid #aaa; border-radius: 8px; 
                        background: white; color: #333;'>
-            {label} ↓
+            {label}
         </button>
     </div>
     <div id="after-{uid}"></div>
