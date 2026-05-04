@@ -12,7 +12,6 @@ from .FFT1D import dual1d, rdual1d
 
 default_window = 'boxcar'
 
-# todo fix shifts phas emust be coherent with np.fft.fft
 # todo fix directions, (axis0, axis 1) must correspond to x, y...
 # todo because for now x and y are interverted?!
 # todo or keep it idc but make it generlizable
@@ -301,8 +300,7 @@ def window_factor2d(window: str, winstyle: Optional[str] = None, NxNy: Tuple[int
 
 def psd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
           window: str = default_window, winstyle=None, remove_mean: bool = True,
-          zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None,
-          shift: Optional[Tuple[int, int]] = None) -> np.ndarray:
+          zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> np.ndarray:
     """
     Returns the 2-D Fourier PSD of a real input array using the given windowing.
 
@@ -331,8 +329,7 @@ def psd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray]
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $\hat{z}$ is [V/(Hz.mm^{-1})(Hz, mm-1)]
     y_ft = ft2d(z, x=x, y=y, window=window, winstyle=winstyle,
                 remove_mean=remove_mean, norm="backward",
-                zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
-                shift=shift)
+                zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the oly thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this 2-frequency
@@ -346,8 +343,7 @@ def psd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray]
 
 def rpsd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
            window: str = default_window, winstyle=None, remove_mean: bool = True,
-           zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None,
-           shift: Optional[Tuple[int, int]] = None) -> np.ndarray:
+           zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> np.ndarray:
     """
     Returns the 2-D Fourier PSD of a real input array using the given windowing.
 
@@ -375,8 +371,7 @@ def rpsd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $\hat{z}$ is [V/(Hz.mm^{-1})(Hz, mm-1)]
     y_ft = rft2d(z, x=x, y=y, window=window, winstyle=winstyle, remove_mean=remove_mean, norm="backward",
-                 zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
-                 shift=shift)
+                 zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the oly thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this 2-frequency
