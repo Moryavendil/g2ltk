@@ -292,7 +292,27 @@ def welch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
             welch_factor: float = 1.,
             window: str = default_window, remove_mean: bool = True,
             zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None):
-    if zero_pad is None: raise NotImplementedError('zero_pad not implemented for welch1d')
+    """
+    Computes the PSD spectrum using Wlech's technique.
+
+    welch_factor should be integer (e.g. power of 2, since sig is often a power of 2)
+    zero_pad raises NotImplementedError
+
+    Parameters
+    ----------
+    sig
+    x
+    welch_factor
+    window
+    remove_mean
+    zero_pad
+    zero_pad_factor
+
+    Returns
+    -------
+
+    """
+    if zero_pad is not None: raise NotImplementedError('zero_pad not implemented for welch1d')
     fs = 1/step(x)
     detrend: detrend_dtype = 'constant' if remove_mean else False
     nperseg: int = int(len(sig)/welch_factor)
