@@ -1,66 +1,62 @@
-from typing import Optional, Any, Tuple, Dict, List, Union, Literal
+from typing import Optional, List, Literal
 import numpy as np
-import math
 from scipy import signal
 from scipy.signal.windows import get_window  # FFT windowing
-from skimage import filters  # filters.window for 2D FFT windowing
 from scipy import fft
 
-from .. import log_error, log_warning, log_info, log_debug, log_trace, log_subtrace
+from g2ltk import customlog
 from g2ltk.peakfinder import step, span, interp_roots, find_global_max
-from . import floatarray1D, complexarray1D, attenuate_power
+from . import floatarray1D, complexarray1D, attenuate_power, alias_argument
 
 default_window: str = 'boxcar'
 
 detrend_dtype = Literal['constant', False]
 
 ### Dual: changing from real space to frequency space
+@alias_argument('zpf', 'zero_pad_factor')
 def dual1d(arr: floatarray1D,
-           zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> floatarray1D:
+           nfft: Optional[int] = None, zpf: Optional[int] = None) -> floatarray1D:
     """
-    Returns the dual, i.e. the frequencies.
+    Returns the dual, i.e. change from real space to frequency space (or vice versa).
 
     The unit is the inverse, e.g. time (s)-> frequency (Hz).
 
     Parameters
     ----------
-    arr
-    zero_pad
-    zero_pad_factor
+    arr : np.ndarray
+        An ordered, regularly spaced array of real values
+    nfft : int, optional
+        The size of the nfft
+    zpf : int, optional
+        The zero padding factor. An alias is ```zero_pad_factor```
 
     Returns
     -------
 
     """
-    N = arr.shape[0]
-    log_trace(f'dual: Called with {arr.shape} array, zp = {zero_pad}, zpf = {zero_pad_factor}')
+    fname = 'dual1d'
+    customlog.log_trace(f'{fname}: Called with {arr.shape} array, nfft = {nfft}, zpf = {zpf}')
 
-    pad_width = None
-    if zero_pad_factor is not None:
-        log_subtrace(f'rft2d: | zero_pad_factor={zero_pad_factor}')
+    n_arr: int = arr.shape[0]
+    n_fft: int = n_arr
+
+    if nfft is not None:
+        customlog.log_subtrace(f'{fname}: | nfft={nfft}')
         try:
-            pad = np.rint(N * (zero_pad_factor - 1)).astype(int)
-            pad_width = (pad // 2, pad // 2 + pad % 2)
+            n_fft = int(nfft)
         except:
-            log_warning(f'rft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
-            pad_width = None
-    elif zero_pad is not None:
-        log_subtrace(f'rft2d: | zero_pad={zero_pad}')
+            customlog.log_warning(f'{fname}: What is this nfft "{nfft}" ? I made it None')
+
+    if zpf is not None:
+        customlog.log_subtrace(f'{fname}: | zpf={zpf}')
         try:
-            pad_width = (0, int(zero_pad))
+            n_fft  = np.rint(n_fft * zpf).astype(int)
         except:
-            log_warning(f'rft2d: What is this zero-padding "{zero_pad}" ? I made it None')
-            pad_width = None
+            customlog.log_warning(f'{fname}: What is this zero-padding factor "{zpf}" ? I made it None')
 
-    log_subtrace(f'rft2d: Padding (artificially better resolution) | pad={pad_width}')
-    if pad_width is None:
-        pad_width = (0, 0)
+    customlog.log_debug(f'{fname}: {n_arr} -> {n_fft} ({nfft if nfft is not None else n_arr} x {zpf if zpf is not None else 1})')
 
-    n = N + pad_width[0] + pad_width[1]
-
-    log_debug(f'dual: {N} -> {n}')
-
-    return np.fft.fftshift(np.fft.fftfreq(n, step(arr)))
+    return np.fft.fftshift(np.fft.fftfreq(n_fft, step(arr)))
 
 
 def rdual1d(arr: floatarray1D,
@@ -80,32 +76,32 @@ def rdual1d(arr: floatarray1D,
 
     """
     N = arr.shape[0]
-    log_trace(f'rdual: Called with {arr.shape} array, zp = {zero_pad}, zpf = {zero_pad_factor}')
+    customlog.log_trace(f'rdual: Called with {arr.shape} array, zp = {zero_pad}, zpf = {zero_pad_factor}')
 
     pad_width = None
     if zero_pad_factor is not None:
-        log_subtrace(f'rft2d: | zero_pad_factor={zero_pad_factor}')
+        customlog.log_subtrace(f'rft2d: | zero_pad_factor={zero_pad_factor}')
         try:
             pad = np.rint(N * (zero_pad_factor - 1)).astype(int)
             pad_width = (pad // 2, pad // 2 + pad % 2)
         except:
-            log_warning(f'rft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
+            customlog.log_warning(f'rft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
             pad_width = None
     elif zero_pad is not None:
-        log_subtrace(f'rft2d: | zero_pad={zero_pad}')
+        customlog.log_subtrace(f'rft2d: | zero_pad={zero_pad}')
         try:
             pad_width = (0, int(zero_pad))
         except:
-            log_warning(f'rft2d: What is this zero-padding "{zero_pad}" ? I made it None')
+            customlog.log_warning(f'rft2d: What is this zero-padding "{zero_pad}" ? I made it None')
             pad_width = None
 
-    log_subtrace(f'rft2d: Padding (artificially better resolution) | pad={pad_width}')
+    customlog.log_subtrace(f'rft2d: Padding (artificially better resolution) | pad={pad_width}')
     if pad_width is None:
         pad_width = (0, 0)
 
     n = N + pad_width[0] + pad_width[1]
 
-    log_debug(f'rdual: {N} -> {n}')
+    customlog.log_debug(f'rdual: {N} -> {n}')
 
     return np.fft.rfftfreq(n, step(arr))
 
@@ -118,7 +114,7 @@ def prepare_signal_for_ft1d(sig: complexarray1D,
     N = sig.shape[0]
 
     # Removing mean
-    log_trace(f'rft1d: Mean removal: {remove_mean}')
+    customlog.log_trace(f'rft1d: Mean removal: {remove_mean}')
     sig_nozero = sig.copy() - np.mean(sig) * remove_mean
 
     # windowing
@@ -126,22 +122,22 @@ def prepare_signal_for_ft1d(sig: complexarray1D,
 
     pad_width = None
     if zero_pad_factor is not None:
-        log_subtrace(f'rft2d: | zero_pad_factor={zero_pad_factor}')
+        customlog.log_subtrace(f'rft2d: | zero_pad_factor={zero_pad_factor}')
         try:
             pad = np.rint(N * (zero_pad_factor - 1)).astype(int)
             pad_width = (pad // 2, pad // 2 + pad % 2)
         except:
-            log_warning(f'rft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
+            customlog.log_warning(f'rft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
             pad_width = None
     elif zero_pad is not None:
-        log_subtrace(f'rft2d: | zero_pad={zero_pad}')
+        customlog.log_subtrace(f'rft2d: | zero_pad={zero_pad}')
         try:
             pad_width = (0, int(zero_pad))
         except:
-            log_warning(f'rft2d: What is this zero-padding "{zero_pad}" ? I made it None')
+            customlog.log_warning(f'rft2d: What is this zero-padding "{zero_pad}" ? I made it None')
             pad_width = None
 
-    log_subtrace(f'rft1d: Padding (artificially better resolution) | pad={pad_width}')
+    customlog.log_subtrace(f'rft1d: Padding (artificially better resolution) | pad={pad_width}')
     if pad_width is None:
         pad_width = (0, 0)
     sig_padded = np.pad(sig_windowed, pad_width=pad_width, mode='constant', constant_values=0)
@@ -150,7 +146,7 @@ def prepare_signal_for_ft1d(sig: complexarray1D,
     # sig_padded = sig_padded - np.mean(sig_padded) * remove_mean
 
     if shift is None: shift = 0
-    log_subtrace(f'rft1d: Rolling (restoring phase) | pad={pad_width} | shift={shift}')
+    customlog.log_subtrace(f'rft1d: Rolling (restoring phase) | pad={pad_width} | shift={shift}')
     sig_rolled = np.roll(sig_padded, -pad_width[0] - shift)
 
     return sig_rolled
@@ -178,7 +174,7 @@ def rft1d(sig: floatarray1D, x: Optional[floatarray1D] = None,
     -------
 
     """
-    log_trace(f'rft2d: Computing 1-D FFT of array of shape {sig.shape}')
+    customlog.log_trace(f'rft2d: Computing 1-D FFT of array of shape {sig.shape}')
 
     sig_prepared = prepare_signal_for_ft1d(sig, window=window, remove_mean=remove_mean,
                                      zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
@@ -211,7 +207,7 @@ def ft1d(sig: complexarray1D, x: Optional[floatarray1D] = None,
     -------
 
     """
-    log_trace(f'rft2d: Computing 1-D FFT of array of shape {sig.shape}')
+    customlog.log_trace(f'rft2d: Computing 1-D FFT of array of shape {sig.shape}')
 
     sig_prepared = prepare_signal_for_ft1d(sig, window=window, remove_mean=remove_mean,
                                            zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
@@ -282,7 +278,9 @@ def rpsd1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     # It is useful in itself for time-limited signals (impulsions)
     # if the unit of z(t) is [V(s)], then the unit of $ESD(z)$ is [V^2/Hz^2(Hz)]
     esd = np.abs(sig_hat) ** 2 * window_factor1d(window, N=len(sig))
-    esd[1:] *= 2  # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
+    # if N is even the last one should not be doubled
+    esd[1:len(esd)-(1-len(sig)%2)] *= 2  # x 2 because of rfft which truncates the spectrum
+    # (except the 0 harmonic, and the last one if the length is even)
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is periodic, then PSD = ESD / duration
     # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
@@ -291,12 +289,11 @@ def rpsd1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
 def welch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
             welch_factor: float = 1.,
             window: str = default_window, remove_mean: bool = True,
-            zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None):
+            nfft: Optional[int] = None, zero_pad_factor: Optional[float] = None):
     """
     Computes the PSD spectrum using Wlech's technique.
 
     welch_factor should be integer (e.g. power of 2, since sig is often a power of 2)
-    zero_pad raises NotImplementedError
 
     Parameters
     ----------
@@ -305,20 +302,51 @@ def welch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     welch_factor
     window
     remove_mean
-    zero_pad
+    nfft
     zero_pad_factor
 
     Returns
     -------
 
     """
-    if zero_pad is not None: raise NotImplementedError('zero_pad not implemented for welch1d')
     fs = 1/step(x)
     detrend: detrend_dtype = 'constant' if remove_mean else False
-    nperseg: int = int(len(sig)/welch_factor)
+    nperseg: int = int(nfft/welch_factor)
     f_welch, psd_welch =  signal.welch(sig, fs=fs, window=window,
-                                       nperseg=nperseg, nfft=len(sig)*zero_pad_factor,
+                                       nperseg=nperseg, nfft=nfft*zero_pad_factor,
                                        return_onesided=False, scaling='density', detrend=detrend)
+    f_welch, psd_welch = fft.fftshift(f_welch), fft.fftshift(psd_welch)
+    return psd_welch
+
+def rwelch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
+            welch_factor: float = 1.,
+            window: str = default_window, remove_mean: bool = True,
+            nfft: Optional[int] = None, zero_pad_factor: Optional[float] = None):
+    """
+    Computes the PSD spectrum using Wlech's technique.
+
+    welch_factor should be integer (e.g. power of 2, since sig is often a power of 2)
+
+    Parameters
+    ----------
+    sig
+    x
+    welch_factor
+    window
+    remove_mean
+    nfft
+    zero_pad_factor
+
+    Returns
+    -------
+
+    """
+    fs = 1/step(x)
+    detrend: detrend_dtype = 'constant' if remove_mean else False
+    nperseg: int = int(nfft/welch_factor)
+    f_welch, psd_welch =  signal.welch(sig, fs=fs, window=window,
+                                       nperseg=nperseg, nfft=nfft*zero_pad_factor,
+                                       return_onesided=True, scaling='density', detrend=detrend)
     f_welch, psd_welch = fft.fftshift(f_welch), fft.fftshift(psd_welch)
     return psd_welch
 
@@ -378,8 +406,8 @@ def peak_contour1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int] =
         contour_is_valid = isnottoobig
 
         if peak_max_length is not None:
-            log_trace(f'contour length: {length} | Not too big (< {peak_max_length}): {isnottoobig}')
-        log_trace(f'Valid contour: {contour_is_valid}')
+            customlog.log_trace(f'contour length: {length} | Not too big (< {peak_max_length}): {isnottoobig}')
+        customlog.log_trace(f'Valid contour: {contour_is_valid}')
 
         # find the contour that contains the point
         if contour_is_valid or peak_depth_dB == min_peak_depth_dB:
@@ -387,10 +415,10 @@ def peak_contour1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int] =
         else:
             peak_depth_dB -= 10
             if peak_depth_dB < min_peak_depth_dB: peak_depth_dB = min_peak_depth_dB
-            log_debug(f"Couldn't find any valid contour: Trying peak_depth={peak_depth_dB} dB")
+            customlog.log_debug(f"Couldn't find any valid contour: Trying peak_depth={peak_depth_dB} dB")
     if peak_depth_dB != min_peak_depth_dB:
         peak_depth_dB = min_peak_depth_dB
-        log_debug(f"Couldn't find any valid contour: Trying peak_depth={peak_depth_dB} dB")
+        customlog.log_debug(f"Couldn't find any valid contour: Trying peak_depth={peak_depth_dB} dB")
 
     # peak_index = np.argmin((x - peak_x) ** 2)
     # zintercept = attenuate_power(z[peak_index], peak_depth_dB)
@@ -402,7 +430,7 @@ def peak_contour1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int] =
     # if len(x1_intercept[x1_intercept > peak_x] > 0):
     #     x1_after = x1_intercept[x1_intercept > peak_x].min()
 
-    log_debug(f'peak_contour1d: Around {peak_x} ({min_peak_depth_dB} dB) : {(x1_before, x1_after)}')
+    customlog.log_debug(f'peak_contour1d: Around {peak_x} ({min_peak_depth_dB} dB) : {(x1_before, x1_after)}')
     return x1_before, x1_after
 
 
@@ -414,11 +442,11 @@ def peak_vicinity1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int] 
         peak_contour = peak_contour1d(peak_x=peak_x, sig_psd=sig_psd, peak_depth_dB=peak_depth_dB, x=x)
     x1_before, x1_after = peak_contour
 
-    log_trace(f'peak_vicinity1d: Vicinity of {(x1_before, x1_after)} (around {peak_x})')
+    customlog.log_trace(f'peak_vicinity1d: Vicinity of {(x1_before, x1_after)} (around {peak_x})')
 
     vicinity = (x >= x1_before) & (x <= x1_after)
 
-    log_debug(f'peak_vicinity1d: Found {np.sum(vicinity)} points in zone {(x1_before, x1_after)} (around {peak_x})')
+    customlog.log_debug(f'peak_vicinity1d: Found {np.sum(vicinity)} points in zone {(x1_before, x1_after)} (around {peak_x})')
 
     return vicinity
 
@@ -443,7 +471,7 @@ def power_near_peak1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int
     -------
 
     """
-    log_debug(f'Measuring the power around     ({round(peak_x, 3)})')
+    customlog.log_debug(f'Measuring the power around     ({round(peak_x, 3)})')
     if peak_vicinity is None:
         peak_vicinity = peak_vicinity1d(peak_x=peak_x, sig_psd=sig_psd, peak_depth_dB=peak_depth_dB, x=x, peak_contour=peak_contour)
     # ### (abandoned) do a trapezoid integration
@@ -452,7 +480,7 @@ def power_near_peak1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int
     # p_ft_peak = trapezoid(y_f, x_f)
     ### Go bourrin (we are in log we do not care) : rectangular integration
     pw = np.sum(sig_psd[peak_vicinity]) * step(x)
-    log_debug(f'Power: {pw} (amplitude: {np.sqrt(pw * 2)})')
+    customlog.log_debug(f'Power: {pw} (amplitude: {np.sqrt(pw * 2)})')
     return pw
 
 

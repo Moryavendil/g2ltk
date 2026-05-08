@@ -72,14 +72,13 @@ from .FFT2D import *
 # todo accept 'auto' as nfft, which selects the nearest superior 5-smooth number
 
 @alias_argument('zpf', 'zero_pad_factor')
-def dual(x: floatarray1D, y: floatarray1D, zpf=None):
+def dual(x: floatarray1D, y: floatarray1D = None, zpf=None):
     if y is None:
         return dual1d(x, zero_pad_factor=zpf)
     return dual2d(x, y=y, zero_pad_factor=zpf)
 
 
 @alias_argument('zpf', 'zero_pad_factor')
-
 def rdual(x: floatarray1D, zpf=None):
     return rdual1d(x, zero_pad_factor=zpf)
 

@@ -76,6 +76,8 @@ def test_psd1d_definition(N, window):
 
     assert np.isclose(psd_g2l_alter, psd_g2l).all()
 
+
+
 @pytest.mark.parametrize("N", N_to_test)
 @pytest.mark.parametrize("window", window_to_test)
 @pytest.mark.parametrize("zero_pad_factor", zpf_to_test)
@@ -90,6 +92,24 @@ def test_psd1d_periodogram(N, window, zero_pad_factor):
     f_scipy, psd_scipy = fft.fftshift(f_scipy), fft.fftshift(psd_scipy)
 
     assert np.isclose(psd_scipy, psd_g2l).all()
+
+
+@pytest.mark.parametrize("N", N_to_test)
+@pytest.mark.parametrize("window", ['boxcar', 'hann', 'flattop'])
+@pytest.mark.parametrize("zero_pad_factor", [1,2,4])
+def test_rpsd1d_periodogram(N, window, zero_pad_factor):
+    t, sig = generate_sig1D(N)
+    rpsd_g2l = ft.rpsd1d(sig, x=t, remove_mean=True, window=window, zero_pad_factor=zero_pad_factor)
+
+    fs = 1/(t[1]-t[0])
+    f_scipy, rpsd_scipy =  signal.periodogram(sig, fs=fs, window=window,
+                                             nfft=len(sig)*zero_pad_factor,
+                                             return_onesided=True, scaling='density', detrend='constant')
+
+    assert len(rpsd_scipy) == len(rpsd_g2l)
+    assert np.isclose(f_scipy, ft.rdual1d(t, zero_pad_factor=zero_pad_factor)).all()
+    assert np.isclose(rpsd_scipy, rpsd_g2l).all()
+
 def test_estimatesignalfrequency():
     # we test if we are able to find the frequency ona sinusoid drowned in a gaussian uncorrelated noise
     # with signal / noise ratio snr
