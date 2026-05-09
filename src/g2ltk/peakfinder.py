@@ -8,20 +8,48 @@ from . import set_verbose, log_error, log_warn, log_warning, log_info, log_subin
 
 # QOL for manipulating arrays
 
-def is_regularly_spaced(arr: np.ndarray, tol=1e-6) -> bool:
+def is_regularly_spaced(arr: np.ndarray, rtol=1e-5) -> bool:
+    """Returns True is the array is ordered and regularly spaced.
+
+    Parameters
+    ----------
+    arr
+    rtol : float, optional
+        The relative tolerance. The default is 1e-5.
+
+    Returns
+    -------
+
+    """
     darr = np.diff(arr)
-    return np.allclose(darr, darr[0], atol=0, rtol=tol) and darr[0] > 0
+    return np.allclose(darr, darr[0], atol=0, rtol=rtol) and darr[0] > 0
 
 
 # find the step value
 def step(arr: Optional[np.ndarray]) -> float:
-    # Returns the spacing between points in a (hopefully) sorted and regularly spaced array
+    """
+    Returns the spacing between points in a (hopefully) sorted and regularly spaced array
+
+    Parameters
+    ----------
+    arr
+
+    Returns
+    -------
+
+    """
     if arr is None:
         return 1.
     if is_regularly_spaced(arr):
         return float(arr[1] - arr[0])
-    log_warning('NOT REGULARLY SPACED ARRAY!')
-    return np.diff(arr).mean()
+    darr = np.diff(arr)
+    maxspan = darr.max()-darr.min()
+    mean = darr.mean()
+    if maxspan / mean < 1e-3:
+        log_subinfo(f'The array is not exactly regularly spaced (a={maxspan} | r = {maxspan/mean:.6f})')
+    else:
+        log_warning(f'The array is not regularly spaced (a={maxspan} | r = {maxspan/mean:.6f})')
+    return mean
 
 
 # finds the max-min value
