@@ -13,18 +13,42 @@ default_window: str = 'boxcar'
 detrend_dtype = Literal['constant', False]
 
 
-def sanitize_nfft_1d(nfft, arr = None):
+def sanitize_nfft_1d(nfft, arr=None):
+    """
+    Checks that nfft is suitable (an integer) or resets to default (array length).
+
+    Parameters
+    ----------
+    nfft
+    arr
+
+    Returns
+    -------
+
+    """
     default_nfft = len(arr)
     if nfft is None:
         return default_nfft
     try:
         n_fft = int(nfft)
-        return nfft
+        return n_fft
     except:
         customlog.log_warning(f'{sanitize_nfft_1d}: What is this nfft "{nfft}" ? I made it None')
         return default_nfft
 
+
 def sanitize_zpf_1d(zpf):
+    """
+    Checks that zpf is suitable (an integer) or resets to default (1).
+
+    Parameters
+    ----------
+    zpf
+
+    Returns
+    -------
+
+    """
     default_zpf = 1
     if zpf is None:
         return default_zpf
@@ -36,7 +60,7 @@ def sanitize_zpf_1d(zpf):
         return default_zpf
 
 
-### Dual: changing from real space to frequency space
+# Dual: changing from real space to frequency space
 @alias_argument('zpf', 'zero_pad_factor')
 def dual1d(arr: floatarray1D,
            nfft: Optional[int] = None, zpf: Optional[int] = None) -> floatarray1D:
@@ -61,7 +85,7 @@ def dual1d(arr: floatarray1D,
     fname = 'dual1d'
     customlog.log_trace(f'{fname}: Called with {arr.shape} array, nfft = {nfft}, zpf = {zpf}')
 
-    nfft = sanitize_nfft_1d(nfft, arr = arr)
+    nfft = sanitize_nfft_1d(nfft, arr=arr)
     zpf = sanitize_zpf_1d(zpf)
     nfft_final = nfft * zpf
 
@@ -93,7 +117,7 @@ def rdual1d(arr: floatarray1D,
     fname = 'rdual1d'
     customlog.log_trace(f'{fname}: Called with {arr.shape} array, nfft = {nfft}, zpf = {zpf}')
 
-    nfft = sanitize_nfft_1d(nfft, arr = arr)
+    nfft = sanitize_nfft_1d(nfft, arr=arr)
     zpf = sanitize_zpf_1d(zpf)
 
     nfft_final = nfft * zpf
@@ -101,7 +125,8 @@ def rdual1d(arr: floatarray1D,
 
     return np.fft.rfftfreq(nfft_final, step(arr))
 
-### FT: computing the Fourier Transform
+
+# FT: computing the Fourier Transform
 @alias_argument('zpf', 'zero_pad_factor')
 def prepare_signal_for_ft1d(sig: complexarray1D,
                             window: str = default_window, remove_mean: bool = True,
@@ -137,17 +162,17 @@ def prepare_signal_for_ft1d(sig: complexarray1D,
     sig_windowed = sig_nozero * get_window(window, N)
 
     # padding
-    nfft = sanitize_nfft_1d(nfft, arr = sig)
+    nfft = sanitize_nfft_1d(nfft, arr=sig)
     zpf = sanitize_zpf_1d(zpf)
     nfft_final = nfft * zpf
 
     customlog.log_debug(f'{fname}: {sig.shape[0]} -> {nfft_final} ({nfft} x {zpf})')
 
-    pad_width = (0,0)
+    pad_width = (0, 0)
     if nfft_final < len(sig_windowed):
         sig_padded = sig_windowed[:nfft_final]
     else:
-        pad_width = (0, nfft_final-N)
+        pad_width = (0, nfft_final - N)
         sig_padded = np.pad(sig_windowed, pad_width=pad_width, mode='constant', constant_values=0)
 
     # second mean removal. It is unorthodox. Is it necessary? most often, not, it is useless
@@ -167,7 +192,7 @@ def rft1d(sig: floatarray1D, x: Optional[floatarray1D] = None,
           shift: Optional[int] = None) -> complexarray1D:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
-    The unit is in amplitude/(inverse period), e.g. V(s) -> V/Hz(Hz)
+    The unit is in amplitude/(inverse period), e.g. V -> V/Hz
 
     Parameters
     ----------
@@ -178,6 +203,7 @@ def rft1d(sig: floatarray1D, x: Optional[floatarray1D] = None,
         Default is True
     nfft : int, optional
     zpf : int, optional
+    shift
 
     Returns
     -------
@@ -201,7 +227,7 @@ def ft1d(sig: complexarray1D, x: Optional[floatarray1D] = None,
          shift: Optional[int] = None) -> complexarray1D:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
-    The unit is in amplitude/(inverse period), e.g. V(s) -> V/Hz(Hz)
+    The unit is in amplitude/(inverse period), e.g. V -> V/Hz
 
     Parameters
     ----------
@@ -212,6 +238,7 @@ def ft1d(sig: complexarray1D, x: Optional[floatarray1D] = None,
         Default is True
     nfft : int, optional
     zpf : int, optional
+    shift
 
     Returns
     -------
@@ -233,15 +260,17 @@ def ift1d(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None):
     return fft.ifft(np.fft.ifftshift(sig_hat), norm='backward') * span(xdual)
 
 
-### Power:
+# Power:
 
-def window_factor1d(window: str, N: int = 16384):
+def window_factor1d(window: str, nwin: int = 16384):
     """
     Returns the factor by which the energy is multiplied when the signal is windowed.
 
     Parameters
     ----------
     window
+    nwin : int, optional
+        The size over which to evaluate the window corrected factor.
 
     Returns
     -------
@@ -254,7 +283,7 @@ def window_factor1d(window: str, N: int = 16384):
     elif window == 'hann':
         return 8 / 3
     else:
-        return 1 / ((get_window(window, N) ** 2).sum() / N)
+        return 1 / ((get_window(window, nwin) ** 2).sum() / nwin)
 
 
 @alias_argument('zpf', 'zero_pad_factor')
@@ -277,17 +306,17 @@ def psd1d(sig: np.ndarray, x: Optional[np.ndarray] = None,
     -------
 
     """
-    ### Step 1 : do the dimensional Fourier transform
+    ### Step 1: do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
     sig_hat = ft1d(sig, x=x, window=window, remove_mean=remove_mean,
                    nfft=nfft, zpf=zpf)
-    ### Step 2 : compute the ESD (Energy Spectral Density)
+    ### Step 2: compute the ESD (Energy Spectral Density)
     # Rigorously, this is the only thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this frequency
     # It is useful in itself for time-limited signals (impulsions)
     # if the unit of z(t) is [V(s)], then the unit of $ESD(z)$ is [V^2/Hz^2(Hz)]
-    esd = np.abs(sig_hat) ** 2 * window_factor1d(window, N=len(sig))
-    ### Step 3 : compute the PSD (Power Spectral Density)
+    esd = np.abs(sig_hat) ** 2 * window_factor1d(window, nwin=len(sig))
+    ### Step 3: compute the PSD (Power Spectral Density)
     # Assuming that the signal is periodic, then PSD = ESD / duration
     # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
     return esd / span(x)
@@ -313,25 +342,26 @@ def rpsd1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     -------
 
     """
-    ### Step 1 : do the dimensional Fourier transform
+    ### Step 1: do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
     sig_hat = rft1d(sig, x=x, window=window, remove_mean=remove_mean,
                     nfft=nfft, zpf=zpf)
-    ### Step 2 : compute the ESD (Energy Spectral Density)
+    ### Step 2: compute the ESD (Energy Spectral Density)
     # Rigorously, this is the only thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this frequency
     # It is useful in itself for time-limited signals (impulsions)
     # if the unit of z(t) is [V(s)], then the unit of $ESD(z)$ is [V^2/Hz^2(Hz)]
-    esd = np.abs(sig_hat) ** 2 * window_factor1d(window, N=len(sig))
+    esd = np.abs(sig_hat) ** 2 * window_factor1d(window, nwin=len(sig))
     # if N is even the last one should not be doubled
-    nfft = sanitize_nfft_1d(nfft, arr = sig)
+    nfft = sanitize_nfft_1d(nfft, arr=sig)
     zpf = sanitize_zpf_1d(zpf)
-    esd[1:len(esd)-(1-nfft*zpf%2)] *= 2  # x 2 because of rfft which truncates the spectrum
+    esd[1:len(esd) - (1 - nfft * zpf % 2)] *= 2  # x 2 because of rfft which truncates the spectrum
     # (except the 0 harmonic, and the last one if the length is even)
-    ### Step 3 : compute the PSD (Power Spectral Density)
+    ### Step 3: compute the PSD (Power Spectral Density)
     # Assuming that the signal is periodic, then PSD = ESD / duration
     # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
     return esd / span(x)
+
 
 @alias_argument('zpf', 'zero_pad_factor')
 def welch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
@@ -362,19 +392,20 @@ def welch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     zpf = sanitize_zpf_1d(zpf)
     detrend: detrend_dtype = 'constant' if remove_mean else False
 
-    fs = 1/step(x)
-    nperseg: int = int(nfft/welch_factor)
-    f_welch, psd_welch =  signal.welch(sig, fs=fs, window=window,
-                                       nperseg=nperseg, nfft=nfft*zpf,
-                                       return_onesided=False, scaling='density', detrend=detrend)
+    fs = 1 / step(x)
+    nperseg: int = int(nfft / welch_factor)
+    f_welch, psd_welch = signal.welch(sig, fs=fs, window=window,
+                                      nperseg=nperseg, nfft=nfft * zpf,
+                                      return_onesided=False, scaling='density', detrend=detrend)
     f_welch, psd_welch = fft.fftshift(f_welch), fft.fftshift(psd_welch)
     return psd_welch
 
+
 @alias_argument('zpf', 'zero_pad_factor')
 def rwelch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
-            welch_factor: float = 1.,
-            window: str = default_window, remove_mean: bool = True,
-            nfft: Optional[int] = None, zpf: Optional[float] = None):
+             welch_factor: float = 1.,
+             window: str = default_window, remove_mean: bool = True,
+             nfft: Optional[int] = None, zpf: Optional[float] = None):
     """
     Computes the PSD spectrum using Welch's technique.
 
@@ -399,13 +430,14 @@ def rwelch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     zpf = sanitize_zpf_1d(zpf)
     detrend: detrend_dtype = 'constant' if remove_mean else False
 
-    fs = 1/step(x)
-    nperseg: int = int(nfft/welch_factor)
-    f_welch, psd_welch =  signal.welch(sig, fs=fs, window=window,
-                                       nperseg=nperseg, nfft=nfft*zpf,
-                                       return_onesided=True, scaling='density', detrend=detrend)
+    fs = 1 / step(x)
+    nperseg: int = int(nfft / welch_factor)
+    f_welch, psd_welch = signal.welch(sig, fs=fs, window=window,
+                                      nperseg=nperseg, nfft=nfft * zpf,
+                                      return_onesided=True, scaling='density', detrend=detrend)
     f_welch, psd_welch = fft.fftshift(f_welch), fft.fftshift(psd_welch)
     return psd_welch
+
 
 ### QOL functions
 
@@ -445,8 +477,10 @@ def peak_contour1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int] =
 
     peak_index = np.argmin((x - peak_x) ** 2)
 
-    min_peak_depth_dB = 10
+    x1_before = peak_x
+    x1_after = peak_x
 
+    min_peak_depth_dB = 10
     while peak_depth_dB > 0:  # infinite loop, return is in it
         zintercept = attenuate_power(sig_psd[peak_index], peak_depth_dB)
         x1_intercept = interp_roots(sig_psd - zintercept, x=x)
@@ -503,17 +537,19 @@ def peak_vicinity1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int] 
 
     vicinity = (x >= x1_before) & (x <= x1_after)
 
-    customlog.log_debug(f'peak_vicinity1d: Found {np.sum(vicinity)} points in zone {(x1_before, x1_after)} (around {peak_x})')
+    customlog.log_debug(
+        f'peak_vicinity1d: Found {np.sum(vicinity)} points in zone {(x1_before, x1_after)} (around {peak_x})')
 
     return vicinity
 
 
-def power_near_peak1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int] = 40, x: Optional[floatarray1D] = None,
+def power_near_peak1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int] = 40,
+                      x: Optional[floatarray1D] = None,
                       peak_vicinity: Optional[np.ndarray] = None,
                       peak_contour: Optional[List] = None):
     """Integrates the PSD around a given peak.
 
-    Choose your windw with care
+    Choose your window with care
 
     Parameters
     ----------
@@ -530,7 +566,8 @@ def power_near_peak1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int
     """
     customlog.log_debug(f'Measuring the power around     ({round(peak_x, 3)})')
     if peak_vicinity is None:
-        peak_vicinity = peak_vicinity1d(peak_x=peak_x, sig_psd=sig_psd, peak_depth_dB=peak_depth_dB, x=x, peak_contour=peak_contour)
+        peak_vicinity = peak_vicinity1d(peak_x=peak_x, sig_psd=sig_psd, peak_depth_dB=peak_depth_dB, x=x,
+                                        peak_contour=peak_contour)
     # ### (abandoned) do a trapezoid integration
     # x_f = np.concatenate(([freqpre], freqs[(freqpre < freqs)*(freqs < freqpost)], [freqpost]))
     # y_f = np.concatenate(([np.interp(freqpre, freqs, zmeanx_psd)], zmeanx_psd[(freqpre < freqs)*(freqs < freqpost)], [np.interp(freqpost, freqs, zmeanx_psd)]))
