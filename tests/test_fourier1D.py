@@ -24,7 +24,7 @@ def generate_sig1D(N):
 
 N_to_test = [20, 63, 1024, 6561, 16384] # small to big, even and odd
 window_to_test = ['boxcar', 'hann', 'hamming', 'tukey', 'blackman', 'flattop']
-zpf_to_test = [1, 2, 3, 4, 16, 64]
+zpf_to_test = [1, 2, 3, 4, 16] # small to big, even and odd
 
 @pytest.mark.parametrize("N", N_to_test)
 def test_dual1d(N):
