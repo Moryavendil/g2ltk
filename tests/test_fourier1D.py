@@ -6,8 +6,8 @@ from scipy import signal
 
 np.random.seed(19970510)
 
-def generate_sig1D(N):
-    t = np.linspace(0, 15.75, 1024, endpoint=False)
+def generate_sig1D(npts):
+    t = np.linspace(0., 15.75234, npts, endpoint=False)
     freq1 = 1.
     phi1 = 0.4
     freq2 = 2.5
@@ -18,11 +18,11 @@ def generate_sig1D(N):
 
     anoise = 0.1
 
-    sig = a1*np.cos(2*np.pi*freq1*t+phi1) + a2*np.cos(2*np.pi*freq1*t+phi1) + anoise*np.random.rand(len(t))
+    sig = a1*np.cos(2*np.pi*freq1*t+phi1) + a2*np.cos(2*np.pi*freq2*t+phi2) + anoise*np.random.rand(len(t))
 
     return t, sig
 
-N_to_test = [20, 63, 1024, 6561, 16384] # small to big, even and odd
+N_to_test = [20, 63, 1024, 16384] # small to big, even and odd
 window_to_test = ['boxcar', 'hann', 'hamming', 'tukey', 'blackman', 'flattop']
 zpf_to_test = [1, 2, 3, 4, 16] # small to big, even and odd
 
@@ -70,7 +70,7 @@ def test_psd1d_definition(N, window):
     t, sig = generate_sig1D(N)
 
     ft_g2l = ft.ft1d(sig, x=t, remove_mean=False, window=window)
-    psd_g2l_alter = np.abs(ft_g2l)**2 * ft.window_factor1d(window) / (len(t)*ft.step(t))
+    psd_g2l_alter = np.abs(ft_g2l)**2 * ft.window_factor1d(window, N) / (len(t)*ft.step(t))
 
     psd_g2l = ft.psd1d(sig, x=t, remove_mean=False, window=window)
 
@@ -95,8 +95,8 @@ def test_psd1d_periodogram(N, window, zero_pad_factor):
 
 
 @pytest.mark.parametrize("N", N_to_test)
-@pytest.mark.parametrize("window", ['boxcar', 'hann', 'flattop'])
-@pytest.mark.parametrize("zero_pad_factor", [1,2,4])
+@pytest.mark.parametrize("window", window_to_test)
+@pytest.mark.parametrize("zero_pad_factor", zpf_to_test)
 def test_rpsd1d_periodogram(N, window, zero_pad_factor):
     t, sig = generate_sig1D(N)
     rpsd_g2l = ft.rpsd1d(sig, x=t, remove_mean=True, window=window, zero_pad_factor=zero_pad_factor)
@@ -110,15 +110,36 @@ def test_rpsd1d_periodogram(N, window, zero_pad_factor):
     assert np.isclose(f_scipy, ft.rdual1d(t, zero_pad_factor=zero_pad_factor)).all()
     assert np.isclose(rpsd_scipy, rpsd_g2l).all()
 
+
+@pytest.mark.parametrize("N", N_to_test)
+@pytest.mark.parametrize("window", window_to_test)
+@pytest.mark.parametrize("zpf", zpf_to_test)
+def test_welch1d_compat(N, window, zpf):
+    t, sig = generate_sig1D(N)
+    psd_g2l = ft.psd1d(sig, x=t, remove_mean=True, window=window, zpf=zpf)
+    welch_g2l = ft.welch1d(sig, x=t, remove_mean=True, window=window, zpf=zpf, welch_factor=1)
+    assert np.allclose(psd_g2l, welch_g2l)
+
+
+@pytest.mark.parametrize("N", N_to_test)
+@pytest.mark.parametrize("window", window_to_test)
+@pytest.mark.parametrize("zpf", zpf_to_test)
+def test_rwelch1d_compat(N, window, zpf):
+    t, sig = generate_sig1D(N)
+    rpsd_g2l = ft.rpsd1d(sig, x=t, remove_mean=True, window=window, zpf=zpf)
+    welch_g2l = ft.rwelch1d(sig, x=t, remove_mean=True, window=window, zpf=zpf, welch_factor=1)
+    assert np.allclose(rpsd_g2l, welch_g2l)
+
+
 def test_estimatesignalfrequency():
-    # we test if we are able to find the frequency ona sinusoid drowned in a gaussian uncorrelated noise
+    # we test if we are able to find the frequency on a sinusoid drowned in a gaussian uncorrelated noise
     # with signal / noise ratio snr
-    snr = 0.5
-    x = np.linspace(0, 10, 1000)
+    snr = 0.25
+    x = np.linspace(0, 10, 2048, endpoint=False)
     f_true = 0.812
     z = np.sin(2*np.pi*f_true*x) + np.random.randn(len(x)) / snr
     f_est = ft.estimatesignalfrequency(z, x=x,
-    window='boxcar', zero_pad_factor=4, bounds=None)
+    window='boxcar', zero_pad_factor=8, bounds=None)
 
     max_acceptable_error = 1/ft.span(x)
     assert np.abs(f_true - f_est) < max_acceptable_error

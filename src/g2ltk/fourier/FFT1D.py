@@ -435,7 +435,6 @@ def rwelch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     f_welch, psd_welch = signal.welch(sig, fs=fs, window=window,
                                       nperseg=nperseg, nfft=nfft * zpf,
                                       return_onesided=True, scaling='density', detrend=detrend)
-    f_welch, psd_welch = fft.fftshift(f_welch), fft.fftshift(psd_welch)
     return psd_welch
 
 
