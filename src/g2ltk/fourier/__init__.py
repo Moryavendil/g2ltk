@@ -48,6 +48,7 @@ def log_amplitude_cbticks(maximum_amplitude: float, range_db: Union[int, float])
 
 ### FFT AND PSD COMPUTATIONS
 
+
 from functools import wraps
 
 def alias_argument(new_name, old_name):
@@ -74,13 +75,13 @@ from .FFT2D import *
 @alias_argument('zpf', 'zero_pad_factor')
 def dual(x: floatarray1D, y: floatarray1D = None, zpf=None):
     if y is None:
-        return dual1d(x, zero_pad_factor=zpf)
+        return dual1d(x, zpf=zpf)
     return dual2d(x, y=y, zero_pad_factor=zpf)
 
 
 @alias_argument('zpf', 'zero_pad_factor')
 def rdual(x: floatarray1D, zpf=None):
-    return rdual1d(x, zero_pad_factor=zpf)
+    return rdual1d(x, zpf=zpf)
 
 
 @alias_argument('zpf', 'zero_pad_factor')
@@ -96,7 +97,7 @@ def ft(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
         if winstyle is not None:
             raise RuntimeError('winstyle given but sig is 1-D?')
         return ft1d(sig, x=x, window=window, remove_mean=remove_mean,
-                    zero_pad_factor=zpf, shift=shift)
+                    zpf=zpf, shift=shift)
     raise RuntimeError(f'?? Called ft but sig is {np.ndim(sig)}-dimensional')
 
 
@@ -116,7 +117,7 @@ def rft(sig, x: Optional[np.ndarray] = None,
         zpf=None, shift=None):
     if np.ndim(sig) == 1:
         return rft1d(sig, x=x, window=window, remove_mean=remove_mean,
-                     zero_pad_factor=zpf, shift=shift)
+                     zpf=zpf, shift=shift)
     raise RuntimeError(f'?? Called rft but sig is {np.ndim(sig)}-dimensional')
 
 
@@ -136,9 +137,9 @@ def psd(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
             raise RuntimeError('winstyle given but sig is 1-D?')
         if welch_factor is not None:
             return welch1d(sig, x=x, window=window, remove_mean=remove_mean,
-                           zero_pad_factor=zpf, welch_factor=welch_factor)
+                           zpf=zpf, welch_factor=welch_factor)
         return psd1d(sig, x=x, window=window, remove_mean=remove_mean,
-                     zero_pad_factor=zpf)
+                     zpf=zpf)
     raise RuntimeError('y given but sig is 1-D?')
 
 @alias_argument('zpf', 'zero_pad_factor')
@@ -147,9 +148,9 @@ def rpsd(sig, x: Optional[np.ndarray] = None,
         zpf=None, welch_factor=None):
     if np.ndim(sig) == 1:
         if welch_factor is not None:
-            raise NotImplementedError('rwelch1d not implemented yet')
+            # raise NotImplementedError('rwelch1d not implemented yet')
             return rwelch1d(sig, x=x, window=window, remove_mean=remove_mean,
-                           zero_pad_factor=zpf, welch_factor=welch_factor)
+                            zpf=zpf, welch_factor=welch_factor)
         return rpsd1d(sig, x=x, window=window, remove_mean=remove_mean,
-                     zero_pad_factor=zpf)
+                      zpf=zpf)
     raise RuntimeError(f'?? Called rpsd but sig is {np.ndim(sig)}-dimensional')

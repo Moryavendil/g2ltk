@@ -12,6 +12,30 @@ default_window: str = 'boxcar'
 
 detrend_dtype = Literal['constant', False]
 
+
+def sanitize_nfft_1d(nfft, arr = None):
+    default_nfft = len(arr)
+    if nfft is None:
+        return default_nfft
+    try:
+        n_fft = int(nfft)
+        return nfft
+    except:
+        customlog.log_warning(f'{sanitize_nfft_1d}: What is this nfft "{nfft}" ? I made it None')
+        return default_nfft
+
+def sanitize_zpf_1d(zpf):
+    default_zpf = 1
+    if zpf is None:
+        return default_zpf
+    try:
+        zpf = int(zpf)
+        return zpf
+    except:
+        customlog.log_warning(f'{sanitize_nfft_1d}: What is this nfft "{zpf}" ? I made it None')
+        return default_zpf
+
+
 ### Dual: changing from real space to frequency space
 @alias_argument('zpf', 'zero_pad_factor')
 def dual1d(arr: floatarray1D,
@@ -37,124 +61,109 @@ def dual1d(arr: floatarray1D,
     fname = 'dual1d'
     customlog.log_trace(f'{fname}: Called with {arr.shape} array, nfft = {nfft}, zpf = {zpf}')
 
-    n_arr: int = arr.shape[0]
-    n_fft: int = n_arr
+    nfft = sanitize_nfft_1d(nfft, arr = arr)
+    zpf = sanitize_zpf_1d(zpf)
+    nfft_final = nfft * zpf
 
-    if nfft is not None:
-        customlog.log_subtrace(f'{fname}: | nfft={nfft}')
-        try:
-            n_fft = int(nfft)
-        except:
-            customlog.log_warning(f'{fname}: What is this nfft "{nfft}" ? I made it None')
+    customlog.log_debug(f'{fname}: {arr.shape[0]} -> {nfft_final} ({nfft} x {zpf})')
 
-    if zpf is not None:
-        customlog.log_subtrace(f'{fname}: | zpf={zpf}')
-        try:
-            n_fft  = np.rint(n_fft * zpf).astype(int)
-        except:
-            customlog.log_warning(f'{fname}: What is this zero-padding factor "{zpf}" ? I made it None')
-
-    customlog.log_debug(f'{fname}: {n_arr} -> {n_fft} ({nfft if nfft is not None else n_arr} x {zpf if zpf is not None else 1})')
-
-    return np.fft.fftshift(np.fft.fftfreq(n_fft, step(arr)))
+    return np.fft.fftshift(np.fft.fftfreq(nfft_final, step(arr)))
 
 
+@alias_argument('zpf', 'zero_pad_factor')
 def rdual1d(arr: floatarray1D,
-            zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> floatarray1D:
+            nfft: Optional[int] = None, zpf: Optional[int] = None) -> floatarray1D:
     """Returns the dual, i.e. the frequencies, in a numpy.fft.rfft-compatible style.
 
     The unit is the inverse, e.g. time (s)-> frequency (Hz).
 
     Parameters
     ----------
-    arr
-    zero_pad
-    zero_pad_factor
+    arr : np.ndarray
+        An ordered, regularly spaced array of real values
+    nfft : int, optional
+        The size of the nfft
+    zpf : int, optional
+        The zero padding factor. An alias is ```zero_pad_factor```
 
     Returns
     -------
 
     """
-    N = arr.shape[0]
-    customlog.log_trace(f'rdual: Called with {arr.shape} array, zp = {zero_pad}, zpf = {zero_pad_factor}')
+    fname = 'rdual1d'
+    customlog.log_trace(f'{fname}: Called with {arr.shape} array, nfft = {nfft}, zpf = {zpf}')
 
-    pad_width = None
-    if zero_pad_factor is not None:
-        customlog.log_subtrace(f'rft2d: | zero_pad_factor={zero_pad_factor}')
-        try:
-            pad = np.rint(N * (zero_pad_factor - 1)).astype(int)
-            pad_width = (pad // 2, pad // 2 + pad % 2)
-        except:
-            customlog.log_warning(f'rft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
-            pad_width = None
-    elif zero_pad is not None:
-        customlog.log_subtrace(f'rft2d: | zero_pad={zero_pad}')
-        try:
-            pad_width = (0, int(zero_pad))
-        except:
-            customlog.log_warning(f'rft2d: What is this zero-padding "{zero_pad}" ? I made it None')
-            pad_width = None
+    nfft = sanitize_nfft_1d(nfft, arr = arr)
+    zpf = sanitize_zpf_1d(zpf)
 
-    customlog.log_subtrace(f'rft2d: Padding (artificially better resolution) | pad={pad_width}')
-    if pad_width is None:
-        pad_width = (0, 0)
+    nfft_final = nfft * zpf
+    customlog.log_debug(f'{fname}: {arr.shape[0]} -> {nfft_final} ({nfft} x {zpf})')
 
-    n = N + pad_width[0] + pad_width[1]
-
-    customlog.log_debug(f'rdual: {N} -> {n}')
-
-    return np.fft.rfftfreq(n, step(arr))
-
+    return np.fft.rfftfreq(nfft_final, step(arr))
 
 ### FT: computing the Fourier Transform
+@alias_argument('zpf', 'zero_pad_factor')
 def prepare_signal_for_ft1d(sig: complexarray1D,
                             window: str = default_window, remove_mean: bool = True,
-                            zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None,
+                            nfft: Optional[int] = None, zpf: Optional[int] = None,
                             shift: Optional[int] = None) -> complexarray1D:
+    """
+    Applies mean removal, windowing, padding and phase shift.
+
+    Parameters
+    ----------
+    sig
+    window : str, optional
+    remove_mean : bool, optional
+        Default is True
+    nfft : int, optional
+    zpf : int, optional
+    shift
+
+    Returns
+    -------
+
+    """
+    fname = 'prepare_signal_for_ft1d'
+    customlog.log_trace(f'{fname}: Called with {sig.shape} array, nfft = {nfft}, zpf = {zpf}')
+
     N = sig.shape[0]
 
     # Removing mean
-    customlog.log_trace(f'rft1d: Mean removal: {remove_mean}')
+    customlog.log_trace(f'{fname}: Mean removal: {remove_mean}')
     sig_nozero = sig.copy() - np.mean(sig) * remove_mean
 
     # windowing
     sig_windowed = sig_nozero * get_window(window, N)
 
-    pad_width = None
-    if zero_pad_factor is not None:
-        customlog.log_subtrace(f'rft2d: | zero_pad_factor={zero_pad_factor}')
-        try:
-            pad = np.rint(N * (zero_pad_factor - 1)).astype(int)
-            pad_width = (pad // 2, pad // 2 + pad % 2)
-        except:
-            customlog.log_warning(f'rft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
-            pad_width = None
-    elif zero_pad is not None:
-        customlog.log_subtrace(f'rft2d: | zero_pad={zero_pad}')
-        try:
-            pad_width = (0, int(zero_pad))
-        except:
-            customlog.log_warning(f'rft2d: What is this zero-padding "{zero_pad}" ? I made it None')
-            pad_width = None
+    # padding
+    nfft = sanitize_nfft_1d(nfft, arr = sig)
+    zpf = sanitize_zpf_1d(zpf)
+    nfft_final = nfft * zpf
 
-    customlog.log_subtrace(f'rft1d: Padding (artificially better resolution) | pad={pad_width}')
-    if pad_width is None:
-        pad_width = (0, 0)
-    sig_padded = np.pad(sig_windowed, pad_width=pad_width, mode='constant', constant_values=0)
+    customlog.log_debug(f'{fname}: {sig.shape[0]} -> {nfft_final} ({nfft} x {zpf})')
 
-    # second mean removal. It is unorthodox, is it necessary?
+    pad_width = (0,0)
+    if nfft_final < len(sig_windowed):
+        sig_padded = sig_windowed[:nfft_final]
+    else:
+        pad_width = (0, nfft_final-N)
+        sig_padded = np.pad(sig_windowed, pad_width=pad_width, mode='constant', constant_values=0)
+
+    # second mean removal. It is unorthodox. Is it necessary? most often, not, it is useless
     # sig_padded = sig_padded - np.mean(sig_padded) * remove_mean
 
     if shift is None: shift = 0
-    customlog.log_subtrace(f'rft1d: Rolling (restoring phase) | pad={pad_width} | shift={shift}')
+    customlog.log_subtrace(f'{fname}: Rolling (restoring phase) by pre_pad={pad_width[0]} + shift={shift}')
     sig_rolled = np.roll(sig_padded, -pad_width[0] - shift)
 
     return sig_rolled
 
 
+@alias_argument('zpf', 'zero_pad_factor')
 def rft1d(sig: floatarray1D, x: Optional[floatarray1D] = None,
-          window: str = default_window, remove_mean: bool = True, norm: Optional[str]=None,
-          zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None,
+          window: str = default_window, remove_mean: bool = True,
+          nfft: Optional[int] = None, zpf: Optional[int] = None,
           shift: Optional[int] = None) -> complexarray1D:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
@@ -164,11 +173,11 @@ def rft1d(sig: floatarray1D, x: Optional[floatarray1D] = None,
     ----------
     sig
     x
-    window
-    remove_mean
-    norm
-    zero_pad
-    zero_pad_factor
+    window : str, optional
+    remove_mean : bool, optional
+        Default is True
+    nfft : int, optional
+    zpf : int, optional
 
     Returns
     -------
@@ -177,17 +186,18 @@ def rft1d(sig: floatarray1D, x: Optional[floatarray1D] = None,
     customlog.log_trace(f'rft2d: Computing 1-D FFT of array of shape {sig.shape}')
 
     sig_prepared = prepare_signal_for_ft1d(sig, window=window, remove_mean=remove_mean,
-                                     zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
-                                     shift=shift)
+                                           nfft=nfft, zpf=zpf,
+                                           shift=shift)
 
-    sig_hat = fft.rfft(sig_prepared, norm=norm, n=sig_prepared.shape[0])
+    sig_hat = fft.rfft(sig_prepared, norm='backward', n=sig_prepared.shape[0])
 
     return sig_hat * step(x)
 
 
+@alias_argument('zpf', 'zero_pad_factor')
 def ft1d(sig: complexarray1D, x: Optional[floatarray1D] = None,
-         window: str = default_window, remove_mean: bool = True, norm: Optional[str]=None,
-         zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None,
+         window: str = default_window, remove_mean: bool = True,
+         nfft: Optional[int] = None, zpf: Optional[int] = None,
          shift: Optional[int] = None) -> complexarray1D:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
@@ -197,11 +207,11 @@ def ft1d(sig: complexarray1D, x: Optional[floatarray1D] = None,
     ----------
     sig
     x
-    window
-    remove_mean
-    norm
-    zero_pad
-    zero_pad_factor
+    window : str, optional
+    remove_mean : bool, optional
+        Default is True
+    nfft : int, optional
+    zpf : int, optional
 
     Returns
     -------
@@ -210,16 +220,17 @@ def ft1d(sig: complexarray1D, x: Optional[floatarray1D] = None,
     customlog.log_trace(f'rft2d: Computing 1-D FFT of array of shape {sig.shape}')
 
     sig_prepared = prepare_signal_for_ft1d(sig, window=window, remove_mean=remove_mean,
-                                           zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
+                                           nfft=nfft, zpf=zpf,
                                            shift=shift)
 
-    sig_hat = fft.fft(sig_prepared, norm=norm, n=sig_prepared.shape[0])
+    sig_hat = fft.fft(sig_prepared, norm='backward', n=sig_prepared.shape[0])
 
     return fft.fftshift(sig_hat) * step(x)
 
 
-def ift1d(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None, norm: Optional[str]=None):
-    return fft.ifft(np.fft.ifftshift(sig_hat), norm=norm) * span(xdual)
+@alias_argument('zpf', 'zero_pad_factor')
+def ift1d(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None):
+    return fft.ifft(np.fft.ifftshift(sig_hat), norm='backward') * span(xdual)
 
 
 ### Power:
@@ -246,13 +257,30 @@ def window_factor1d(window: str, N: int = 16384):
         return 1 / ((get_window(window, N) ** 2).sum() / N)
 
 
+@alias_argument('zpf', 'zero_pad_factor')
 def psd1d(sig: np.ndarray, x: Optional[np.ndarray] = None,
           window: str = default_window, remove_mean: bool = True,
-          zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> floatarray1D:
+          nfft: Optional[int] = None, zpf: Optional[float] = None) -> floatarray1D:
+    """
+
+    Parameters
+    ----------
+    sig
+    x
+    window : str, optional
+    remove_mean : bool, optional
+        Default is True
+    nfft : int, optional
+    zpf : int, optional
+
+    Returns
+    -------
+
+    """
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
-    sig_hat = ft1d(sig, x=x, window=window, remove_mean=remove_mean, norm="backward",
-                   zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+    sig_hat = ft1d(sig, x=x, window=window, remove_mean=remove_mean,
+                   nfft=nfft, zpf=zpf)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the only thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this frequency
@@ -265,13 +293,30 @@ def psd1d(sig: np.ndarray, x: Optional[np.ndarray] = None,
     return esd / span(x)
 
 
+@alias_argument('zpf', 'zero_pad_factor')
 def rpsd1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
            window: str = default_window, remove_mean: bool = True,
-           zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> floatarray1D:
+           nfft: Optional[int] = None, zpf: Optional[float] = None) -> floatarray1D:
+    """
+
+    Parameters
+    ----------
+    sig
+    x
+    window : str, optional
+    remove_mean : bool, optional
+        Default is True
+    nfft : int, optional
+    zpf : int, optional
+
+    Returns
+    -------
+
+    """
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
-    sig_hat = rft1d(sig, x=x, window=window, norm="backward", remove_mean=remove_mean,
-                 zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+    sig_hat = rft1d(sig, x=x, window=window, remove_mean=remove_mean,
+                    nfft=nfft, zpf=zpf)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the only thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this frequency
@@ -279,19 +324,22 @@ def rpsd1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     # if the unit of z(t) is [V(s)], then the unit of $ESD(z)$ is [V^2/Hz^2(Hz)]
     esd = np.abs(sig_hat) ** 2 * window_factor1d(window, N=len(sig))
     # if N is even the last one should not be doubled
-    esd[1:len(esd)-(1-len(sig)%2)] *= 2  # x 2 because of rfft which truncates the spectrum
+    nfft = sanitize_nfft_1d(nfft, arr = sig)
+    zpf = sanitize_zpf_1d(zpf)
+    esd[1:len(esd)-(1-nfft*zpf%2)] *= 2  # x 2 because of rfft which truncates the spectrum
     # (except the 0 harmonic, and the last one if the length is even)
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is periodic, then PSD = ESD / duration
     # Thus if the unit of z(t) is [V(s)], then the unit of PSD(z)$ is [V^2/Hz(Hz)]
     return esd / span(x)
 
+@alias_argument('zpf', 'zero_pad_factor')
 def welch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
             welch_factor: float = 1.,
             window: str = default_window, remove_mean: bool = True,
-            nfft: Optional[int] = None, zero_pad_factor: Optional[float] = None):
+            nfft: Optional[int] = None, zpf: Optional[float] = None):
     """
-    Computes the PSD spectrum using Wlech's technique.
+    Computes the PSD spectrum using Welch's technique.
 
     welch_factor should be integer (e.g. power of 2, since sig is often a power of 2)
 
@@ -300,30 +348,35 @@ def welch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     sig
     x
     welch_factor
-    window
-    remove_mean
-    nfft
-    zero_pad_factor
+    window : str, optional
+    remove_mean : bool, optional
+        Default is True
+    nfft : int, optional
+    zpf : int, optional
 
     Returns
     -------
 
     """
-    fs = 1/step(x)
+    nfft = sanitize_nfft_1d(nfft, sig)
+    zpf = sanitize_zpf_1d(zpf)
     detrend: detrend_dtype = 'constant' if remove_mean else False
+
+    fs = 1/step(x)
     nperseg: int = int(nfft/welch_factor)
     f_welch, psd_welch =  signal.welch(sig, fs=fs, window=window,
-                                       nperseg=nperseg, nfft=nfft*zero_pad_factor,
+                                       nperseg=nperseg, nfft=nfft*zpf,
                                        return_onesided=False, scaling='density', detrend=detrend)
     f_welch, psd_welch = fft.fftshift(f_welch), fft.fftshift(psd_welch)
     return psd_welch
 
+@alias_argument('zpf', 'zero_pad_factor')
 def rwelch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
             welch_factor: float = 1.,
             window: str = default_window, remove_mean: bool = True,
-            nfft: Optional[int] = None, zero_pad_factor: Optional[float] = None):
+            nfft: Optional[int] = None, zpf: Optional[float] = None):
     """
-    Computes the PSD spectrum using Wlech's technique.
+    Computes the PSD spectrum using Welch's technique.
 
     welch_factor should be integer (e.g. power of 2, since sig is often a power of 2)
 
@@ -332,20 +385,24 @@ def rwelch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     sig
     x
     welch_factor
-    window
-    remove_mean
-    nfft
-    zero_pad_factor
+    window : str, optional
+    remove_mean : bool, optional
+        Default is True
+    nfft : int, optional
+    zpf : int, optional
 
     Returns
     -------
 
     """
-    fs = 1/step(x)
+    nfft = sanitize_nfft_1d(nfft, sig)
+    zpf = sanitize_zpf_1d(zpf)
     detrend: detrend_dtype = 'constant' if remove_mean else False
+
+    fs = 1/step(x)
     nperseg: int = int(nfft/welch_factor)
     f_welch, psd_welch =  signal.welch(sig, fs=fs, window=window,
-                                       nperseg=nperseg, nfft=nfft*zero_pad_factor,
+                                       nperseg=nperseg, nfft=nfft*zpf,
                                        return_onesided=True, scaling='density', detrend=detrend)
     f_welch, psd_welch = fft.fftshift(f_welch), fft.fftshift(psd_welch)
     return psd_welch
