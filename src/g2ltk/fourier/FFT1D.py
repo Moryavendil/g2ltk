@@ -415,8 +415,10 @@ def rwelch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     ----------
     sig
     x
-    welch_factor
+    welch_factor : float
+        The factor by which the resolution is improved by using Welch's method.
     window : str, optional
+        The window to use, for example 'hann'. The default is no window (boxcar).
     remove_mean : bool, optional
         Default is True
     nfft : int, optional

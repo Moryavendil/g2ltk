@@ -3,8 +3,7 @@ import numpy as np
 from findiff import Diff
 import math
 
-from . import set_verbose, log_error, log_warn, log_warning, log_info, log_subinfo, log_debug, log_trace, log_subtrace
-
+from g2ltk import customlog
 
 # QOL for manipulating arrays
 
@@ -46,9 +45,9 @@ def step(arr: Optional[np.ndarray]) -> float:
     maxspan = darr.max()-darr.min()
     mean = darr.mean()
     if maxspan / mean < 1e-3:
-        log_subinfo(f'The array is not exactly regularly spaced (a={maxspan} | r = {maxspan/mean:.6f})')
+        customlog.log_subinfo(f'The array is not exactly regularly spaced (a={maxspan} | r = {maxspan/mean:.6f})')
     else:
-        log_warning(f'The array is not regularly spaced (a={maxspan} | r = {maxspan/mean:.6f})')
+        customlog.log_warning(f'The array is not regularly spaced (a={maxspan} | r = {maxspan/mean:.6f})')
     return mean
 
 
