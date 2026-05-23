@@ -3,6 +3,7 @@ import numpy as np
 import math
 
 from g2ltk import customlog
+from g2ltk.peakfinder import argval
 
 ### ARRAYS QOL routines
 # These are the real deal, with the dimensions encoded.
@@ -87,70 +88,81 @@ def rdual(x: floatarray1D, zpf=None):
 @alias_argument('zpf', 'zero_pad_factor')
 def ft(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
        window: str = default_window, winstyle=None, remove_mean: bool = True,
-       zpf=None, shift=None):
-    if np.ndim(sig) == 2:
-        return ft2d(sig, x=x, y=y, window=window, winstyle=winstyle, remove_mean=remove_mean,
-                    zero_pad_factor=zpf, shift=shift)
-    if np.ndim(sig) == 1:
+       zpf=None, shift=None, axes = None):
+    if axes is None:
+        axes = tuple(range(sig.ndim))
+    if isinstance(axes, int):
+        axes = (axes,)
+    if len(axes) == 1:
         if y is not None:
             raise RuntimeError('y given but sig is 1-D?')
         if winstyle is not None:
             raise RuntimeError('winstyle given but sig is 1-D?')
         return ft1d(sig, x=x, window=window, remove_mean=remove_mean,
-                    zpf=zpf, shift=shift)
-    raise RuntimeError(f'?? Called ft but sig is {np.ndim(sig)}-dimensional')
+                    zpf=zpf, shift=shift, axis=axes[0])
+    elif len(axes) == 2:
+        return ft2d(sig, x=x, y=y, window=window, winstyle=winstyle, remove_mean=remove_mean,
+                    zero_pad_factor=zpf, shift=shift)
+    else:
+        raise NotImplementedError('FT 3D+ not implemented yet')
 
 
-def ift(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None, ydual: Optional[np.ndarray] = None):
-    if np.ndim(sig_hat) == 2:
-        return ift2d(sig_hat, xdual=xdual, ydual=ydual)
-    if np.ndim(sig_hat) == 1:
+def ift(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None, ydual: Optional[np.ndarray] = None,
+        axes = None):
+    if axes is None:
+        axes = tuple(range(sig_hat.ndim))
+    if isinstance(axes, int):
+        axes = (axes,)
+    if len(axes) == 1:
         if ydual is not None:
             raise RuntimeError('ydual given but sig is 1-D?')
-        return ift1d(sig_hat, xdual=xdual)
-    raise RuntimeError(f'?? Called ft but sig_hat is {np.ndim(sig_hat)}-dimensional')
-
-
-@alias_argument('zpf', 'zero_pad_factor')
-def rft(sig, x: Optional[np.ndarray] = None,
-        window: str = default_window, remove_mean: bool = True,
-        zpf=None, shift=None):
-    if np.ndim(sig) == 1:
-        return rft1d(sig, x=x, window=window, remove_mean=remove_mean,
-                     zpf=zpf, shift=shift)
-    raise RuntimeError(f'?? Called rft but sig is {np.ndim(sig)}-dimensional')
+        return ift1d(sig_hat, xdual=xdual, axis=axes[0])
+    elif len(axes) == 1:
+        return ift2d(sig_hat, xdual=xdual, ydual=ydual)
+    else:
+        raise NotImplementedError('iFT 3D+ not implemented yet')
 
 
 @alias_argument('zpf', 'zero_pad_factor')
 def psd(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
         window: str = default_window, winstyle=None, remove_mean: bool = True,
-        zpf=None, welch_factor=None):
-    if np.ndim(sig) == 2:
-        if welch_factor is not None:
-            raise NotImplementedError('welch 2d not implemented yet')
-        return psd2d(sig, x=x, y=y, window=window, winstyle=winstyle, remove_mean=remove_mean,
-                     zero_pad_factor=zpf)
-    if np.ndim(sig) == 1:
+        zpf=None, welch_factor=None, axes=None):
+    if axes is None:
+        axes = tuple(range(sig.ndim))
+    if isinstance(axes, int):
+        axes = (axes,)
+    if len(axes) == 1:
         if y is not None:
             raise RuntimeError('y given but sig is 1-D?')
         if winstyle is not None:
             raise RuntimeError('winstyle given but sig is 1-D?')
         if welch_factor is not None:
             return welch1d(sig, x=x, window=window, remove_mean=remove_mean,
-                           zpf=zpf, welch_factor=welch_factor)
+                           zpf=zpf, welch_factor=welch_factor, axis=axes[0])
         return psd1d(sig, x=x, window=window, remove_mean=remove_mean,
-                     zpf=zpf)
-    raise RuntimeError('y given but sig is 1-D?')
+                     zpf=zpf, axis=axes[0])
+    elif len(axes) == 2:
+        if welch_factor is not None:
+            raise NotImplementedError('welch 2D not implemented yet')
+        return psd2d(sig, x=x, y=y, window=window, winstyle=winstyle, remove_mean=remove_mean,
+                     zero_pad_factor=zpf) # todo add axes here
+    else:
+        raise NotImplementedError('PSD 3D+ not implemented yet')
+
+
+@alias_argument('zpf', 'zero_pad_factor')
+def rft(sig, x: Optional[np.ndarray] = None,
+        window: str = default_window, remove_mean: bool = True,
+        zpf=None, shift=None, axis: int = -1):
+    return rft1d(sig, x=x, window=window, remove_mean=remove_mean,
+                 zpf=zpf, shift=shift, axis=axis)
 
 @alias_argument('zpf', 'zero_pad_factor')
 def rpsd(sig, x: Optional[np.ndarray] = None,
         window: str = default_window, remove_mean: bool = True,
-        zpf=None, welch_factor=None):
-    if np.ndim(sig) == 1:
-        if welch_factor is not None:
-            # raise NotImplementedError('rwelch1d not implemented yet')
-            return rwelch1d(sig, x=x, window=window, remove_mean=remove_mean,
-                            zpf=zpf, welch_factor=welch_factor)
-        return rpsd1d(sig, x=x, window=window, remove_mean=remove_mean,
-                      zpf=zpf)
-    raise RuntimeError(f'?? Called rpsd but sig is {np.ndim(sig)}-dimensional')
+        zpf=None, welch_factor=None, axis: int = -1):
+    if welch_factor is not None:
+        return rwelch1d(sig, x=x, window=window, remove_mean=remove_mean,
+                        zpf=zpf, welch_factor=welch_factor, axis=axis)
+    return rpsd1d(sig, x=x, window=window, remove_mean=remove_mean,
+                  zpf=zpf, axis=axis)

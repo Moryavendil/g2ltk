@@ -48,6 +48,32 @@ def test_ft1d(N):
     assert np.isclose(fft.fftshift(sig_ft_scipy) * ft.step(t), sig_ft_g2l).all()
 
 @pytest.mark.parametrize("N", N_to_test)
+def test_ft1d_axis0(N):
+    t, sig = generate_sig1D(N)
+
+    axis = 0
+    shapes = [(N, 1), (N, 1, 1), (N, 1, 1, 1)]
+    for shape in shapes:
+        sig = sig.reshape(shape)
+        sig_ft_scipy = fft.fft(sig, axis=axis)
+        sig_ft_g2l = ft.ft1d(sig, x=t, remove_mean=False, axis=axis)
+
+        assert np.isclose(fft.fftshift(sig_ft_scipy) * ft.step(t), sig_ft_g2l).all()
+
+@pytest.mark.parametrize("N", N_to_test)
+def test_ft1d_axis1(N):
+    t, sig = generate_sig1D(N)
+
+    axis = 1
+    shapes = [(1, N), (1, N, 1), (1, N, 1, 1)]
+    for shape in shapes:
+        sig = sig.reshape(shape)
+        sig_ft_scipy = fft.fft(sig, axis=axis)
+        sig_ft_g2l = ft.ft1d(sig, x=t, remove_mean=False, axis=axis)
+
+        assert np.isclose(fft.fftshift(sig_ft_scipy) * ft.step(t), sig_ft_g2l).all()
+
+@pytest.mark.parametrize("N", N_to_test)
 def test_ift1d(N):
     t, sig = generate_sig1D(N)
     f = ft.dual1d(t)
