@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional
 import math
 
 from g2ltk.peakfinder import step
@@ -92,11 +92,16 @@ def set_left_ylabels(axs: list[list[plt.Axes]], label: str):
         axs[i][0].yaxis.set_label_position('left')
 
 
-def set_right_ylabels(axs: list[list[plt.Axes]], label: str):
+def set_right_ylabels(axs: list[list[plt.Axes]], label: Optional[str] = None):
     for i in range(len(axs)):
-        axs[i][-1].set_ylabel(label)
+        if label is not None: axs[i][-1].set_ylabel(label)
         axs[i][-1].yaxis.set_ticks_position('right')
         axs[i][-1].yaxis.set_label_position('right')
+
+def set_ylabel_right(ax: plt.Axes, label: Optional[str] = None):
+    if label is not None: ax.set_ylabel(label)
+    ax.yaxis.set_ticks_position('right')
+    ax.yaxis.set_label_position('right')
 
 
 def grids(axs: list[list[plt.Axes]], which='major', axis='both', **kwargs):
