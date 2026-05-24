@@ -162,6 +162,8 @@ def psd(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None, wel
         # wrong king of arguments
         if windows[0] != windows[1]:
             raise NotImplementedError(f'different windows given ({windows}) but not implemented yet')
+        if nffts[0] is not None or nffts[1] is not None:
+            raise NotImplementedError(f'nffts given ({windows}) but not implemented yet')
         return psd2d(sig, x=x, y=y, window=windows[-1], winstyle=winstyle, remove_mean=remove_mean,
                      zero_pad_factor=zpfs) # todo add axes here
     else:
