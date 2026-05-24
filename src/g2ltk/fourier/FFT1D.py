@@ -377,7 +377,13 @@ def welch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     fs = 1 / step(x)
     nperseg: int = int(nfft / welch_factor)
     noverlap: int = recommanded_welch_overlap(nperseg, window)
-    f_welch, psd_welch = signal.welch(sig, fs=fs, window=window,
+    if nperseg <= sig.shape[axis]:
+        sig_for_welch = sig
+    else:
+        pad_width = [(0, 0)] * sig.ndim
+        pad_width[axis] = (0, nperseg - sig.shape[axis])
+        sig_for_welch = np.pad(sig, pad_width=pad_width, mode='constant', constant_values=0)
+    f_welch, psd_welch = signal.welch(sig_for_welch, fs=fs, window=window,
                                       nperseg=nperseg, nfft=nfft * zpf, noverlap=noverlap,
                                       return_onesided=False, scaling='density', detrend=detrend,
                                       axis=axis)
@@ -421,7 +427,13 @@ def rwelch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     fs = 1 / step(x)
     nperseg: int = int(np.rint(nfft / welch_factor))
     noverlap: int = recommanded_welch_overlap(nperseg, window)
-    f_welch, psd_welch = signal.welch(sig, fs=fs, window=window,
+    if nperseg <= sig.shape[axis]:
+        sig_for_welch = sig
+    else:
+        pad_width = [(0, 0)] * sig.ndim
+        pad_width[axis] = (0, nperseg - sig.shape[axis])
+        sig_for_welch = np.pad(sig, pad_width=pad_width, mode='constant', constant_values=0)
+    f_welch, psd_welch = signal.welch(sig_for_welch, fs=fs, window=window,
                                       nperseg=nperseg, noverlap=noverlap, nfft=nfft * zpf,
                                       return_onesided=True, scaling='density', detrend=detrend, axis=axis)
     return psd_welch
