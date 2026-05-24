@@ -50,14 +50,14 @@ def log_amplitude_cbticks(maximum_amplitude: float, range_db: Union[int, float])
 
 from functools import wraps
 
-def alias_argument(new_name, old_name):
+def alias_argument(official_name, alias):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            if old_name in kwargs:
-                if new_name in kwargs:
-                    raise TypeError(f"Received both '{new_name}' and '{old_name}'")
-                kwargs[new_name] = kwargs.pop(old_name)
+            if alias in kwargs:
+                if official_name in kwargs:
+                    raise TypeError(f"Received both '{official_name}' and '{alias}'")
+                kwargs[official_name] = kwargs.pop(alias)
             return func(*args, **kwargs)
         return wrapper
     return decorator
@@ -113,29 +113,57 @@ def ift(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None, ydual: Opti
         raise NotImplementedError('iFT 3D+ not implemented yet')
 
 
-@alias_argument('zpf', 'zero_pad_factor')
-def psd(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
-        window: str = default_window, winstyle=None, remove_mean: bool = True,
-        zpf=None, welch_factor=None, axes: Optional[Union[int, tuple[int]]] = None):
+@alias_argument('windows', 'window')
+@alias_argument('nffts', 'nfft')
+@alias_argument('zpfs', 'zero_pad_factor')
+@alias_argument('zpfs', 'zpf')
+@alias_argument('axes', 'axis')
+def psd(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None, welch_factor: Optional[int] = None,
+        windows: str = default_window, winstyle: Optional[str] = None, remove_mean: bool = True,
+        nffts: Optional[Union[dtype_nfft, tuple[dtype_nfft]]] = None, zpfs: Optional[Union[int, tuple[int]]] = None, axes: Optional[Union[int, tuple[int]]] = None):
     if axes is None:
         axes = tuple(range(sig.ndim))
     if isinstance(axes, int):
         axes = (axes,)
+    if isinstance(windows, str):
+        windows = (windows,) * len(axes)
+    if zpfs is None or isinstance(zpfs, int):
+        zpfs = (zpfs,) * len(axes)
+    if nffts is None or isinstance(nffts, int) or nffts=='auto':
+        nffts = (nffts,) * len(axes)
     if len(axes) == 1:
+        # wrong arguments
         if y is not None:
-            raise RuntimeError('y given but sig is 1-D?')
+            raise RuntimeError('y given but 1-D transform required?')
         if winstyle is not None:
-            raise RuntimeError('winstyle given but sig is 1-D?')
+            raise RuntimeError(f'winstyle given {zpfs} but 1-D transform required?')
+        # wrong size of arguments
+        if len(windows) != 1:
+            raise RuntimeError(f'several windows given ({windows}) but 1-D transform required?')
+        if len(nffts) != 1:
+            raise RuntimeError(f'several nffts given ({nffts}) but 1-D transform required?')
+        if len(zpfs) != 1:
+            raise RuntimeError(f'several zpfs given ({zpfs}) but 1-D transform required?')
         if welch_factor is not None:
-            return welch1d(sig, x=x, window=window, remove_mean=remove_mean,
-                           zpf=zpf, welch_factor=welch_factor, axis=axes[0])
+            return welch1d(sig, x=x, window=windows[-1], remove_mean=remove_mean, welch_factor=welch_factor,
+                           nfft=nffts[-1], zpf=zpfs[-1], axis=axes[-1])
         return psd1d(sig, x=x, window=window, remove_mean=remove_mean,
-                     zpf=zpf, axis=axes[0])
+                     nfft=nffts[-1], zpf=zpfs[-1], axis=axes[-1])
     elif len(axes) == 2:
         if welch_factor is not None:
             raise NotImplementedError('welch 2D not implemented yet')
-        return psd2d(sig, x=x, y=y, window=window, winstyle=winstyle, remove_mean=remove_mean,
-                     zero_pad_factor=zpf) # todo add axes here
+        # wrong size of arguments
+        if len(windows) != 2:
+            raise RuntimeError(f'{len(windows)} windows given ({windows}) but 2-D transform required?')
+        if len(nffts) != 2:
+            raise RuntimeError(f'{len(nffts)} nffts given ({nffts}) but 2-D transform required?')
+        if len(zpfs) != 2:
+            raise RuntimeError(f'{len(zpfs)} zpfs given ({zpfs}) but 2-D transform required?')
+        # wrong king of arguments
+        if windows[0] != windows[1]:
+            raise NotImplementedError(f'different windows given ({windows}) but not implemented yet')
+        return psd2d(sig, x=x, y=y, window=windows[-1], winstyle=winstyle, remove_mean=remove_mean,
+                     zero_pad_factor=zpfs) # todo add axes here
     else:
         raise NotImplementedError('PSD 3D+ not implemented yet')
 
