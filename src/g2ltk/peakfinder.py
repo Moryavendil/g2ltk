@@ -102,15 +102,25 @@ def der(y: np.ndarray, x: Optional[Union[np.ndarray, float]] = None, order: int 
         axis: int = 0, periodic: bool = False):
     """
     Computes the order-th derivative of y(x).
-    This is essentially a wrapper for findiff, adapted for quick and dirty data treatment
-    WARNING CURRENTLY ONLY WORKS ON 1D
+    This is essentially a wrapper for findiff / np.gradient, adapted for quick and dirty data treatment
 
-    :param y:
-    :param grid:
-    :param order:
-    :param acc:
-    :param axis:
-    :return:
+    Parameters
+    ----------
+    y
+    x
+        Can be dx (grid spacing) or the grid directly.
+    order : int, optional
+        The order of the derivative. The default is 1 (simple derivative).
+    acc : int, optional
+        The required accuracy, in powers of dx. Must be a positive even integer. The default is 2 (second order accurate schemes).
+    axis
+        The axis over which to compute the derivative. The default is 0.
+    periodic : bool, optional
+         Whether the axis is to be treated as periodic. The default is False.
+
+    Returns
+    -------
+
     """
     if acc is None and not periodic and order == 1:
         return np.gradient(y, x, axis=axis)
