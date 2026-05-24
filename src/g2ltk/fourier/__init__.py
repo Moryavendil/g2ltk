@@ -45,8 +45,6 @@ def log_amplitude_cbticks(maximum_amplitude: float, range_db: Union[int, float])
     return cbticks_major, cbticklabels
 
 
-# TODO priority 1/5 replace remove_mean by detrend, for other types of detrending?
-
 ### FFT AND PSD COMPUTATIONS
 
 
@@ -64,31 +62,23 @@ def alias_argument(new_name, old_name):
         return wrapper
     return decorator
 
+from .FFTHelp import dtype_nfft
 
 from .FFT1D import *
 
 from .FFT2D import *
 
 
-# todo: replace zero_pad by nfft
-# todo accept 'auto' as nfft, which selects the nearest superior 5-smooth number
-
 @alias_argument('zpf', 'zero_pad_factor')
-def dual(x: floatarray1D, y: floatarray1D = None, zpf=None):
+def dual(x: floatarray1D, y: floatarray1D = None, zpf: int = None):
     if y is None:
         return dual1d(x, zpf=zpf)
     return dual2d(x, y=y, zero_pad_factor=zpf)
 
-
-@alias_argument('zpf', 'zero_pad_factor')
-def rdual(x: floatarray1D, zpf=None):
-    return rdual1d(x, zpf=zpf)
-
-
 @alias_argument('zpf', 'zero_pad_factor')
 def ft(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
        window: str = default_window, winstyle=None, remove_mean: bool = True,
-       zpf=None, shift=None, axes = None):
+       zpf=None, shift=None, axes: Optional[Union[int, tuple[int]]] = None):
     if axes is None:
         axes = tuple(range(sig.ndim))
     if isinstance(axes, int):
@@ -108,7 +98,7 @@ def ft(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
 
 
 def ift(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None, ydual: Optional[np.ndarray] = None,
-        axes = None):
+        axes: Optional[Union[int, tuple[int]]] = None):
     if axes is None:
         axes = tuple(range(sig_hat.ndim))
     if isinstance(axes, int):
@@ -126,7 +116,7 @@ def ift(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None, ydual: Opti
 @alias_argument('zpf', 'zero_pad_factor')
 def psd(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
         window: str = default_window, winstyle=None, remove_mean: bool = True,
-        zpf=None, welch_factor=None, axes=None):
+        zpf=None, welch_factor=None, axes: Optional[Union[int, tuple[int]]] = None):
     if axes is None:
         axes = tuple(range(sig.ndim))
     if isinstance(axes, int):
@@ -149,20 +139,25 @@ def psd(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
     else:
         raise NotImplementedError('PSD 3D+ not implemented yet')
 
+### R - transforms
+
+@alias_argument('zpf', 'zero_pad_factor')
+def rdual(x: floatarray1D, nfft: dtype_nfft = None, zpf: int = None):
+    return rdual1d(x, nfft=nfft, zpf=zpf)
 
 @alias_argument('zpf', 'zero_pad_factor')
 def rft(sig, x: Optional[np.ndarray] = None,
         window: str = default_window, remove_mean: bool = True,
-        zpf=None, shift=None, axis: int = -1):
+        nfft: dtype_nfft = None, zpf=None, shift=None, axis: int = -1):
     return rft1d(sig, x=x, window=window, remove_mean=remove_mean,
-                 zpf=zpf, shift=shift, axis=axis)
+                 nfft=nfft, zpf=zpf, shift=shift, axis=axis)
 
 @alias_argument('zpf', 'zero_pad_factor')
-def rpsd(sig, x: Optional[np.ndarray] = None,
-        window: str = default_window, remove_mean: bool = True,
-        zpf=None, welch_factor=None, axis: int = -1):
+def rpsd(sig, x: Optional[np.ndarray] = None, welch_factor=None,
+         window: str = default_window, remove_mean: bool = True,
+         nfft: dtype_nfft = None, zpf=None, axis: int = -1):
     if welch_factor is not None:
         return rwelch1d(sig, x=x, window=window, remove_mean=remove_mean,
-                        zpf=zpf, welch_factor=welch_factor, axis=axis)
+                        nfft=nfft, zpf=zpf, welch_factor=welch_factor, axis=axis)
     return rpsd1d(sig, x=x, window=window, remove_mean=remove_mean,
-                  zpf=zpf, axis=axis)
+                  nfft=nfft, zpf=zpf, axis=axis)

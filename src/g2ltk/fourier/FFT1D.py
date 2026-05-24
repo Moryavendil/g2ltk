@@ -1,4 +1,4 @@
-from typing import Optional, List, Literal
+from typing import Optional, Literal, Union
 import numpy as np
 from scipy import signal
 from scipy.signal.windows import get_window  # FFT windowing
@@ -7,72 +7,20 @@ from scipy import fft
 from g2ltk import customlog
 from g2ltk.peakfinder import step, span, interp_roots, find_global_max
 from . import floatarray1D, complexarray1D, attenuate_power, alias_argument
+from .FFTHelp import sanitize_nfft_1d, dtype_nfft, sanitize_zpf_1d, recommanded_welch_overlap
 
 default_window: str = 'boxcar'
 
 detrend_dtype = Literal['constant', False]
 
-def sanitize_nfft(nfft, N):
-    if nfft is None:
-        return N
-    try:
-        n_fft = int(nfft)
-        return n_fft
-    except:
-        customlog.log_warning(f'{"sanitize_nfft"}: What is this nfft "{nfft}"? I made it None')
-        return N
-
-def sanitize_nfft_1d(nfft, arr=None):
-    """
-    Checks that nfft is suitable (an integer) or resets to default (array length).
-
-    Parameters
-    ----------
-    nfft
-    arr
-
-    Returns
-    -------
-
-    """
-    default_nfft = len(arr)
-    if nfft is None:
-        return default_nfft
-    try:
-        n_fft = int(nfft)
-        return n_fft
-    except:
-        customlog.log_warning(f'{"sanitize_nfft_1d"}: What is this nfft "{nfft}" ? I made it None')
-        return default_nfft
 
 
-def sanitize_zpf_1d(zpf):
-    """
-    Checks that zpf is suitable (an integer) or resets to default (1).
-
-    Parameters
-    ----------
-    zpf
-
-    Returns
-    -------
-
-    """
-    default_zpf = 1
-    if zpf is None:
-        return default_zpf
-    try:
-        zpf = int(zpf)
-        return zpf
-    except:
-        customlog.log_warning(f'{"sanitize_zpf_1d"}: What is this nfft "{zpf}" ? I made it None')
-        return default_zpf
 
 
 # Dual: changing from real space to frequency space
 @alias_argument('zpf', 'zero_pad_factor')
 def dual1d(arr: floatarray1D,
-           nfft: Optional[int] = None, zpf: Optional[int] = None) -> floatarray1D:
+           nfft: dtype_nfft = None, zpf: Optional[int] = None) -> floatarray1D:
     """
     Returns the dual, i.e. change from real space to frequency space (or vice versa).
 
@@ -94,7 +42,7 @@ def dual1d(arr: floatarray1D,
     fname = 'dual1d'
     customlog.log_trace(f'{fname}: Called with {arr.shape} array, nfft = {nfft}, zpf = {zpf}')
 
-    nfft = sanitize_nfft(nfft, len(arr))
+    nfft = sanitize_nfft_1d(nfft, len(arr))
     zpf = sanitize_zpf_1d(zpf)
     nfft_final = nfft * zpf
 
@@ -105,7 +53,7 @@ def dual1d(arr: floatarray1D,
 
 @alias_argument('zpf', 'zero_pad_factor')
 def rdual1d(arr: floatarray1D,
-            nfft: Optional[int] = None, zpf: Optional[int] = None) -> floatarray1D:
+            nfft: dtype_nfft = None, zpf: Optional[int] = None) -> floatarray1D:
     """Returns the dual, i.e. the frequencies, in a numpy.fft.rfft-compatible style.
 
     The unit is the inverse, e.g. time (s)-> frequency (Hz).
@@ -126,7 +74,7 @@ def rdual1d(arr: floatarray1D,
     fname = 'rdual1d'
     customlog.log_trace(f'{fname}: Called with {arr.shape} array, nfft = {nfft}, zpf = {zpf}')
 
-    nfft = sanitize_nfft(nfft, len(arr))
+    nfft = sanitize_nfft_1d(nfft, len(arr))
     zpf = sanitize_zpf_1d(zpf)
 
     nfft_final = nfft * zpf
@@ -139,7 +87,7 @@ def rdual1d(arr: floatarray1D,
 @alias_argument('zpf', 'zero_pad_factor')
 def prepare_signal_for_ft1d(sig: complexarray1D,
                             window: str = default_window, remove_mean: bool = True,
-                            nfft: Optional[int] = None, zpf: Optional[int] = None,
+                            nfft: dtype_nfft = None, zpf: Optional[int] = None,
                             shift: Optional[int] = None,
                             axis=-1) -> complexarray1D:
     """
@@ -177,7 +125,7 @@ def prepare_signal_for_ft1d(sig: complexarray1D,
 
 
     # padding
-    nfft = sanitize_nfft(nfft, N)
+    nfft = sanitize_nfft_1d(nfft, N)
     zpf = sanitize_zpf_1d(zpf)
     nfft_final = nfft * zpf
 
@@ -213,7 +161,7 @@ def prepare_signal_for_ft1d(sig: complexarray1D,
 @alias_argument('zpf', 'zero_pad_factor')
 def rft1d(sig: floatarray1D, x: Optional[floatarray1D] = None,
           window: str = default_window, remove_mean: bool = True,
-          nfft: Optional[int] = None, zpf: Optional[int] = None,
+          nfft: dtype_nfft = None, zpf: Optional[int] = None,
           shift: Optional[int] = None, axis: int=-1) -> complexarray1D:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
@@ -249,7 +197,7 @@ def rft1d(sig: floatarray1D, x: Optional[floatarray1D] = None,
 @alias_argument('zpf', 'zero_pad_factor')
 def ft1d(sig: complexarray1D, x: Optional[floatarray1D] = None,
          window: str = default_window, remove_mean: bool = True,
-         nfft: Optional[int] = None, zpf: Optional[int] = None,
+         nfft: dtype_nfft = None, zpf: Optional[int] = None,
          shift: Optional[int] = None, axis: int = -1) -> complexarray1D:
     """ Returns the 1-D Fourier transform of the input array using the given windowing.
 
@@ -317,7 +265,7 @@ def window_factor1d(window: str, nwin: int = 16384):
 @alias_argument('zpf', 'zero_pad_factor')
 def psd1d(sig: np.ndarray, x: Optional[np.ndarray] = None,
           window: str = default_window, remove_mean: bool = True,
-          nfft: Optional[int] = None, zpf: Optional[float] = None,
+          nfft: dtype_nfft = None, zpf: Optional[float] = None,
           axis: int = -1) -> floatarray1D:
     """
 
@@ -355,7 +303,7 @@ def psd1d(sig: np.ndarray, x: Optional[np.ndarray] = None,
 @alias_argument('zpf', 'zero_pad_factor')
 def rpsd1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
            window: str = default_window, remove_mean: bool = True,
-           nfft: Optional[int] = None, zpf: Optional[float] = None,
+           nfft: dtype_nfft = None, zpf: Optional[float] = None,
            axis: int = -1) -> floatarray1D:
     """
 
@@ -385,7 +333,7 @@ def rpsd1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     # if the unit of z(t) is [V(s)], then the unit of $ESD(z)$ is [V^2/Hz^2(Hz)]
     esd = np.abs(sig_hat) ** 2 * window_factor1d(window, nwin=sig.shape[axis])
     # if N is even the last one should not be doubled
-    nfft = sanitize_nfft(nfft, sig.shape[axis])
+    nfft = sanitize_nfft_1d(nfft, sig.shape[axis])
     zpf = sanitize_zpf_1d(zpf)
     esd[1:len(esd) - (1 - nfft * zpf % 2)] *= 2  # x 2 because of rfft which truncates the spectrum
     # (except the 0 harmonic, and the last one if the length is even)
@@ -397,9 +345,9 @@ def rpsd1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
 
 @alias_argument('zpf', 'zero_pad_factor')
 def welch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
-            welch_factor: float = 1.,
+            welch_factor: Union[float, int] = 1,
             window: str = default_window, remove_mean: bool = True,
-            nfft: Optional[int] = None, zpf: Optional[float] = None,
+            nfft: dtype_nfft = None, zpf: Optional[float] = None,
             axis: int = -1):
     """
     Computes the PSD spectrum using Welch's technique.
@@ -422,25 +370,26 @@ def welch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     -------
 
     """
-    nfft = sanitize_nfft_1d(nfft, sig)
+    nfft = sanitize_nfft_1d(nfft, sig.shape[axis], aligned=welch_factor if isinstance(welch_factor, int) else None)
     zpf = sanitize_zpf_1d(zpf)
     detrend: detrend_dtype = 'constant' if remove_mean else False
 
     fs = 1 / step(x)
     nperseg: int = int(nfft / welch_factor)
+    noverlap: int = recommanded_welch_overlap(nperseg, window)
     f_welch, psd_welch = signal.welch(sig, fs=fs, window=window,
-                                      nperseg=nperseg, nfft=nfft * zpf,
+                                      nperseg=nperseg, nfft=nfft * zpf, noverlap=noverlap,
                                       return_onesided=False, scaling='density', detrend=detrend,
                                       axis=axis)
-    f_welch, psd_welch = fft.fftshift(f_welch), fft.fftshift(psd_welch)
+    f_welch, psd_welch = fft.fftshift(f_welch), fft.fftshift(psd_welch, axes=axis)
     return psd_welch
 
 
 @alias_argument('zpf', 'zero_pad_factor')
 def rwelch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
              welch_factor: float = 1.,
-             window: str = default_window, remove_mean: bool = True,
-             nfft: Optional[int] = None, zpf: Optional[float] = None,
+             window: str = 'hann', remove_mean: bool = True,
+             nfft: dtype_nfft = None, zpf: Optional[float] = None,
              axis: int = -1):
     """
     Computes the PSD spectrum using Welch's technique.
@@ -465,14 +414,15 @@ def rwelch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
     -------
 
     """
-    nfft = sanitize_nfft_1d(nfft, sig)
+    nfft = sanitize_nfft_1d(nfft, sig.shape[axis])
     zpf = sanitize_zpf_1d(zpf)
     detrend: detrend_dtype = 'constant' if remove_mean else False
 
     fs = 1 / step(x)
-    nperseg: int = int(nfft / welch_factor)
+    nperseg: int = int(np.rint(nfft / welch_factor))
+    noverlap: int = recommanded_welch_overlap(nperseg, window)
     f_welch, psd_welch = signal.welch(sig, fs=fs, window=window,
-                                      nperseg=nperseg, nfft=nfft * zpf,
+                                      nperseg=nperseg, noverlap=noverlap, nfft=nfft * zpf,
                                       return_onesided=True, scaling='density', detrend=detrend, axis=axis)
     return psd_welch
 
@@ -564,7 +514,7 @@ def peak_contour1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int] =
 
 
 def peak_vicinity1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int] = 40, x: Optional[floatarray1D] = None,
-                    peak_contour: Optional[List] = None):
+                    peak_contour: Optional[list] = None):
     if x is None: x = np.arange(sig_psd.shape[0])
 
     if peak_contour is None:
@@ -584,7 +534,7 @@ def peak_vicinity1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int] 
 def power_near_peak1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int] = 40,
                       x: Optional[floatarray1D] = None,
                       peak_vicinity: Optional[np.ndarray] = None,
-                      peak_contour: Optional[List] = None):
+                      peak_contour: Optional[list] = None):
     """Integrates the PSD around a given peak.
 
     Choose your window with care
