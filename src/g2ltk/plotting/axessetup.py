@@ -27,11 +27,44 @@ def correct_extent(arr_x: np.ndarray, arr_y: np.ndarray, origin='upper') -> Tupl
     elif origin == 'lower':
         return xlim[0], xlim[1], ylim[0], ylim[1]
 
+
 def set_yaxis_rad(ax: plt.Axes):
-    ax.set_yticks([-math.pi, -math.pi/2, 0, math.pi/2, math.pi], minor=False)
-    ax.set_yticklabels([r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'], minor=False)
-    ax.set_yticks([-3*math.pi/4, -math.pi/4, 0, math.pi/4, 3*math.pi/4], minor=True)
-    ax.set_ylim(-math.pi, math.pi)
+    ymin, ymax = ax.get_ylim()
+    major_spacing = np.pi/2
+    major_label = r'\pi/2'
+    if ymax - ymin > 2*np.pi*1.1:
+        major_spacing = np.pi
+        major_label = r'\pi'
+    elif ymax - ymin > 4*np.pi*1.1:
+        major_spacing = 2*np.pi
+        major_label = r'2\,\pi'
+    elif ymax - ymin > 8*np.pi*1.1:
+        major_spacing = 4*np.pi
+        major_label = r'4\,\pi'
+    minor_spacing = major_spacing/2
+    n_major = np.arange(math.floor(ymin/major_spacing)-1, math.ceil(ymax/major_spacing)+2)
+    n_minor = np.arange(math.floor(ymin/minor_spacing)-1, math.ceil(ymax/minor_spacing)+2)
+    yticks_major = n_major * major_spacing
+    def tickformat(n):
+        if n == 0:
+            return r'$0$'
+        elif n == 1:
+            return rf'${major_label}$'
+        elif n == -1:
+            return rf'$-{major_label}$'
+        elif n % 2 == 0 and major_label == r'\pi/2':
+            return rf'${n//2}\,\pi$'
+        elif major_label == r'2\,\pi':
+            return rf'${n*2}\,\pi$'
+        elif major_label == r'4\,\pi':
+            return rf'${n*4}\,\pi$'
+        return rf'${n}\,{major_label}$'
+    yticklabels = [tickformat(n) for n in n_major]
+    yticks_minor = n_minor * minor_spacing
+    ax.set_yticks(yticks_minor, minor=True)
+    ax.set_yticks(yticks_major, minor=False)
+    ax.set_yticklabels(yticklabels, minor=False)
+    ax.set_ylim(ymin, ymax)
 
 def set_yaxis_log(ax: plt.Axes, maximum_amplitude:float, range_db:Union[int, float], text:bool=True,
                   step_minor=None):
@@ -65,6 +98,11 @@ def set_yaxis_log(ax: plt.Axes, maximum_amplitude:float, range_db:Union[int, flo
     ax.set_yticklabels(cbticklabels if text else [], minor=False)
     ax.set_yticks(cbticks_minor, minor=True)
     ax.set_yticklabels([], minor=True)
+
+import matplotlib.ticker as ticker
+def remove_ticklabels_trailing_zeros(ax):
+    for axis in [ax.xaxis, ax.yaxis]:
+        axis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{x:g}'))
 
 def set_bottom_xlabels(axs: list[list[plt.Axes]], label: str):
     for i in range(len(axs[-1])):

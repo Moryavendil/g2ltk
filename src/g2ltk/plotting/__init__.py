@@ -11,7 +11,28 @@ in_per_pc = 0.16605
 from .styling import configure_mpl, set_figw, latex_preamble, figsize
 
 def activate_saveplot(activate=True, font_size=None, style=None):
-    # use LaTeX
+    """
+    Activates LaTeX use with specified font size and style
+
+    Available styles:
+    * aps
+    * jfm
+    * presentation
+
+    Special:
+    * thesis
+    * thezprez
+
+    Parameters
+    ----------
+    activate
+    font_size
+    style
+
+    Returns
+    -------
+
+    """
     plt.rcParams['text.usetex'] = activate
     if activate:
         plt.rcParams['pgf.texsystem'] = 'pdflatex'
