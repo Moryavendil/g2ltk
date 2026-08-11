@@ -225,7 +225,12 @@ def get_items(parameters: dict, total_match: bool = False) -> List[str]:
 
     index = get_index()
     items = []
-    customlog.log_subtrace(f'get_items: searching index ({len(index)} entries) for {parameters}')
+
+    dtype = parameters.get('datatype', 'data')
+    acq = parameters.get('acquisition', '???')
+    ds = parameters.get('dataset', '???')
+    customlog.log_trace(f'get_items: searching index ({len(index)} entries) for "{dtype}" of {acq} ({ds})')
+    customlog.log_subtrace(f'get_items: searching for {parameters}')
 
     query_keys = [k for k in parameters.keys() if k not in IGNORED_KEYS]
 
@@ -261,7 +266,7 @@ def get_items(parameters: dict, total_match: bool = False) -> List[str]:
                 )
 
         if all(matches):
-            customlog.log_subtrace(f'get_items: match → "{candidate_file_name}"')
+            customlog.log_trace(f'get_items: match → "{candidate_file_name}"')
             items.append(candidate_file_name)
 
     customlog.log_trace(
@@ -344,7 +349,7 @@ def fetch_saved_data(parameters: dict) -> Any:
     dtype = parameters.get('datatype', 'data')
     acq = parameters.get('acquisition', '???')
     ds = parameters.get('dataset', '???')
-    customlog.log_debug(f'fetch_saved_data: fetching "{dtype}" for {acq} ({ds})')
+    customlog.log_debug(f'fetch_saved_data: fetching "{dtype}" of {acq} ({ds})')
 
     items = get_items(parameters, total_match=False)
     for item in items:
@@ -395,6 +400,11 @@ def erase_items(parameters: dict, total_match: bool = False) -> None:
 
     set_index(index)
 
+
+def erase_datatype(datatype: Optional[str] = None):
+    if datatype is None: datatype = 'data'
+    generic_parameters = {'datatype': datatype}
+    erase_items(generic_parameters, total_match=False)
 
 def erase_all() -> None:
     """
@@ -658,7 +668,7 @@ def fetch_or_generate_data_from_parameters(datatype: str, parameters: dict,
 
         cached = fetch_saved_data(parameters)
         if cached is not None:
-            customlog.log_debug('fetch_or_generate_data_from_parameters: cache hit — returning cached data')
+            customlog.log_subinfo('fetch_or_generate_data_from_parameters: cache hit — returning cached data')
             return cached
 
         customlog.log_debug('fetch_or_generate_data_from_parameters: cache miss — generating data')

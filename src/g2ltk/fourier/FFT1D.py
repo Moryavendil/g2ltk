@@ -183,7 +183,10 @@ def rft1d(sig: floatarray1D, x: Optional[floatarray1D] = None,
     -------
 
     """
-    customlog.log_trace(f'rft2d: Computing 1-D FFT of array of shape {sig.shape}')
+    if x is None:
+        customlog.log_warning('rft1d: No x given?!')
+
+    customlog.log_trace(f'rft1d: Computing 1-D FFT of array of shape {sig.shape}')
 
     sig_prepared = prepare_signal_for_ft1d(sig, window=window, remove_mean=remove_mean,
                                            nfft=nfft, zpf=zpf,
@@ -219,7 +222,10 @@ def ft1d(sig: complexarray1D, x: Optional[floatarray1D] = None,
     -------
 
     """
-    customlog.log_trace(f'rft2d: Computing 1-D FFT of array of shape {sig.shape}')
+    if x is None:
+        customlog.log_warning('ft1d: No x given?!')
+
+    customlog.log_trace(f'ft1d: Computing 1-D FFT of array of shape {sig.shape}')
 
     sig_prepared = prepare_signal_for_ft1d(sig, window=window, remove_mean=remove_mean,
                                            nfft=nfft, zpf=zpf,
