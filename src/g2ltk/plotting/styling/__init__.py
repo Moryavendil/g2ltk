@@ -63,6 +63,9 @@ styledict_aps = {'name': 'aps', 'textfontsize': 10, 'fontsize': 9, 'fontsize_ins
 
 styledicts = {'jfm': styledict_jfm, 'aps': styledict_aps,
               'presentation': styledict_presentation,
+              'prez': styledict_presentation,
+              'ppt': styledict_presentation,
+              'pptx': styledict_presentation,
               'thesis': styledict_thesis, 'thezprez': styledict_thezprez,
               'default': styledict_default}
 

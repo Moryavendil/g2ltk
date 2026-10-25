@@ -17,7 +17,7 @@ def activate_saveplot(activate=True, font_size=None, style=None):
     Available styles:
     * aps
     * jfm
-    * presentation
+    * presentation / prez / ppt /pptx
 
     Special:
     * thesis
