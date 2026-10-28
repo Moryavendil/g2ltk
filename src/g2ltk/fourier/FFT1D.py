@@ -140,7 +140,7 @@ def prepare_signal_for_ft1d(sig: complexarray1D,
     #     sig_padded = np.pad(sig_windowed, pad_width=pad_width, mode='constant', constant_values=0)
 
     pad_width = [(0, 0)] * sig_windowed.ndim
-    if nfft_final < len(sig_windowed):
+    if nfft_final < sig_windowed.shape[axis]:
         slices = [slice(None)] * sig_windowed.ndim
         slices[axis] = slice(0, nfft_final)
         sig_padded = sig_windowed[tuple(slices)]
