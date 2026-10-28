@@ -1,13 +1,13 @@
-from typing import Optional, Any, Tuple, Dict, List, Union
+from typing import Optional, Any, Tuple, Dict, List, Union, Literal
 import numpy as np
-import math
 from scipy.signal.windows import get_window  # FFT windowing
 from skimage import filters  # filters.window for 2D FFT windowing
 from scipy import fft
 
 from g2ltk import customlog
 from g2ltk.peakfinder import step, span
-from . import floatarray1D, floatarray2D, complexarray1D, complexarray2D, attenuate_power
+from . import floatarray1D, floatarray2D, complexarray2D, attenuate_power, alias_argument
+from .FFTHelp import sanitize_nfft_2d, sanitize_zpf_2d, dtype_nfft_2d, dtype_zpf_2d, dtype_shift_2d, split_2d_argument
 from .FFT1D import dual1d, rdual1d
 
 default_window = 'boxcar'
@@ -17,170 +17,165 @@ default_window = 'boxcar'
 # todo or keep it idc but make it generlizable
 # todo like axis n, n-1, 3,2, 1, 0  = ?, ?, ..., ?, z y x
 
+### Arguments handling
+# In 2D, nfft, zpf and shift can be given either as a single value (used for both axes)
+# or as a pair (value_axis0, value_axis1).
+# The arrays are shaped (len(y), len(x)): axis 0 corresponds to y, axis 1 corresponds to x.
+
+
 ### Dual: changing from real space to frequency space
+@alias_argument('zpf', 'zero_pad_factor')
 def dual2d(x: floatarray1D, y: floatarray1D,
-           zero_pad: Optional[Tuple[int, int]] = None,
-           zero_pad_factor: Optional[Union[int, Tuple[int, int]]] = None) -> Tuple[floatarray1D, floatarray1D]:
-    customlog.log_trace(f'dual2d: Called with {x.shape}x{y.shape} arrays, zp = {zero_pad}, zpf = {zero_pad_factor}')
-    zero_pad_x, zero_pad_y = None, None
-    if zero_pad is not None:
-        try:
-            int(zero_pad[0])
-            int(zero_pad[1])
-            zero_pad_y, zero_pad_x = zero_pad
-        except:
-            customlog.log_warning(f'What is this zero-padding "{zero_pad}" ? I made it None')
-    zero_pad_factor_x, zero_pad_factor_y = None, None
-    if zero_pad_factor is not None:
-        try:
-            float(zero_pad_factor[0])
-            float(zero_pad_factor[1])
-            customlog.log_trace('dual2d: zero_pad_factor seems to be a Tuple')
-            zero_pad_factor_y, zero_pad_factor_x = zero_pad_factor
-        except:
-            customlog.log_trace('dual2d: zero_pad_factor seems to NOT be a Tuple')
-            try:
-                float(zero_pad_factor)
-                customlog.log_trace('dual2d: zero_pad_factor seems to be a number')
-                zero_pad_factor_y, zero_pad_factor_x = zero_pad_factor, zero_pad_factor
-            except:
-                customlog.log_warning(f'dual2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
-    return (dual1d(x, zero_pad_factor=zero_pad_factor_x),
-            dual1d(y, zero_pad_factor=zero_pad_factor_y))
+           nfft: dtype_nfft_2d = None, zpf: dtype_zpf_2d = None) -> Tuple[floatarray1D, floatarray1D]:
+    """
+    Returns the duals of x and y, i.e. change from real space to frequency space (or vice versa).
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Coordinates along axis 1 of the 2D array
+    y : np.ndarray
+        Coordinates along axis 0 of the 2D array
+    nfft : int, 'auto' or (axis0, axis1), optional
+        The size of the nfft
+    zpf : int or (int, int), optional
+        The zero padding factor. An alias is ```zero_pad_factor```
+
+    Returns
+    -------
+    (x_dual, y_dual)
+    """
+    fname = 'dual2d'
+    customlog.log_trace(f'{fname}: Called with {x.shape}x{y.shape} arrays, nfft = {nfft}, zpf = {zpf}')
+
+    nfft_y, nfft_x = split_2d_argument(nfft, fname)
+    zpf_y, zpf_x = split_2d_argument(zpf, fname)
+
+    return (dual1d(x, nfft=nfft_x, zpf=zpf_x),
+            dual1d(y, nfft=nfft_y, zpf=zpf_y))
 
 
+@alias_argument('zpf', 'zero_pad_factor')
 def rdual2d(x: floatarray1D, y: floatarray1D,
-            zero_pad: Optional[Tuple[int, int]] = None,
-            zero_pad_factor: Optional[Union[int, Tuple[int, int]]] = None) -> Tuple[floatarray1D, floatarray1D]:
-    customlog.log_trace(f'rdual2d: Called with {x.shape}x{y.shape} arrays, zp = {zero_pad}, zpf = {zero_pad_factor}')
-    zero_pad_x, zero_pad_y = None, None
-    if zero_pad is not None:
-        try:
-            int(zero_pad[0])
-            int(zero_pad[1])
-            zero_pad_y, zero_pad_x = zero_pad
-        except:
-            customlog.log_warning(f'dual2d: What is this zero-padding "{zero_pad}" ? I made it None')
-    zero_pad_factor_x, zero_pad_factor_y = None, None
-    if zero_pad_factor is not None:
-        try:
-            float(zero_pad_factor[0])
-            float(zero_pad_factor[1])
-            zero_pad_factor_y, zero_pad_factor_x = zero_pad_factor
-        except:
-            try:
-                float(zero_pad_factor)
-                zero_pad_factor_y, zero_pad_factor_x = zero_pad_factor, zero_pad_factor
-            except:
-                customlog.log_warning(f'dual2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
-    return (rdual1d(x, zero_pad_factor=zero_pad_factor_x),
-            dual1d(y, zero_pad_factor=zero_pad_factor_y))
+            nfft: dtype_nfft_2d = None, zpf: dtype_zpf_2d = None) -> Tuple[floatarray1D, floatarray1D]:
+    """
+    Returns the duals of x and y, in a scipy.fft.rfft2-compatible style (x is truncated, y is not).
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Coordinates along axis 1 of the 2D array
+    y : np.ndarray
+        Coordinates along axis 0 of the 2D array
+    nfft : int, 'auto' or (axis0, axis1), optional
+        The size of the nfft
+    zpf : int or (int, int), optional
+        The zero padding factor. An alias is ```zero_pad_factor```
+
+    Returns
+    -------
+    (x_dual, y_dual)
+    """
+    fname = 'rdual2d'
+    customlog.log_trace(f'{fname}: Called with {x.shape}x{y.shape} arrays, nfft = {nfft}, zpf = {zpf}')
+
+    nfft_y, nfft_x = split_2d_argument(nfft, fname)
+    zpf_y, zpf_x = split_2d_argument(zpf, fname)
+
+    return (rdual1d(x, nfft=nfft_x, zpf=zpf_x),
+            dual1d(y, nfft=nfft_y, zpf=zpf_y))
+
 
 ### FT: computing the Fourier Transform
 
+@alias_argument('zpf', 'zero_pad_factor')
 def prepare_signal_for_ft2d(arr: complexarray2D,
-                            window: str = default_window, winstyle=None, remove_mean: bool = True,
-                            zero_pad: Optional[Tuple[int, int]] = None,
-                            zero_pad_factor: Optional[Union[int, Tuple[int, int]]] = None,
-                            shift: Optional[Tuple[int, int]] = None) -> complexarray2D:
+                            window: str = default_window, winstyle: Optional[str] = None, remove_mean: bool = True,
+                            nfft: dtype_nfft_2d = None, zpf: dtype_zpf_2d = None,
+                            shift: dtype_shift_2d = None) -> complexarray2D:
     """
-    Prepares
+    Applies mean removal, windowing, padding and phase shift.
 
     Parameters
     ----------
     arr
-    window
+    window : str, optional
     winstyle : str, optional
         Can be 'outer' (default) or 'circular'
-    zero_pad
-    zero_pad_factor
-        Use powers of 2
+    remove_mean : bool, optional
+        Default is True
+    nfft : int, 'auto' or (axis0, axis1), optional
+    zpf : int or (int, int), optional
+    shift : int or (int, int), optional
 
     Returns
     -------
 
     """
-    customlog.log_trace(f'ft2d: Preparing array of shape {arr.shape} to 2-D FFT')
-    Nt, Nx = arr.shape
+    fname = 'prepare_signal_for_ft2d'
+    customlog.log_trace(f'{fname}: Called with {arr.shape} array, nfft = {nfft}, zpf = {zpf}')
+
+    N0, N1 = arr.shape
 
     # Removing mean
-    z_nozero = arr - np.mean(arr) * remove_mean
+    customlog.log_trace(f'{fname}: Mean removal: {remove_mean}')
+    arr_nozero = arr - np.mean(arr) * remove_mean
 
+    # windowing
     if winstyle is None:
         winstyle = 'outer'
     winstyle = str(winstyle)
-    customlog.log_subtrace(f'ft2d: Using windowing | window={window} | style={winstyle}')
+    customlog.log_subtrace(f'{fname}: Using windowing | window={window} | style={winstyle}')
     if winstyle == 'outer':
-        z_win = z_nozero * np.expand_dims(get_window(window, Nt), axis=1) * np.expand_dims(get_window(window, Nx), axis=0)
+        arr_windowed = arr_nozero * np.expand_dims(get_window(window, N0), axis=1) \
+                       * np.expand_dims(get_window(window, N1), axis=0)
     elif winstyle == 'circular':
-        z_win = z_nozero * filters.window(window, (Nt, Nx), warp_kwargs={'order': 3})
+        arr_windowed = arr_nozero * filters.window(window, (N0, N1), warp_kwargs={'order': 3})
     else:
-        customlog.log_warning(f'Unrecognized 2d-windowing style: {winstyle}. Using no windowing at all.')
-        z_win = z_nozero
+        customlog.log_warning(f'{fname}: Unrecognized 2d-windowing style: {winstyle}. Using no windowing at all.')
+        arr_windowed = arr_nozero
 
-    pad_width = None
-    if zero_pad_factor is not None:
-        customlog.log_subtrace(f'ft2d: | zero_pad_factor={zero_pad_factor}')
-        try:
-            pad_t = np.rint(Nt * (zero_pad_factor[0] - 1)).astype(int)
-            pad_x = np.rint(Nx * (zero_pad_factor[1] - 1)).astype(int)
-            pad_width = ((pad_t // 2, pad_t // 2 + pad_t % 2), (pad_x // 2, pad_x // 2 + pad_x % 2))
-        except:
-            # case zero_pad_factor is an int
-            try:
-                pad_t = np.rint(Nt * (zero_pad_factor - 1)).astype(int)
-                pad_x = np.rint(Nx * (zero_pad_factor - 1)).astype(int)
-                pad_width = ((pad_t // 2, pad_t // 2 + pad_t % 2), (pad_x // 2, pad_x // 2 + pad_x % 2))
-            except:
-                customlog.log_warning(f'ft2d: What is this zero-padding factor "{zero_pad_factor}" ? I made it None')
-                pad_width = None
-    elif zero_pad is not None:
-        customlog.log_subtrace(f'ft2d: | zero_pad={zero_pad}')
-        try:
-            pad_width = ((0, int(zero_pad[0])), (0, int(zero_pad[1])))
-        except:
-            customlog.log_warning(f'ft2d: What is this zero-padding "{zero_pad}" ? I made it None')
-            pad_width = None
+    # padding
+    nfft0, nfft1 = sanitize_nfft_2d(nfft, (N0, N1))
+    zpf0, zpf1 = sanitize_zpf_2d(zpf)
+    nfft_final = (nfft0 * zpf0, nfft1 * zpf1)
 
-    customlog.log_subtrace(f'ft2d: Padding (artificially better resolution) | pad={pad_width}')
-    if pad_width is None:
-        pad_width = ((0, 0), (0, 0))
-    z_pad = np.pad(z_win, pad_width=pad_width, mode='constant', constant_values=0)
+    customlog.log_debug(f'{fname}: ({N0}, {N1}) -> {nfft_final} (({nfft0}, {nfft1}) x ({zpf0}, {zpf1}))')
 
-    customlog.log_subtrace(f'ft2d: Removing (0,0)-freq component: {True}')
-    # z_clean -= np.mean(z_win) * (1-1e-12) # this is to avoid having zero amplitude and problems when taking the log
-    z_clean = z_pad - np.mean(z_pad) * remove_mean
+    # truncate along the axes where nfft_final is smaller than the signal, zero-pad (at the end) the others
+    arr_cut = arr_windowed[:nfft_final[0], :nfft_final[1]]
+    pad_width = ((0, nfft_final[0] - arr_cut.shape[0]), (0, nfft_final[1] - arr_cut.shape[1]))
+    arr_padded = np.pad(arr_cut, pad_width=pad_width, mode='constant', constant_values=0)
 
-    # customlog.log_subtrace(f'rft2d: Rolling (restoring phase) | pad={pad_width}')
-    # z_roll = np.roll(z_clean, (pad_width[0][0]+Nt//2, pad_width[1][0]+Nx//2), axis = (0, 1))
-    # roll_offset = (pad_width[0][0] + Nt // 2, pad_width[1][0] + Nx // 2)
-    roll_offset = (pad_width[0][0], pad_width[1][0])
+    # second mean removal. It is unorthodox. Is it necessary? most often, not, it is useless
+    # arr_padded = arr_padded - np.mean(arr_padded) * remove_mean
 
-    roll_shift = None
-    if shift is not None:
-        try:
-            roll_shift = (int(shift[0]), int(shift[1]))
-        except:
-            customlog.log_warning(f'ft2d: What is this shift "{roll_shift}" ? I made it None')
-            roll_shift = None
-    if roll_shift is None:
-        roll_shift = (0, 0)
-    roll_total = (roll_offset[0] + roll_shift[0], roll_offset[1] + roll_shift[1])
-    customlog.log_subtrace(f'ft2d: Rolling (restoring phase) | roll={roll_total}')
-    customlog.log_subtrace(f'ft2d: roll_offset={roll_offset} | roll_shift={roll_shift}')
-    z_roll = np.roll(z_clean, roll_total, axis=(0, 1))
+    shift0, shift1 = split_2d_argument(shift, fname)
+    shift0 = 0 if shift0 is None else int(shift0)
+    shift1 = 0 if shift1 is None else int(shift1)
+    roll = (-pad_width[0][0] - shift0, -pad_width[1][0] - shift1)
+    customlog.log_subtrace(f'{fname}: Rolling (restoring phase) by pre_pad=({pad_width[0][0]}, {pad_width[1][0]})'
+                           f' + shift=({shift0}, {shift1})')
+    arr_rolled = np.roll(arr_padded, roll, axis=(0, 1))
 
-    customlog.log_debug(f'ft2d: Old size ({Nt},{Nx}) | New size={z_roll.shape}')
-
-    return z_roll
+    return arr_rolled
 
 
-def ft2d(arr: complexarray2D, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
-         window: str = default_window, winstyle=None, remove_mean: bool = True, norm: Optional[str]=None,
-         zero_pad: Optional[Tuple[int, int]] = None, zero_pad_factor: Optional[Tuple[float, float]] = None,
-         shift: Optional[Tuple[int, int]] = None) -> complexarray2D:
+def _check_shapes_2d(fname: str, arr: np.ndarray, x: Optional[np.ndarray], y: Optional[np.ndarray]) -> None:
+    N0, N1 = arr.shape
+    Nx = len(x) if x is not None else None
+    Ny = len(y) if y is not None else None
+    if ((Nx is not None) and (Nx != N1)) or ((Ny is not None) and (Ny != N0)):
+        customlog.log_warning(f'{fname}: array is shaped {arr.shape} != {Ny} x {Nx}')
+
+
+@alias_argument('zpf', 'zero_pad_factor')
+def ft2d(arr: complexarray2D, x: Optional[floatarray1D] = None, y: Optional[floatarray1D] = None,
+         window: str = default_window, winstyle: Optional[str] = None, remove_mean: bool = True,
+         nfft: dtype_nfft_2d = None, zpf: dtype_zpf_2d = None,
+         shift: dtype_shift_2d = None, norm: Optional[str] = 'backward') -> complexarray2D:
     """
-    Returns the 2-D Fourier transform of a real input array using the given windowing.
+    Returns the 2-D Fourier transform of the input array using the given windowing.
 
     The unit is in amplitude/(inverse period), e.g. V(s, m) -> V/Hz/m$^{-1}$(Hz.m$^{-1}$)
 
@@ -188,83 +183,90 @@ def ft2d(arr: complexarray2D, x: Optional[np.ndarray] = None, y: Optional[np.nda
     ----------
     arr
     x
+        Coordinates along axis 1
     y
-    window
-    norm
-    zero_pad
-    zero_pad_factor
-        Use powers of 2
+        Coordinates along axis 0
+    window : str, optional
+    winstyle : str, optional
+        Can be 'outer' (default) or 'circular'
+    remove_mean : bool, optional
+        Default is True
+    nfft : int, 'auto' or (axis0, axis1), optional
+    zpf : int or (int, int), optional
+    shift : int or (int, int), optional
+    norm : str, optional
+        The scipy.fft normalization. Keep 'backward' (default) for the units to be right.
 
     Returns
     -------
 
     """
-    customlog.log_trace(f'ft2d: Computing 2-D FFT of array of shape {arr.shape}')
-
-    Nt_arr, Nx_arr = arr.shape
-    Nx_x = len(x) if x is not None else None
-    Nt_t = len(y) if y is not None else None
-    if ((Nx_x is not None) and (Nx_x != Nx_arr)) or ((Nt_t is not None) and (Nt_t != Nt_arr)):
-        customlog.log_warning(f'ft2d: array is shaped {arr.shape} != {Nt_t} x {Nx_x}')
+    fname = 'ft2d'
+    customlog.log_trace(f'{fname}: Computing 2-D FFT of array of shape {arr.shape}')
+    _check_shapes_2d(fname, arr, x, y)
 
     arr_prepared = prepare_signal_for_ft2d(arr, window=window, winstyle=winstyle, remove_mean=remove_mean,
-                                           zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
-                                           shift=shift)
+                                           nfft=nfft, zpf=zpf, shift=shift)
 
-    customlog.log_subtrace(f'ft2d: Computing fft, norm={norm} | shape={arr_prepared.shape}')
+    customlog.log_subtrace(f'{fname}: Computing fft, norm={norm} | shape={arr_prepared.shape}')
     arr_hat = fft.fft2(arr_prepared, norm=norm, s=arr_prepared.shape)
     return fft.fftshift(arr_hat) * step(x) * step(y)
 
 
-def rft2d(arr: floatarray2D, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
-          window: str = default_window, winstyle=None, remove_mean: bool = True, norm: Optional[str]=None,
-          zero_pad: Optional[Tuple[int, int]] = None, zero_pad_factor: Optional[Tuple[float, float]] = None,
-          shift: Optional[Tuple[int, int]] = None) -> complexarray2D:
+@alias_argument('zpf', 'zero_pad_factor')
+def rft2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Optional[floatarray1D] = None,
+          window: str = default_window, winstyle: Optional[str] = None, remove_mean: bool = True,
+          nfft: dtype_nfft_2d = None, zpf: dtype_zpf_2d = None,
+          shift: dtype_shift_2d = None, norm: Optional[str] = 'backward') -> complexarray2D:
     """
     Returns the 2-D Fourier transform of a real input array using the given windowing.
+
+    The spectrum is truncated along axis 1 (x), as with scipy.fft.rfft2.
 
     The unit is in amplitude/(inverse period), e.g. V(s, m) -> V/Hz/m$^{-1}$(Hz.m$^{-1}$)
 
     Parameters
     ----------
-    winstyle
-    shift
     arr
     x
+        Coordinates along axis 1
     y
-    window
-    norm
-    zero_pad
-    zero_pad_factor
-        Use powers of 2
+        Coordinates along axis 0
+    window : str, optional
+    winstyle : str, optional
+        Can be 'outer' (default) or 'circular'
+    remove_mean : bool, optional
+        Default is True
+    nfft : int, 'auto' or (axis0, axis1), optional
+    zpf : int or (int, int), optional
+    shift : int or (int, int), optional
+    norm : str, optional
+        The scipy.fft normalization. Keep 'backward' (default) for the units to be right.
 
     Returns
     -------
 
     """
-    customlog.log_trace(f'rft2d: Computing 2-D RFFT of array of shape {arr.shape}')
-
-    Nt_arr, Nx_arr = arr.shape
-    Nx_x = len(x) if x is not None else None
-    Nt_t = len(y) if y is not None else None
-    if ((Nx_x is not None) and (Nx_x != Nx_arr)) or ((Nt_t is not None) and (Nt_t != Nt_arr)):
-        customlog.log_warning(f'ft2d: array is shaped {arr.shape} != {Nt_t} x {Nx_x}')
+    fname = 'rft2d'
+    customlog.log_trace(f'{fname}: Computing 2-D RFFT of array of shape {arr.shape}')
+    _check_shapes_2d(fname, arr, x, y)
 
     arr_prepared = prepare_signal_for_ft2d(arr, window=window, winstyle=winstyle, remove_mean=remove_mean,
-                                           zero_pad=zero_pad, zero_pad_factor=zero_pad_factor,
-                                           shift=shift)
+                                           nfft=nfft, zpf=zpf, shift=shift)
 
-    customlog.log_subtrace(f'rft2d: Computing fft, norm={norm} | shape={arr_prepared.shape}')
+    customlog.log_subtrace(f'{fname}: Computing fft, norm={norm} | shape={arr_prepared.shape}')
     arr_hat = fft.rfft2(arr_prepared, norm=norm, s=arr_prepared.shape)
     return fft.fftshift(arr_hat, axes=0) * step(x) * step(y)
 
-def ift2d(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None, ydual: Optional[np.ndarray] = None, norm: Optional[str]=None):
+
+def ift2d(sig_hat: complexarray2D, xdual: Optional[np.ndarray] = None, ydual: Optional[np.ndarray] = None,
+          norm: Optional[str] = 'backward'):
     return fft.ifft2(np.fft.ifftshift(sig_hat), norm=norm) * span(xdual) * span(ydual)
 
 
-
 ### Power:
-from.FFT1D import window_factor1d
+from .FFT1D import window_factor1d
+
 
 def window_factor2d(window: str, winstyle: Optional[str] = None, NxNy: Tuple[int, int] = (16384, 16384)):
     """
@@ -273,90 +275,99 @@ def window_factor2d(window: str, winstyle: Optional[str] = None, NxNy: Tuple[int
     Parameters
     ----------
     window
+    winstyle : str, optional
+        Can be 'outer' (default) or 'circular'
+    NxNy : (int, int), optional
+        The size over which to evaluate the window corrected factor.
 
     Returns
     -------
-    :param winstyle:
 
     """
     if winstyle is None:
         winstyle = 'outer'
     winstyle = str(winstyle)
-    customlog.log_subtrace(f'ft2d: Using windowing | window={window} | style={winstyle}')
+    customlog.log_subtrace(f'window_factor2d: Using windowing | window={window} | style={winstyle}')
     Nx, Ny = NxNy
     if winstyle == 'outer':
-        return window_factor1d(window, Nx)*window_factor1d(window, Ny)
+        return window_factor1d(window, Nx) * window_factor1d(window, Ny)
     elif winstyle == 'circular':
-        return 1 / (np.sum(filters.window(window, (Nx, Ny), warp_kwargs={'order': 3})**2)/(Nx*Ny))
+        return 1 / (np.sum(filters.window(window, (Nx, Ny), warp_kwargs={'order': 3}) ** 2) / (Nx * Ny))
     else:
         customlog.log_warning(f'Unrecognized 2d-windowing style: {winstyle}.')
         return 1
 
 
+@alias_argument('zpf', 'zero_pad_factor')
 def psd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
-          window: str = default_window, winstyle=None, remove_mean: bool = True,
-          zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> np.ndarray:
+          window: str = default_window, winstyle: Optional[str] = None, remove_mean: bool = True,
+          nfft: dtype_nfft_2d = None, zpf: dtype_zpf_2d = None) -> np.ndarray:
     """
-    Returns the 2-D Fourier PSD of a real input array using the given windowing.
-
-    quantitative ensures the real thing is computed. if False, the first column is mul
+    Returns the 2-D Fourier PSD of an input array using the given windowing.
 
     if the unit of z(t, x) is [V(s, mm)], then the unit of PSD(z)$ is [V^2/(Hz.mm^{-1})(Hz, mm-1)]
 
-    The unit is in amplitude/(inverse period), e.g. V(s, m) -> V/Hz/m$^{-1}$(Hz.m$^{-1}$)
-
     Parameters
     ----------
-    arr
+    z
     x
+        Coordinates along axis 1
     y
-    window
-    zero_pad
-    zero_pad_factor
-        Use powers of 2
+        Coordinates along axis 0
+    window : str, optional
+    winstyle : str, optional
+        Can be 'outer' (default) or 'circular'
+    remove_mean : bool, optional
+        Default is True
+    nfft : int, 'auto' or (axis0, axis1), optional
+    zpf : int or (int, int), optional
 
     Returns
     -------
 
     """
-    customlog.log_trace('rpsd2d: Computing a 2-D PSD')
+    customlog.log_trace('psd2d: Computing a 2-D PSD')
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $\hat{z}$ is [V/(Hz.mm^{-1})(Hz, mm-1)]
-    y_ft = ft2d(z, x=x, y=y, window=window, winstyle=winstyle,
-                remove_mean=remove_mean, norm="backward",
-                zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+    y_ft = ft2d(z, x=x, y=y, window=window, winstyle=winstyle, remove_mean=remove_mean,
+                nfft=nfft, zpf=zpf)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the oly thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this 2-frequency
     # It is useful in itself for space-time-limited signals (wavelets)
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $ESD(z)$ is [V^2/Hz^2/mm^{-2}(Hz, mm-1)]
-    esd = np.abs(y_ft) ** 2 * window_factor2d(window, winstyle=winstyle, NxNy=z.shape) ** 2
+    esd = np.abs(y_ft) ** 2 * window_factor2d(window, winstyle=winstyle, NxNy=z.shape)
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is 2-D periodic, then PSD = ESD / (duration_1.duration_2)
     # Thus if the unit of z(t, x) is [V(s, mm)], then the unit of PSD(z)$ is [V^2/Hz/mm^{-1}(Hz, mm-1)]
     return esd / span(x) / span(y)
 
+
+@alias_argument('zpf', 'zero_pad_factor')
 def rpsd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
-           window: str = default_window, winstyle=None, remove_mean: bool = True,
-           zero_pad: Optional[int] = None, zero_pad_factor: Optional[float] = None) -> np.ndarray:
+           window: str = default_window, winstyle: Optional[str] = None, remove_mean: bool = True,
+           nfft: dtype_nfft_2d = None, zpf: dtype_zpf_2d = None) -> np.ndarray:
     """
     Returns the 2-D Fourier PSD of a real input array using the given windowing.
 
-    quantitative ensures the real thing is computed. if False, the first column is mul
+    The spectrum is truncated along axis 1 (x), as with scipy.fft.rfft2.
 
     if the unit of z(t, x) is [V(s, mm)], then the unit of PSD(z)$ is [V^2/(Hz.mm^{-1})(Hz, mm-1)]
 
-    The unit is in amplitude/(inverse period), e.g. V(s, m) -> V/Hz/m$^{-1}$(Hz.m$^{-1}$)
-
     Parameters
     ----------
-    arr
+    z
     x
+        Coordinates along axis 1
     y
-    window
-    zero_pad
-    zero_pad_factor
-        Use powers of 2
+        Coordinates along axis 0
+    window : str, optional
+    winstyle : str, optional
+        Can be 'outer' (default) or 'circular'
+    remove_mean : bool, optional
+        Default is True
+    nfft : int, 'auto' or (axis0, axis1), optional
+    zpf : int or (int, int), optional
 
     Returns
     -------
@@ -365,15 +376,16 @@ def rpsd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray
     customlog.log_trace('rpsd2d: Computing a 2-D PSD')
     ### Step 1 : do the dimensional Fourier transform
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $\hat{z}$ is [V/(Hz.mm^{-1})(Hz, mm-1)]
-    y_ft = rft2d(z, x=x, y=y, window=window, winstyle=winstyle, remove_mean=remove_mean, norm="backward",
-                 zero_pad=zero_pad, zero_pad_factor=zero_pad_factor)
+    y_ft = rft2d(z, x=x, y=y, window=window, winstyle=winstyle, remove_mean=remove_mean,
+                 nfft=nfft, zpf=zpf)
     ### Step 2 : compute the ESD (Energy Spectral Density)
     # Rigorously, this is the oly thing we can really measure with discretized inputs and FFT
     # It is the total energy (i.e., during all the sampling time) of the signal at this 2-frequency
     # It is useful in itself for space-time-limited signals (wavelets)
     # if the unit of z(t, x) is [V(s, mm)], then the unit of $ESD(z)$ is [V^2/Hz^2/mm^{-2}(Hz, mm-1)]
-    esd = np.abs(y_ft) ** 2 * window_factor2d(window, winstyle=winstyle, NxNy=z.shape) ** 2
-    esd[:, 1:] *= 2  # x 2 because of rfft which truncates the spectrum (except the 0 harmonic)
+    esd = np.abs(y_ft) ** 2 * window_factor2d(window, winstyle=winstyle, NxNy=z.shape)
+    n1 = sanitize_nfft_2d(nfft, z.shape)[1] * sanitize_zpf_2d(zpf)[1]
+    esd[:, 1:esd.shape[1] - (1 - n1 % 2)] *= 2  # x 2 because of rfft which truncates the spectrum (except the 0 harmonic, and last depending on the parity)
     ### Step 3 : compute the PSD (Power Spectral Density)
     # Assuming that the signal is 2-D periodic, then PSD = ESD / (duration_1.duration_2)
     # Thus if the unit of z(t, x) is [V(s, mm)], then the unit of PSD(z)$ is [V^2/Hz/mm^{-1}(Hz, mm-1)]
@@ -601,8 +613,8 @@ def grid_points_in_contour(contour, x: np.ndarray[float], y: np.ndarray[float]) 
     return incontour
 
 
-def peak_vicinity2d(peak_x, peak_y, z: np.ndarray[np.ndarray[float]], peak_depth_dB, x=Optional[np.ndarray[float]],
-                    y=Optional[np.ndarray[float]],
+def peak_vicinity2d(peak_x, peak_y, z: np.ndarray[np.ndarray[float]], peak_depth_dB,
+                    x: Optional[np.ndarray[float]] = None, y: Optional[np.ndarray[float]] = None,
                     peak_contours: Optional[List] = None,
                     peak_max_area: Optional[float] = None, peak_min_circularity: Optional[float] = None):
     if x is None:
