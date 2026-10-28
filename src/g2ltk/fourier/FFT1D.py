@@ -115,7 +115,7 @@ def prepare_signal_for_ft1d(sig: complexarray1D,
 
     # Removing mean
     customlog.log_trace(f'{fname}: Mean removal: {remove_mean}')
-    sig_nozero = sig.copy() - np.mean(sig, axis=axis) * remove_mean
+    sig_nozero = sig.copy() - np.mean(sig, axis=axis, keepdims=True) * remove_mean
 
     # windowing
     # sig_windowed = sig_nozero * get_window(window, N) # old 1D code
@@ -149,7 +149,7 @@ def prepare_signal_for_ft1d(sig: complexarray1D,
         sig_padded = np.pad(sig_windowed, pad_width=pad_width, mode='constant', constant_values=0)
 
     # second mean removal. It is unorthodox. Is it necessary? most often, not, it is useless
-    # sig_padded = sig_padded - np.mean(sig_padded) * remove_mean
+    # sig_padded = sig_padded - np.mean(sig_padded, keepdims=True) * remove_mean
 
     if shift is None: shift = 0
     customlog.log_subtrace(f'{fname}: Rolling (restoring phase) by pre_pad={pad_width[axis][0]} + shift={shift}')
