@@ -46,7 +46,8 @@ def capture_lcv(acquisition_path:str) -> Optional[Any]:
     fourcc = int(video.get(cv2.CAP_PROP_FOURCC))
     codec = chr(fourcc&0xff) + chr((fourcc>>8)&0xff) + chr((fourcc>>16)&0xff) + chr((fourcc>>24)&0xff)
 
-    if codec != 'FFV1':
+    # Depending on the OpenCV / FFmpeg version, the codec is reported as 'FFV1' or 'ffv1'
+    if codec.lower() != 'ffv1':
         video.release()
         #Todo:ERROR here
         print("Cannot read frames from video that is not losslessly compressed with codec FFV1")
@@ -59,6 +60,14 @@ def get_number_of_available_frames_lcv(acquisition_path: str) -> Optional[int]:
     n_framenumbers_tot:int = int(lcv.get(cv2.CAP_PROP_FRAME_COUNT))
     lcv.release()
     return n_framenumbers_tot
+
+def get_acquisition_frequency_lcv(acquisition_path: str, unit='Hz') -> Optional[float]:
+    video = capture_lcv(acquisition_path)
+    if video is not None:
+        fps = video.get(cv2.CAP_PROP_FPS)
+        video.release()
+        return fps
+    return None
 
 def get_frames_lcv(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
 

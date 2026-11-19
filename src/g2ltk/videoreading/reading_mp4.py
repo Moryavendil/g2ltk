@@ -47,9 +47,10 @@ def capture_mp4(acquisition_path:str) -> Optional[Any]:
     fourcc = int(video.get(cv2.CAP_PROP_FOURCC))
     codec = chr(fourcc&0xff) + chr((fourcc>>8)&0xff) + chr((fourcc>>16)&0xff) + chr((fourcc>>24)&0xff)
 
-    if codec != 'avc1':
+    # Depending on the OpenCV / FFmpeg version, H.264 is reported as 'avc1' (container tag) or 'h264' (codec name)
+    if codec.lower() not in ('avc1', 'h264'):
         video.release()
-        customlog.log_error(f"Codec is {codec}. Cannot read frames from video that is not lossy compressed with codec avc1")
+        customlog.log_error(f"Codec is {codec}. Cannot read frames from video that is not lossy compressed with codec H.264 (avc1)")
         return None
 
     return video

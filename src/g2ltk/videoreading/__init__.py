@@ -312,6 +312,8 @@ def get_acquisition_frequency(acquisition_path: str, unit=None) -> float:
         return get_acquisition_frequency_t16(acquisition_path, unit=unit)
     if is_this_a_t8(acquisition_path):
         return get_acquisition_frequency_t8(acquisition_path, unit=unit)
+    if is_this_a_lcv(acquisition_path):
+        return get_acquisition_frequency_lcv(acquisition_path, unit=unit)
     if is_this_a_mov(acquisition_path):
         return get_acquisition_frequency_mov(acquisition_path, unit=unit)
     if is_this_a_mp4(acquisition_path):
