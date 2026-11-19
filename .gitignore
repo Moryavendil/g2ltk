@@ -42,3 +42,6 @@ README_Zenodo.md
 *.xls
 *.xlsx
 *.csv
+
+# reference videos used by the tests
+!test_data/**
