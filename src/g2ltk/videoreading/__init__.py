@@ -334,10 +334,11 @@ def get_acquisition_duration(acquisition_path: str, framenumbers: Optional[np.nd
     elif is_this_a_t16(acquisition_path):
         return get_acquisition_duration_t16(acquisition_path, framenumbers=framenumbers, unit=unit)
     else:
-        fns = len(framenumbers)
+        # Duration is the time elapsed between the first and the last frame, consistent with gcv:
+        # for the whole video (or any contiguous selection) this is (number of frames - 1) / fps
         freq_hz = get_acquisition_frequency(acquisition_path, unit='Hz')
         try:
-            duration_s = fns / freq_hz
+            duration_s = (framenumbers.max() - framenumbers.min()) / freq_hz
             return duration_s
         except:
             pass
