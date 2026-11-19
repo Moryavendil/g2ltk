@@ -14,7 +14,7 @@ def find_available_mp4(dataset_path: str) ->List[str]:
 
 def is_this_a_mp4(acquisition_path: str) -> bool:
     """
-    Checks if there is a Losslessly Compressed Video (lcv) for the given acquisition path.
+    Checks if there is a lossy compressed video (mp4, codec H.264) for the given acquisition path.
 
     :param acquisition_path:
     :return:
