@@ -85,7 +85,7 @@ def find_available_videos(dataset_path: Optional[str] = None, dataset: Optional[
 
 
 ### ROOT PATH MANAGEMENT
-__ROOT_PATH__ = '../'
+__ROOT_PATH__ = '.'
 
 def set_default_root_path(root_path: Optional[str] = None) -> None:
     global __ROOT_PATH__
