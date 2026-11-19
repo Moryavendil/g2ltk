@@ -10,7 +10,7 @@ authors = [
 ]
 description = "Useful scripts."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9" # builtin generics in annotations (tuple[int], list[...]), contourpy >= 1.2
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
@@ -20,17 +20,29 @@ keywords = [
 "image", "analysis", "measure"
 ]
 dependencies = [
-    "contourpy >= 1.0",
+    "contourpy >= 1.2", # convert_filled, for 2D fft contours
     "scipy >= 1.7",
     "colorama", # we should remove that
     "scikit-image", # for 2D fft windowing
-    "shapely", # for 2D fft windowing
+    "shapely >= 2.0", # from_ragged_array, for 2D fft contours
     "numpy >= 1.20", # for typing
-    "findiff", # for finite differences
+    "findiff >= 0.12", # Diff with periodic boundaries, for finite differences
 ]
 
 [project.optional-dependencies]
-full = ["matplotlib", "pyqtgraph", "PyQt5"]
+# g2ltk.plotting
+plot = [
+    "matplotlib",
+    "ipython", # plotting.voila
+]
+# g2ltk.videoreading
+video = [
+    "opencv-python-headless", # mp4, mov and lcv (mkv) videos
+    "pillow", # tiff metadata
+    "pandas", # datasheets
+    "imagecodecs", # reading tiff (t8 / t16) videos
+]
+full = ["g2ltk[plot,video]"]
 
 [tool.hatch.version]
 path = "src/g2ltk/__init__.py"
