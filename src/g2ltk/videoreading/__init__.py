@@ -39,6 +39,9 @@ def is_this_a_video(acquisition_path: str) -> bool:
         customlog.log_debug(f"There is no video at {acquisition_path}.")
         return False
 
+# Video types that find_available_videos can look for ('lcv' is losslessly compressed .mkv, also accepted as 'flv')
+VIDEOTYPES = ['gcv', 't16', 't8', 'lcv', 'mp4', 'mov']
+
 def find_available_videos(dataset_path: Optional[str] = None, dataset: Optional[str] = None,
                           root_path: Optional[str] = None,
                           videotype: Optional[str] = None) -> List[str]:
@@ -52,12 +55,11 @@ def find_available_videos(dataset_path: Optional[str] = None, dataset: Optional[
     else:
         dataset_path = generate_dataset_path(dataset, root_path=root_path)
 
-    all_types = ['gcv', 't16', 't8', 'flv', 'mp4', 'mov']
-    customlog.log_subtrace(f'Finding available videos of type {videotype or all_types} at {dataset_path}')
+    customlog.log_subtrace(f'Finding available videos of type {videotype or VIDEOTYPES} at {dataset_path}')
 
     if videotype is None or videotype == 'all':
         available_acquisitions = []
-        for subtype in all_types:
+        for subtype in VIDEOTYPES:
             available_acquisitions += find_available_videos(dataset=dataset, root_path=root_path, videotype=subtype)
     elif videotype == 'tiff':
         available_acquisitions = []
@@ -69,7 +71,7 @@ def find_available_videos(dataset_path: Optional[str] = None, dataset: Optional[
         available_acquisitions = find_available_t16(dataset_path)
     elif videotype == 't8':
         available_acquisitions = find_available_t8(dataset_path)
-    elif videotype == 'flv':
+    elif videotype in ('lcv', 'flv'):
         available_acquisitions = find_available_lcv(dataset_path)
     elif videotype == 'mp4':
         available_acquisitions = find_available_mp4(dataset_path)
@@ -186,9 +188,15 @@ def describe_dataset(dataset_path: Optional[str] = None, dataset: Optional[str] 
     if makeitshort:
         customlog.log_info(f'Available acquisitions: {available_acquisitions}')
     else:
+        # The same acquisition can exist in several types (e.g. 'acq.gcv' and 'acq.mp4'): list it once, with all its types
+        types_of_acquisition = {acquisition: [] for acquisition in available_acquisitions}
+        for subtype in VIDEOTYPES:
+            for acquisition in find_available_videos(dataset=dataset, root_path=root_path, videotype=subtype):
+                if acquisition in types_of_acquisition:
+                    types_of_acquisition[acquisition].append(subtype)
         customlog.log_info('Available acquisitions:')
-        for acquisition in available_acquisitions:
-            customlog.log_info(f"- '{acquisition}' (TODO type(s))")
+        for acquisition, acquisition_types in types_of_acquisition.items():
+            customlog.log_info(f"- '{acquisition}' ({', '.join(acquisition_types)})")
 
 
 ### DATASHEET MANAGEMENT

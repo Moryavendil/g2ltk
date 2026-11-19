@@ -188,6 +188,32 @@ def test_out_of_range_framenumbers(acquisition):
     assert vr.get_frames(acquisition_path, np.array([-1])) is None
 
 
+### DATASET DESCRIPTION
+
+def test_describe_dataset_lists_types(tmp_path, capsys):
+    # A dataset with one video of each type, and an acquisition that exists both as a gcv and as a mp4
+    dataset_path = tmp_path / 'dataset'
+    dataset_path.mkdir()
+    for name, filename in [('test_gcv', 'test_gcv.gcv'), ('test_mp4', 'test_mp4.mp4'), ('test_mkv', 'test_mkv.mkv'),
+                           ('both', 'test_gcv.gcv'), ('both', 'test_mp4.mp4')]:
+        extension = os.path.splitext(filename)[1]
+        (dataset_path / (name + extension)).symlink_to(os.path.abspath(os.path.join(DATA_DIR, filename)))
+
+    customlog.set_verbose('info')
+    try:
+        vr.describe_dataset(dataset='dataset', root_path=str(tmp_path))
+    finally:
+        customlog.set_verbose('error')
+    output = capsys.readouterr().out
+
+    assert "- 'test_gcv' (gcv)" in output
+    assert "- 'test_mp4' (mp4)" in output
+    assert "- 'test_mkv' (lcv)" in output
+    assert "- 'both' (gcv, mp4)" in output
+    assert output.count("- 'both'") == 1  # listed once, with both types
+    assert 'TODO' not in output
+
+
 ### GCV-SPECIFIC
 
 def test_gcv_meta():
