@@ -89,9 +89,9 @@ __ROOT_PATH__ = '../'
 
 def set_default_root_path(root_path: Optional[str] = None) -> None:
     global __ROOT_PATH__
-    if __ROOT_PATH__ is None:
+    if root_path is None:
         return
-    if not os.path.isdir(__ROOT_PATH__):
+    if not os.path.isdir(root_path):
         customlog.log_error(f'Cannot set default root path to {root_path}: is not a directory.')
         return
     __ROOT_PATH__ = root_path

@@ -188,6 +188,22 @@ def test_out_of_range_framenumbers(acquisition):
     assert vr.get_frames(acquisition_path, np.array([-1])) is None
 
 
+### ROOT PATH
+
+def test_set_default_root_path(tmp_path):
+    previous_root_path = getattr(vr, '__ROOT_PATH__')
+    try:
+        vr.set_default_root_path(str(tmp_path))
+        assert getattr(vr, '__ROOT_PATH__') == str(tmp_path)
+
+        # None and paths that are not directories are ignored
+        vr.set_default_root_path(None)
+        vr.set_default_root_path(str(tmp_path / 'not_a_directory'))
+        assert getattr(vr, '__ROOT_PATH__') == str(tmp_path)
+    finally:
+        vr.set_default_root_path(previous_root_path)
+
+
 ### DATASET DESCRIPTION
 
 def test_describe_dataset_lists_types(tmp_path, capsys):
