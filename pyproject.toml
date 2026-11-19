@@ -37,7 +37,7 @@ plot = [
 ]
 # g2ltk.videoreading
 video = [
-    "opencv-python-headless", # mp4, mov and lcv (mkv) videos
+    "opencv-python-headless", # mp4, mov and mkv videos
     "pillow", # tiff metadata
     "pandas", # datasheets
     "imagecodecs", # reading tiff (t8 / t16) videos

@@ -1,7 +1,7 @@
 """
 Tests for g2ltk.videoreading on the reference videos in test_data/:
     - test_mp4.mp4  : lossy compressed video (H.264)
-    - test_mkv.mkv  : losslessly compressed video (FFV1), 'lcv' in g2ltk
+    - test_mkv.mkv  : losslessly compressed video (FFV1)
     - test_gcv.gcv/ : GevCapture video (meta + stamps + raw video)
 """
 import os
@@ -22,13 +22,13 @@ GCV_TLAST_S = 0.800878
 # Expected properties of the reference videos
 EXPECTED = {
     'test_mp4': {'type': 'mp4', 'n_frames': 43, 'height': 256, 'width': 256, 'fps': 30.},
-    'test_mkv': {'type': 'lcv', 'n_frames': 53, 'height': 256, 'width': 256, 'fps': 30.},
+    'test_mkv': {'type': 'mkv', 'n_frames': 53, 'height': 256, 'width': 256, 'fps': 30.},
     # gcv frequency is computed from the camera timestamps: (N - 1) / (t_last - t_0), close to the nominal 25 Hz
     'test_gcv': {'type': 'gcv', 'n_frames': 21, 'height': 256, 'width': 256, 'fps': 20 / GCV_TLAST_S},
 }
 ACQUISITIONS = list(EXPECTED)
 
-TYPE_CHECKERS = {'mp4': vr.is_this_a_mp4, 'lcv': vr.is_this_a_lcv, 'gcv': vr.is_this_a_gcv}
+TYPE_CHECKERS = {'mp4': vr.is_this_a_mp4, 'mkv': vr.is_this_a_mkv, 'gcv': vr.is_this_a_gcv}
 
 pytestmark = pytest.mark.skipif(not os.path.isdir(DATA_DIR), reason=f'No test data directory at {DATA_DIR}')
 
@@ -224,7 +224,7 @@ def test_describe_dataset_lists_types(tmp_path, capsys):
 
     assert "- 'test_gcv' (gcv)" in output
     assert "- 'test_mp4' (mp4)" in output
-    assert "- 'test_mkv' (lcv)" in output
+    assert "- 'test_mkv' (mkv)" in output
     assert "- 'both' (gcv, mp4)" in output
     assert output.count("- 'both'") == 1  # listed once, with both types
     assert 'TODO' not in output

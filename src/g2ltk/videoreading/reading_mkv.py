@@ -3,28 +3,28 @@ import numpy as np
 import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 
-###### LOSSLESSLY COMPRESSED VIDEO (lcv) READING
+###### LOSSLESSLY COMPRESSED VIDEO (mkv, codec FFV1) READING
 
-def find_available_lcv(dataset_path: str) ->List[str]:
+def find_available_mkv(dataset_path: str) ->List[str]:
     available_acquisitions = [f[:-4] for f in os.listdir(dataset_path) if os.path.isfile(os.path.join(dataset_path, f)) and f.endswith('.mkv')]
     available_acquisitions.sort()
     return available_acquisitions
 
-def is_this_a_lcv(acquisition_path: str) -> bool:
+def is_this_a_mkv(acquisition_path: str) -> bool:
     """
-    Checks if there is a Losslessly Compressed Video (lcv) for the given dataset.
+    Checks if there is a losslessly compressed video (mkv, codec FFV1) for the given acquisition path.
 
     :param acquisition_path:
     :return:
     """
-    video:Optional[Any] = capture_lcv(acquisition_path)
+    video:Optional[Any] = capture_mkv(acquisition_path)
     if video is None:
         return False
     else:
         video.release()
         return True
 
-def capture_lcv(acquisition_path:str) -> Optional[Any]:
+def capture_mkv(acquisition_path:str) -> Optional[Any]:
     # This only captures LOSSLESSY COMPRESSED VIDEOS WITH CODEC FFV1 AND FILETYPE MKV
 
     # Check for existence
@@ -55,49 +55,49 @@ def capture_lcv(acquisition_path:str) -> Optional[Any]:
 
     return video
 
-def get_number_of_available_frames_lcv(acquisition_path: str) -> Optional[int]:
-    lcv = capture_lcv(acquisition_path)
-    n_framenumbers_tot:int = int(lcv.get(cv2.CAP_PROP_FRAME_COUNT))
-    lcv.release()
+def get_number_of_available_frames_mkv(acquisition_path: str) -> Optional[int]:
+    video = capture_mkv(acquisition_path)
+    n_framenumbers_tot:int = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    video.release()
     return n_framenumbers_tot
 
-def get_acquisition_frequency_lcv(acquisition_path: str, unit='Hz') -> Optional[float]:
-    video = capture_lcv(acquisition_path)
+def get_acquisition_frequency_mkv(acquisition_path: str, unit='Hz') -> Optional[float]:
+    video = capture_mkv(acquisition_path)
     if video is not None:
         fps = video.get(cv2.CAP_PROP_FPS)
         video.release()
         return fps
     return None
 
-def get_frames_lcv(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
+def get_frames_mkv(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
 
     # Capture the video
-    lcv = capture_lcv(acquisition_path)
+    video = capture_mkv(acquisition_path)
 
-    height:int = int(lcv.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    width:int = int(lcv.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height:int = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    width:int = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
     length:int = len(framenumbers)
 
     frames = np.empty([length, height, width], np.uint8)
 
     current_framenumber:int = framenumbers[0]
-    lcv.set(cv2.CAP_PROP_POS_FRAMES, current_framenumber)
+    video.set(cv2.CAP_PROP_POS_FRAMES, current_framenumber)
     for i_frame, framenumber in enumerate(framenumbers):
-        # Since the lcv is compressed, the reading without moving is optimized and faster
+        # Since the video is compressed, the reading without moving is optimized and faster
         # so for speed purposes we avoid moving if we don't have to
         if framenumber != current_framenumber + 1:
-            lcv.set(cv2.CAP_PROP_POS_FRAMES, framenumber)
+            video.set(cv2.CAP_PROP_POS_FRAMES, framenumber)
 
         current_framenumber = framenumber
 
-        ret, frame = lcv.read()
+        ret, frame = video.read()
         if ret == False:
             #Todo:ERROR here
             print('Error opening frame')
         else:
             frames[i_frame] = frame[:,:,0]
 
-    lcv.release()
+    video.release()
 
     return frames
 

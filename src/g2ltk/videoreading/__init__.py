@@ -29,7 +29,7 @@ def is_this_a_video(acquisition_path: str) -> bool:
         return True
     elif is_this_a_t8(acquisition_path):
         return True
-    elif is_this_a_lcv(acquisition_path):
+    elif is_this_a_mkv(acquisition_path):
         return True
     elif is_this_a_mp4(acquisition_path):
         return True
@@ -39,8 +39,8 @@ def is_this_a_video(acquisition_path: str) -> bool:
         customlog.log_debug(f"There is no video at {acquisition_path}.")
         return False
 
-# Video types that find_available_videos can look for ('lcv' is losslessly compressed .mkv, also accepted as 'flv')
-VIDEOTYPES = ['gcv', 't16', 't8', 'lcv', 'mp4', 'mov']
+# Video types that find_available_videos can look for ('mkv' is a losslessly compressed video, with codec FFV1)
+VIDEOTYPES = ['gcv', 't16', 't8', 'mkv', 'mp4', 'mov']
 
 def find_available_videos(dataset_path: Optional[str] = None, dataset: Optional[str] = None,
                           root_path: Optional[str] = None,
@@ -71,8 +71,8 @@ def find_available_videos(dataset_path: Optional[str] = None, dataset: Optional[
         available_acquisitions = find_available_t16(dataset_path)
     elif videotype == 't8':
         available_acquisitions = find_available_t8(dataset_path)
-    elif videotype in ('lcv', 'flv'):
-        available_acquisitions = find_available_lcv(dataset_path)
+    elif videotype == 'mkv':
+        available_acquisitions = find_available_mkv(dataset_path)
     elif videotype == 'mp4':
         available_acquisitions = find_available_mp4(dataset_path)
     elif videotype == 'mov':
@@ -300,8 +300,8 @@ def get_number_of_available_frames(acquisition_path: str) -> Optional[int]:
         return get_number_of_available_frames_t16(acquisition_path)
     elif is_this_a_t8(acquisition_path):
         return get_number_of_available_frames_t8(acquisition_path)
-    elif is_this_a_lcv(acquisition_path):
-        return get_number_of_available_frames_lcv(acquisition_path)
+    elif is_this_a_mkv(acquisition_path):
+        return get_number_of_available_frames_mkv(acquisition_path)
     elif is_this_a_mp4(acquisition_path):
         return get_number_of_available_frames_mp4(acquisition_path)
     elif is_this_a_mov(acquisition_path):
@@ -320,8 +320,8 @@ def get_acquisition_frequency(acquisition_path: str, unit=None) -> float:
         return get_acquisition_frequency_t16(acquisition_path, unit=unit)
     if is_this_a_t8(acquisition_path):
         return get_acquisition_frequency_t8(acquisition_path, unit=unit)
-    if is_this_a_lcv(acquisition_path):
-        return get_acquisition_frequency_lcv(acquisition_path, unit=unit)
+    if is_this_a_mkv(acquisition_path):
+        return get_acquisition_frequency_mkv(acquisition_path, unit=unit)
     if is_this_a_mov(acquisition_path):
         return get_acquisition_frequency_mov(acquisition_path, unit=unit)
     if is_this_a_mp4(acquisition_path):
@@ -529,8 +529,8 @@ def get_frames(acquisition_path: str, framenumbers: Framenumbers = None, subregi
         frames = get_frames_t16(acquisition_path, framenumbers)
     elif is_this_a_t8(acquisition_path):
         frames = get_frames_t8(acquisition_path, framenumbers)
-    elif is_this_a_lcv(acquisition_path):
-        frames = get_frames_lcv(acquisition_path, framenumbers)
+    elif is_this_a_mkv(acquisition_path):
+        frames = get_frames_mkv(acquisition_path, framenumbers)
     elif is_this_a_mp4(acquisition_path):
         frames = get_frames_mp4(acquisition_path, framenumbers)
     elif is_this_a_mov(acquisition_path):
@@ -574,9 +574,9 @@ from .reading_gcv import *
 
 from .reading_tiffs import *
 
-### LOSSLESSLY COMPRESSED VIDEO (lcv) READING
+### LOSSLESSLY COMPRESSED VIDEO (mkv) READING
 
-from .reading_lcv import *
+from .reading_mkv import *
 
 ### LOSSY COMPRESSED VIDEO (mp4) READING
 

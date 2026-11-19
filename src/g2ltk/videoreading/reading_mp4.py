@@ -56,9 +56,9 @@ def capture_mp4(acquisition_path:str) -> Optional[Any]:
     return video
 
 def get_number_of_available_frames_mp4(acquisition_path: str) -> Optional[int]:
-    lcv = capture_mp4(acquisition_path)
-    n_framenumbers_tot:int = int(lcv.get(cv2.CAP_PROP_FRAME_COUNT))
-    lcv.release()
+    video = capture_mp4(acquisition_path)
+    n_framenumbers_tot:int = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    video.release()
     return n_framenumbers_tot
 
 
