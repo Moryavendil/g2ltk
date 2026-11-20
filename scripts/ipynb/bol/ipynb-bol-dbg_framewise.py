@@ -7,9 +7,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from g2ltk import videoreading
+from g2ltk import videoreading, set_verbose
 from g2ltk.rivulets import rivuletfinding, utility
 
+set_verbose('info')
 utility.configure_mpl()
 
 

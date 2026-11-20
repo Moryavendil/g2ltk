@@ -2,8 +2,9 @@
 # <nbformat>3.0</nbformat>
 # <codecell>
 
-from g2ltk import videoreading
+from g2ltk import videoreading, set_verbose
 
+set_verbose('info')
 
 # <codecell>
 

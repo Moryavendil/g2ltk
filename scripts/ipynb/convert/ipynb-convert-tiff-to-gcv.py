@@ -7,9 +7,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from g2ltk import videoreading, logging
+from g2ltk import videoreading, customlog, set_verbose
 from g2ltk.rivulets import utility
 
+set_verbose('info')
 utility.configure_mpl()
 
 
@@ -43,19 +44,19 @@ for acquisition in videoreading.find_available_videos(dataset=dataset, videotype
 
     acquisition_path = videoreading.generate_acquisition_path(acquisition, dataset=dataset)
 
-    logging.log_debug(f'dataset: {dataset} | acquisition: {acquisition}')
+    customlog.log_debug(f'dataset: {dataset} | acquisition: {acquisition}')
     for colname in ['title', 'acquisition_frequency', 'exposure_time']:
         try:
             col = infotable[colname]
-            logging.log_debug(f'Has column: {colname}')
+            customlog.log_debug(f'Has column: {colname}')
         except KeyError as e:
-            logging.log_error(f'Missing column: {e}')
-    logging.log_debug(f"Found the acquisition in titles?: {(infotable['title'] == acquisition).max()}")
+            customlog.log_error(f'Missing column: {e}')
+    customlog.log_debug(f"Found the acquisition in titles?: {(infotable['title'] == acquisition).max()}")
 
     acquisition_frequency = (float((infotable['acquisition_frequency'][infotable['title'] == acquisition]).iloc[0]))
     exposure_time = (float((infotable['exposure_time'][infotable['title'] == acquisition]).iloc[0]))
 
-    logging.log_info(f'acquisition: {acquisition} | fps={acquisition_frequency} | texp={exposure_time}')
+    customlog.log_info(f'acquisition: {acquisition} | fps={acquisition_frequency} | texp={exposure_time}')
 
     # Parameters definition
     framenumbers = np.arange(videoreading.get_number_of_available_frames(acquisition_path))

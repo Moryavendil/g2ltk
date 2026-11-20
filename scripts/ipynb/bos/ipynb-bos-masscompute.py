@@ -6,9 +6,10 @@
 
 import numpy as np
 
-from g2ltk import videoreading
+from g2ltk import videoreading, set_verbose
 from g2ltk.rivulets import utility, datasaving
 
+set_verbose('info')
 utility.configure_mpl()
 
 
