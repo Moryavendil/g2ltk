@@ -551,32 +551,40 @@ def auto_data_generating_fn(parameters: Dict[str, Any]) -> Any:
     Any
         The generated data, or ``None`` if ``datatype`` is ``None`` or
         unrecognised.
+
+    .. deprecated::
+        The rivulet-finding routines are no longer available from this module:
+        pass your own ``data_generating_fn`` instead. Logs an error and returns ``None``.
     """
-    datatype = parameters.get('datatype', None)
-    customlog.log_debug(f'auto_data_generating_fn: generating "{datatype}"')
+    customlog.log_error('auto_data_generating_fn is deprecated: pass a data_generating_fn to generate the data.')
+    return None
 
-    # SANITY: warn if commonly required keys are absent
-    for required_key in ('dataset', 'acquisition'):
-        if required_key not in parameters:
-            customlog.log_warning(
-                f'auto_data_generating_fn: "{required_key}" not found in parameters — '
-                f'downstream call may fail'
-            )
-
-    if datatype is None:
-        customlog.log_error('auto_data_generating_fn: datatype is None')
-        return None
-    elif datatype == 'bos':
-        return rivuletfinding.find_bos(**parameters)
-    elif datatype == 'borders':
-        return rivuletfinding.find_borders(**parameters)
-    elif datatype == 'fwhmol':
-        return rivuletfinding.find_fwhmol(**parameters)
-    elif datatype == 'bol':
-        return rivuletfinding.find_bol(**parameters)
-    else:
-        customlog.log_error(f'auto_data_generating_fn: unrecognised datatype "{datatype}"')
-        return None
+    # Deprecated content, kept for reference
+    # datatype = parameters.get('datatype', None)
+    # customlog.log_debug(f'auto_data_generating_fn: generating "{datatype}"')
+    #
+    # # SANITY: warn if commonly required keys are absent
+    # for required_key in ('dataset', 'acquisition'):
+    #     if required_key not in parameters:
+    #         customlog.log_warning(
+    #             f'auto_data_generating_fn: "{required_key}" not found in parameters — '
+    #             f'downstream call may fail'
+    #         )
+    #
+    # if datatype is None:
+    #     customlog.log_error('auto_data_generating_fn: datatype is None')
+    #     return None
+    # elif datatype == 'bos':
+    #     return rivuletfinding.find_bos(**parameters)
+    # elif datatype == 'borders':
+    #     return rivuletfinding.find_borders(**parameters)
+    # elif datatype == 'fwhmol':
+    #     return rivuletfinding.find_fwhmol(**parameters)
+    # elif datatype == 'bol':
+    #     return rivuletfinding.find_bol(**parameters)
+    # else:
+    #     customlog.log_error(f'auto_data_generating_fn: unrecognised datatype "{datatype}"')
+    #     return None
 
 
 def fetch_or_generate(datatype: Optional[str] = None, dataset: Optional[str] = None, acquisition: Optional[str] = None,
