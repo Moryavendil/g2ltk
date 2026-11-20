@@ -113,14 +113,3 @@ def get_frames_mp4(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np
     mp4video.release()
 
     return frames
-
-def get_chronos_acquisition_frequency_from_mp4_video(**parameters) -> Optional[float]:
-    t = get_chronos_timestamps_from_mp4_video(**parameters)
-    if t is None:
-        return None
-    else:
-        if len(t) < 2:
-            return None
-        else:
-            return float(1/np.mean(t[1:]-t[:-1]))
-
