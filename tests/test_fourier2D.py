@@ -570,3 +570,144 @@ def test_psd_dispatch_2d(shape, zpf):
 def test_dual_dispatch_2d(shape, zpf):
     x, y, sig = generate_sig2D(shape)
     assert_same_result(ft.dual(x, y, zpf=zpf), ft.dual2d(x, y, zpf=zpf))
+
+
+### RIESZ TRANSFORM
+
+def plane_wave_riesz(x, y, fx0, fy0, amplitude=1.3, phi=0.7):
+    # a plane wave and its exact Riesz transform
+    Y, X = np.meshgrid(y, x, indexing='ij')
+    phase = 2*np.pi*(fx0*X + fy0*Y) + phi
+    fnorm = np.hypot(fx0, fy0)
+    sin = amplitude * np.sin(phase)
+    return amplitude * np.cos(phase), sin * fx0 / fnorm, sin * fy0 / fnorm
+
+
+@pytest.mark.parametrize("shape", shapes_to_test)
+@pytest.mark.parametrize("mode", modes_to_test)
+def test_riesz2d_plane_wave(shape, mode):
+    # on-grid plane wave, with dx != dy
+    N0, N1 = shape
+    x = np.arange(N1) * 0.13
+    y = np.arange(N0) * 0.41
+    kx, ky = mode
+    sig, rx_expected, ry_expected = plane_wave_riesz(x, y, kx / ft.span(x), ky / ft.span(y))
+
+    rx, ry = ft.riesz2d(sig, x=x, y=y)
+    assert rx.shape == sig.shape and ry.shape == sig.shape
+    assert np.allclose(rx, rx_expected, atol=1e-10)
+    assert np.allclose(ry, ry_expected, atol=1e-10)
+
+
+# (N0, N1, dy, dx, kx, ky): grids with dx != dy and Ny * dy = Nx * dx = 5, so that
+# the wave with kx = ky (periods along each axis) propagates along the physical diagonal
+diagonal_grids_to_test = [(20, 50, 0.25, 0.1, 3, 3),
+                          (21, 51, 5 / 21, 5 / 51, 4, 4),
+                          (100, 25, 0.05, 0.2, 2, 2),
+                          (20, 50, 0.25, 0.1, 3, 6),  # not diagonal: fy = 2 fx
+                          (21, 51, 5 / 21, 5 / 51, 5, -2)]
+
+
+@pytest.mark.parametrize("N0, N1, dy, dx, kx, ky", diagonal_grids_to_test)
+def test_riesz2d_diagonal_wave_anisotropic_grid(N0, N1, dy, dx, kx, ky):
+    # a wave propagating diagonally on a grid where dx != dy:
+    # the orientation must be the physical one, not the one in index space
+    x = np.arange(N1) * dx
+    y = np.arange(N0) * dy
+    fx0, fy0 = kx / ft.span(x), ky / ft.span(y)
+    sig, rx_expected, ry_expected = plane_wave_riesz(x, y, fx0, fy0)
+
+    rx, ry = ft.riesz2d(sig, x=x, y=y)
+    assert np.allclose(rx, rx_expected, atol=1e-10)
+    assert np.allclose(ry, ry_expected, atol=1e-10)
+    if kx == ky:
+        # physical diagonal: R_x = R_y = A sin(phase) / sqrt(2)
+        assert np.allclose(rx, ry, atol=1e-10)
+    # local orientation from the monogenic signal
+    np.testing.assert_allclose(np.arctan2(ry, rx)[np.abs(rx) > 0.1] % np.pi, np.arctan2(fy0, fx0) % np.pi)
+
+    # in index space, the wave is not diagonal: ignoring the steps gives a wrong result
+    rx_idx, ry_idx = ft.riesz2d(sig)
+    assert not np.allclose(rx_idx, rx_expected, atol=1e-3)
+    assert not np.allclose(ry_idx, ry_expected, atol=1e-3)
+
+
+@pytest.mark.parametrize("shape", shapes_to_test)
+@pytest.mark.parametrize("symmetrize", [False, True])
+def test_riesz2d_matches_hilbert(shape, symmetrize):
+    # an array varying along only one axis: the Riesz transform reduces to the Hilbert transform
+    N0, N1 = shape
+    x = np.arange(N1) * 0.13
+    y = np.arange(N0) * 0.41
+    sig_x = np.random.rand(N1)
+    sig_y = np.random.rand(N0)
+
+    rx, ry = ft.riesz2d(np.tile(sig_x, (N0, 1)), x=x, y=y, symmetrize=symmetrize)
+    hil_x = np.imag(ft.hilbert(sig_x, symmetrize=symmetrize))
+    assert np.allclose(rx, hil_x[np.newaxis, :])
+    assert np.allclose(ry, 0)
+
+    rx, ry = ft.riesz2d(np.tile(sig_y[:, np.newaxis], (1, N1)), x=x, y=y, symmetrize=symmetrize)
+    hil_y = np.imag(ft.hilbert(sig_y, symmetrize=symmetrize))
+    assert np.allclose(rx, 0)
+    assert np.allclose(ry, hil_y[:, np.newaxis])
+
+
+@pytest.mark.parametrize("shape", shapes_to_test)
+@pytest.mark.parametrize("symmetrize", [False, True])
+def test_riesz2d_transpose(shape, symmetrize):
+    # exchanging the roles of x and y exchanges R_x and R_y
+    x, y, sig = generate_sig2D(shape)
+    rx, ry = ft.riesz2d(sig, x=x, y=y, symmetrize=symmetrize)
+    rx_t, ry_t = ft.riesz2d(sig.T, x=y, y=x, symmetrize=symmetrize)
+    assert np.allclose(rx_t, ry.T) and np.allclose(ry_t, rx.T)
+
+
+@pytest.mark.parametrize("shape", shapes_to_test)
+def test_riesz2d_reversed_coordinates(shape):
+    # reversing an axis and its coordinates describes the same field
+    x, y, sig = generate_sig2D(shape)
+    rx, ry = ft.riesz2d(sig, x=x, y=y)
+    rx_r, ry_r = ft.riesz2d(sig[::-1, ::-1], x=x[::-1], y=y[::-1])
+    assert np.allclose(rx_r, rx[::-1, ::-1]) and np.allclose(ry_r, ry[::-1, ::-1])
+
+
+# odd shapes: no Nyquist component, so the identities below are exact
+@pytest.mark.parametrize("shape", [(63, 31), (17, 255), (21, 21)])
+def test_riesz2d_energy_and_square(shape):
+    x, y, sig = generate_sig2D(shape)
+    sig = sig - sig.mean()
+    rx, ry = ft.riesz2d(sig, x=x, y=y)
+    # |k_x/k|^2 + |k_y/k|^2 = 1: the energy is conserved
+    assert np.isclose(np.sum(rx**2 + ry**2), np.sum(sig**2))
+    # R_x^2 + R_y^2 = -Id
+    rxx, _ = ft.riesz2d(rx, x=x, y=y)
+    _, ryy = ft.riesz2d(ry, x=x, y=y)
+    assert np.allclose(rxx + ryy, -sig)
+
+
+@pytest.mark.parametrize("shape", shapes_to_test)
+def test_riesz2d_remove_mean(shape):
+    x, y, sig = generate_sig2D(shape)
+    rx, ry = ft.riesz2d(sig + 3., x=x, y=y, remove_mean=False)
+    rx0, ry0 = ft.riesz2d(sig, x=x, y=y)
+    # the k = 0 component is discarded anyway
+    assert np.allclose(rx, rx0) and np.allclose(ry, ry0)
+
+
+@pytest.mark.parametrize("shape", shapes_to_test)
+def test_riesz2d_symmetrize_output(shape):
+    x, y, sig = generate_sig2D(shape)
+    rx, ry = ft.riesz2d(sig, x=x, y=y, symmetrize=True)
+    assert rx.shape == sig.shape and ry.shape == sig.shape
+    assert np.isrealobj(rx) and np.isrealobj(ry)
+
+
+def test_riesz2d_invalid_input():
+    with pytest.raises(ValueError):
+        ft.riesz2d(np.ones((8, 8), dtype=complex))
+    with pytest.raises(ValueError):
+        ft.riesz2d(np.ones(8))
+    with pytest.raises(ValueError):
+        ft.riesz2d(np.ones((4, 4, 4)))
+

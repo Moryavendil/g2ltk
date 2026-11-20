@@ -264,6 +264,85 @@ def ift2d(sig_hat: complexarray2D, xdual: Optional[np.ndarray] = None, ydual: Op
     return fft.ifft2(np.fft.ifftshift(sig_hat), norm=norm) * span(xdual) * span(ydual)
 
 
+### Riesz transform
+def riesz2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Optional[floatarray1D] = None,
+            symmetrize: bool = False, remove_mean: bool = True) -> Tuple[floatarray2D, floatarray2D]:
+    """
+    Returns the two components (R_x, R_y) of the Riesz transform of a real 2-D array.
+
+    The Riesz transform is the 2-D generalization of the Hilbert transform. Its components are defined
+    in Fourier space by
+        FT[R_x f](k) = -i k_x / |k| FT[f](k)    and    FT[R_y f](k) = -i k_y / |k| FT[f](k).
+    For an array that only varies along x, R_x is the Hilbert transform of each row
+    (the imaginary part of the analytic signal, see FFT1D.hilbert) and R_y is 0.
+
+    For a plane wave A cos(k.r + phi), R_x = A sin(k.r + phi) k_x/|k| and R_y = A sin(k.r + phi) k_y/|k|.
+    (f, R_x f, R_y f) is the monogenic signal: f = A cos(phi), R_x f = A sin(phi) cos(theta),
+    R_y f = A sin(phi) sin(theta), with A the local amplitude, phi the local phase and theta the local orientation.
+
+    The ratios k_x/|k|, k_y/|k| are computed with the physical frequencies, so the result depends on the steps
+    of x and y when they differ: give them if the grid is not square.
+
+    The components of the Nyquist frequency (along x for R_x, along y for R_y), for which the transform
+    of a real signal cannot be real, are set to 0.
+
+    Parameters
+    ----------
+    arr
+        Real array, shaped (len(y), len(x))
+    x
+        Coordinates along axis 1. Only its step is used (1 if not given).
+    y
+        Coordinates along axis 0. Only its step is used (1 if not given).
+    symmetrize : bool, optional
+        If True, the array is mirrored along both axes (giving a 4 times bigger array) before the transform,
+        to remove the discontinuities at the boundaries. This forces the phase to 0 or pi near the edges.
+        Default is False.
+    remove_mean : bool, optional
+        Default is True
+
+    Returns
+    -------
+    (R_x, R_y)
+        Two real arrays shaped like arr
+    """
+    fname = 'riesz2d'
+    arr = np.asarray(arr)
+    if arr.ndim != 2:
+        raise ValueError(f'{fname}: expected a 2-D array, got an array of shape {arr.shape}')
+    if np.iscomplexobj(arr):
+        raise ValueError(f'{fname}: the Riesz transform is only implemented for real arrays')
+    customlog.log_trace(f'{fname}: Computing the Riesz transform of array of shape {arr.shape}')
+    _check_shapes_2d(fname, arr, x, y)
+
+    N0, N1 = arr.shape
+    arr_prepared = arr.astype(float)
+    if symmetrize:
+        arr_prepared = np.block([[arr_prepared, arr_prepared[:, ::-1]],
+                                 [arr_prepared[::-1, :], arr_prepared[::-1, ::-1]]])
+    if remove_mean:
+        arr_prepared -= arr_prepared.mean()
+    M0, M1 = arr_prepared.shape
+
+    # physical frequencies, in the layout of rfft2 (unshifted, half spectrum along axis 1 <-> x)
+    ky = np.expand_dims(fft.fftfreq(M0, d=step(y)), axis=1)
+    kx = np.expand_dims(fft.rfftfreq(M1, d=step(x)), axis=0)
+    knorm = np.hypot(kx, ky)
+    knorm[0, 0] = 1.  # the k = 0 component is set to 0 below
+    mult_x = -1j * kx / knorm
+    mult_y = -1j * ky / knorm
+    mult_x[0, 0] = mult_y[0, 0] = 0.
+    if M1 % 2 == 0:
+        mult_x[:, -1] = 0.
+    if M0 % 2 == 0:
+        mult_y[M0 // 2, :] = 0.
+
+    arr_hat = fft.rfft2(arr_prepared)
+    riesz_x = fft.irfft2(arr_hat * mult_x, s=(M0, M1))[:N0, :N1]
+    riesz_y = fft.irfft2(arr_hat * mult_y, s=(M0, M1))[:N0, :N1]
+    return riesz_x, riesz_y
+
+
 ### Power:
 from .FFT1D import window_factor1d
 
