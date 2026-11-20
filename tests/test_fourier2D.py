@@ -819,3 +819,83 @@ def test_monogenic2d_matches_monogenic1d(shape, symmetrize):
     assert np.allclose(orientation, np.pi/2)
     assert np.allclose(wrapped(phase - phase_1d[:, np.newaxis]), 0)
 
+
+### LOCAL FREQUENCY
+
+@pytest.mark.parametrize("N0, N1, dy, dx, kx, ky", monogenic_waves_to_test)
+@pytest.mark.parametrize("orientation_reference", orientation_references_to_test)
+def test_local_frequency2d_plane_wave(N0, N1, dy, dx, kx, ky, orientation_reference):
+    x, y, fx0, fy0, sig, phase_wave, theta, sign, ambiguous = \
+        plane_wave_monogenic(N0, N1, dy, dx, kx, ky, orientation_reference)
+    fx, fy = ft.local_frequency2d(sig, x=x, y=y, orientation_reference=orientation_reference)
+    error_plus = np.hypot(fx - fx0, fy - fy0)
+    error_minus = np.hypot(fx + fx0, fy + fy0)
+    if ambiguous:
+        # the sign of the wave vector is set by rounding errors
+        assert np.allclose(np.minimum(error_plus, error_minus), 0, atol=1e-10)
+    else:
+        assert np.allclose(error_plus if sign == 1 else error_minus, 0, atol=1e-10)
+
+
+def smooth_sig1D(N):
+    # a smooth periodic signal (a few low modes)
+    n = np.arange(N)
+    return np.cos(2*np.pi*3*n/N + 0.4) + 0.6*np.cos(2*np.pi*5*n/N + 0.7) + 0.2*np.sin(2*np.pi*2*n/N)
+
+
+@pytest.mark.parametrize("shape", shapes_to_test)
+@pytest.mark.parametrize("symmetrize", [False, True])
+def test_local_frequency2d_matches_local_frequency1d(shape, symmetrize):
+    N0, N1 = shape
+    x = np.arange(N1) * 0.13
+    y = np.arange(N0) * 0.41
+
+    # varying along x
+    sig_x = smooth_sig1D(N1)
+    fx, fy = ft.local_frequency2d(np.tile(sig_x, (N0, 1)), x=x, y=y, symmetrize=symmetrize)
+    assert np.allclose(fx, ft.local_frequency1d(sig_x, x=x, symmetrize=symmetrize)[np.newaxis, :])
+    assert np.allclose(fy, 0)
+
+    # varying along y (with orientation_reference = pi/2, so that the sign is well-defined)
+    sig_y = smooth_sig1D(N0)
+    fx, fy = ft.local_frequency2d(np.tile(sig_y[:, np.newaxis], (1, N1)), x=x, y=y, symmetrize=symmetrize,
+                                  orientation_reference=np.pi/2)
+    assert np.allclose(fx, 0)
+    assert np.allclose(fy, ft.local_frequency1d(sig_y, x=y, symmetrize=symmetrize)[:, np.newaxis])
+
+
+@pytest.mark.parametrize("symmetrize", [False, True])
+def test_local_frequency2d_curved_fringes(symmetrize):
+    # curved fringes cos(2 pi (a x^2 + b y)), on a grid with dx != dy: the local wave vector is (2 a x, b).
+    # x is centered on 0, so that the wave vector is along y at x = 0, where it crosses the edge of the default
+    # convention (orientation_reference = 0): its sign then flips.
+    N0, N1 = 160, 200
+    x = (np.arange(N1) - N1 // 2) * 0.05
+    y = np.arange(N0) * 0.08
+    Y, X = np.meshgrid(y, x, indexing='ij')
+    a, b = 0.15, 1.1
+    sig = np.cos(2*np.pi*(a*X**2 + b*Y) + 0.3)
+    fx_expected, fy_expected = 2*a*X, b * np.ones_like(X)
+    inside = (slice(N0//8, -N0//8), slice(N1//8, -N1//8))  # away from the boundary effects of the transform
+    # (the mirroring of symmetrize=True forces the phase to 0 or pi at the edges, which reaches further inside)
+
+    # orientation_reference = pi/2, along the wave vector: no flip
+    fx, fy = ft.local_frequency2d(sig, x=x, y=y, symmetrize=symmetrize, orientation_reference=np.pi/2)
+    assert np.abs(fx - fx_expected)[inside].max() < 0.02
+    assert np.abs(fy - fy_expected)[inside].max() < 0.04
+
+    # orientation_reference = 0: the wave vector is the one with fx >= 0
+    fx, fy = ft.local_frequency2d(sig, x=x, y=y, symmetrize=symmetrize)
+    sign = np.where(X >= 0, 1, -1)
+    away_from_flip = np.abs(X) > 0.2
+    assert np.abs(fx - sign*fx_expected)[inside][away_from_flip[inside]].max() < 0.02
+    assert np.abs(fy - sign*fy_expected)[inside][away_from_flip[inside]].max() < 0.04
+
+
+@pytest.mark.parametrize("shape", shapes_to_test)
+def test_local_frequency2d_transpose(shape):
+    # exchanging the roles of x and y exchanges f_x and f_y (and theta -> pi/2 - theta)
+    x, y, sig = generate_sig2D(shape)
+    fx, fy = ft.local_frequency2d(sig, x=x, y=y, orientation_reference=0.3)
+    fx_t, fy_t = ft.local_frequency2d(sig.T, x=y, y=x, orientation_reference=np.pi/2 - 0.3)
+    assert np.allclose(fx_t, fy.T) and np.allclose(fy_t, fx.T)

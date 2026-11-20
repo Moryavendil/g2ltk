@@ -426,6 +426,101 @@ def monogenic2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Optional
     return amplitude, phase, orientation
 
 
+def _phase_vector_derivative(f: floatarray2D, riesz_x: floatarray2D, riesz_y: floatarray2D,
+                             axis: int) -> Tuple[floatarray2D, floatarray2D]:
+    # derivative of the phase vector phi * n along axis, per sample, returned as its (x, y) components.
+    # Between neighbours m and m+1, the unit monogenic vectors (f, R f) / A are rotated by the phase difference
+    # dphi, around a direction given by n:
+    #     w = f_m (R f)_{m+1} - (R f)_m f_{m+1} = A_m A_{m+1} sin(dphi) n
+    #     c = f_m f_{m+1} + (R f)_m . (R f)_{m+1} = A_m A_{m+1} cos(dphi)
+    # so that dphi * n = atan2(|w|, c) w / |w|, which does not depend on the sign convention of (phi, n)
+    # and does not use the orientation at each point (which is noise where sin(phi) ~ 0).
+    # Central difference (mean of the forward and backward ones) inside, one-sided ones at the edges.
+    f, riesz_x, riesz_y = (np.moveaxis(a, axis, 0) for a in (f, riesz_x, riesz_y))
+    wx = f[:-1] * riesz_x[1:] - riesz_x[:-1] * f[1:]
+    wy = f[:-1] * riesz_y[1:] - riesz_y[:-1] * f[1:]
+    c = f[:-1] * f[1:] + riesz_x[:-1] * riesz_x[1:] + riesz_y[:-1] * riesz_y[1:]
+    wnorm = np.hypot(wx, wy)
+    scale = np.arctan2(wnorm, c) / np.where(wnorm > 0, wnorm, 1.) * (wnorm > 0)
+
+    derivatives = []
+    for difference in (wx * scale, wy * scale):  # differences between m and m+1
+        derivative = np.empty_like(f)
+        derivative[0] = difference[0]
+        derivative[-1] = difference[-1]
+        derivative[1:-1] = (difference[1:] + difference[:-1]) / 2
+        derivatives.append(np.moveaxis(derivative, 0, axis))
+    return derivatives[0], derivatives[1]
+
+
+def local_frequency2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Optional[floatarray1D] = None,
+                      symmetrize: bool = False, remove_mean: bool = True,
+                      orientation_reference: float = 0.) -> Tuple[floatarray2D, floatarray2D]:
+    """
+    Returns the local wave vector (f_x, f_y) of a real 2-D array, i.e. grad(phi) / (2 pi) with phi the local phase
+    of the monogenic signal (see monogenic2d).
+
+    The unit is the inverse of the unit of x and y (cycles per unit length, as dual2d):
+    for a plane wave cos(2 pi (fx0 x + fy0 y) + phi0), (f_x, f_y) = (fx0, fy0).
+
+    The wave vector of a real wave is only defined up to its sign: the one returned has an orientation within pi/2
+    of orientation_reference (see monogenic2d), i.e. it is (fx0, fy0) or (-fx0, -fy0) for a plane wave.
+
+    Method
+    ------
+    The phase is not unwrapped, and the orientation given by monogenic2d is not used (it is noise where
+    sin(phi) ~ 0). Instead, the derivatives of the phase vector phi * n (n = (cos(theta), sin(theta))) along x and y
+    are computed from the rotation of the unit monogenic vector (f, R_x f, R_y f) / A between neighbours, which
+    does not depend on the sign convention. Central differences are used inside, one-sided ones at the edges.
+    This gives the tensor J_ej = d(phi)/de n_j, which for a locally 1-D signal is |k| n_e n_j:
+    the wave vector is the eigenvector of (the symmetric part of) J with the largest eigenvalue (in absolute value),
+    scaled by this eigenvalue. Its norm is the local frequency, and is negative where the phase decreases along n
+    (which happens where the amplitude is small).
+
+    The result is exact for a plane wave as long as the phase changes by less than pi between neighbours
+    (i.e. below the Nyquist frequency along each axis). For an array that only varies along x,
+    f_x is the local frequency given by FFT1D.local_frequency1d and f_y = 0.
+    Where the amplitude is small (or the signal is not locally 1-D), the local wave vector is not meaningful.
+
+    Parameters
+    ----------
+    arr
+        Real array, shaped (len(y), len(x))
+    x
+        Coordinates along axis 1. Only its step is used (1 if not given).
+    y
+        Coordinates along axis 0. Only its step is used (1 if not given).
+    symmetrize : bool, optional
+        See riesz2d. Default is False.
+    remove_mean : bool, optional
+        Default is True
+    orientation_reference : float, optional
+        See monogenic2d. Default is 0.
+
+    Returns
+    -------
+    (f_x, f_y)
+        Two real arrays shaped like arr
+    """
+    f, riesz_x, riesz_y, _ = _monogenic2d_components(arr, x, y, symmetrize, remove_mean, orientation_reference)
+    jxx, jxy = _phase_vector_derivative(f, riesz_x, riesz_y, axis=1)
+    jyx, jyy = _phase_vector_derivative(f, riesz_x, riesz_y, axis=0)
+    jxx, jxy = jxx / step(x), jxy / step(x)
+    jyx, jyy = jyx / step(y), jyy / step(y)
+
+    # eigen-decomposition of the symmetric part [[a, b], [b, c]] of J
+    a, b, c = jxx, (jxy + jyx) / 2, jyy
+    mean, radius = (a + c) / 2, np.hypot((a - c) / 2, b)
+    angle = np.arctan2(2 * b, a - c) / 2  # orientation of the eigenvector of the eigenvalue mean + radius
+    largest_is_positive = mean >= 0
+    eigenvalue = np.where(largest_is_positive, mean + radius, mean - radius)
+    orientation = _fold_orientation(np.where(largest_is_positive, angle, angle + np.pi / 2), orientation_reference)
+
+    wavevector_x = eigenvalue * np.cos(orientation)
+    wavevector_y = eigenvalue * np.sin(orientation)
+    return wavevector_x / (2 * np.pi), wavevector_y / (2 * np.pi)
+
+
 ### Power:
 from .FFT1D import window_factor1d
 

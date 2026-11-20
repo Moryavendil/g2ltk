@@ -658,6 +658,39 @@ def monogenic1d(sig: floatarray1D, symmetrize: bool = False,
     return np.abs(analytic), np.angle(analytic)
 
 
+def local_frequency1d(sig: floatarray1D, x: Optional[floatarray1D] = None, symmetrize: bool = False,
+                      remove_mean: bool = True) -> floatarray1D:
+    """
+    Returns the local frequency d(phase)/dx / (2 pi) of a real signal, with phase the local phase given by monogenic1d.
+
+    The unit is the inverse of the unit of x (cycles per unit of x, as dual1d):
+    for a wave cos(2 pi f0 x + phi0), the local frequency is |f0|.
+
+    The phase is unwrapped, then differentiated with np.gradient (central differences inside,
+    one-sided ones at the edges). This is exact for a wave on a regular grid, as long as the phase changes by less
+    than pi between neighbours (i.e. below the Nyquist frequency).
+
+    Where the amplitude is small, the local frequency is not meaningful (it can even be negative).
+
+    Parameters
+    ----------
+    sig
+    x
+        Coordinates of the signal (can be irregularly spaced). If not given, the spacing is 1.
+    symmetrize : bool, optional
+        See hilbert. Default is False.
+    remove_mean : bool, optional
+        Default is True
+
+    Returns
+    -------
+    The local frequency, shaped like sig
+    """
+    _, phase = monogenic1d(sig, symmetrize=symmetrize, remove_mean=remove_mean)
+    dphase = np.gradient(np.unwrap(phase)) if x is None else np.gradient(np.unwrap(phase), x)
+    return dphase / (2 * np.pi)
+
+
 def synchronous_enveloppe_detection(sig, x: Optional[floatarray1D] = None, frequency: Optional[float] = None,
                                     phase: Optional[float] = None) -> floatarray1D:
     """

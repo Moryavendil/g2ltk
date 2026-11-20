@@ -196,3 +196,34 @@ def test_monogenic1d_wave(N, k):
     amplitude, phase = ft.monogenic1d(1.3 * np.cos(phase_wave))
     assert np.allclose(amplitude, 1.3)
     assert np.allclose(np.angle(np.exp(1j*(phase - phase_expected))), 0, atol=1e-10)
+
+
+@pytest.mark.parametrize("N", N_to_test)
+@pytest.mark.parametrize("k", [1, 3, -5])
+def test_local_frequency1d_wave(N, k):
+    x = np.arange(N) * 0.13
+    sig = np.cos(2*np.pi*k*np.arange(N)/N + 0.7)
+    assert np.allclose(ft.local_frequency1d(sig, x=x), abs(k) / ft.span(x))
+    assert np.allclose(ft.local_frequency1d(sig), abs(k) / N)
+
+
+@pytest.mark.parametrize("symmetrize", [False, True])
+def test_local_frequency1d_chirp(symmetrize):
+    # linear chirp: the local frequency is f0 + alpha x
+    N = 512
+    x = np.arange(N) * 0.02
+    f0, alpha = 2., 0.8
+    sig = np.cos(2*np.pi*(f0*x + alpha*x**2/2))
+    local_frequency = ft.local_frequency1d(sig, x=x, symmetrize=symmetrize)
+    inside = slice(N//8, -N//8)  # away from the boundary effects of the transform
+    assert np.allclose(local_frequency[inside], (f0 + alpha*x)[inside], rtol=0.01)
+
+
+def test_local_frequency1d_irregular_x():
+    # the derivative is taken with respect to x, even if it is irregularly spaced
+    N = 256
+    sig = np.cos(2*np.pi*4*np.arange(N)/N)
+    x = np.arange(N) * 0.1
+    x_irregular = x + 0.02*np.sin(2*np.pi*np.arange(N)/N)
+    assert np.allclose(ft.local_frequency1d(sig, x=x_irregular),
+                       np.gradient(2*np.pi*4*np.arange(N)/N, x_irregular) / (2*np.pi))
