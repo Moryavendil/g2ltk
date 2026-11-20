@@ -15,7 +15,7 @@ Subregion = Optional[
 def alert_me_if_there_is_no_video(acquisition_path: str) -> None:
     if not (is_this_a_video(acquisition_path)):
         for i in range(10):
-            customlog.log_warn(f'No video named {acquisition_path} exists !')
+            customlog.log_warning(f'No video named {acquisition_path} exists !')
 
 def is_this_a_video(acquisition_path: str) -> bool:
     """
@@ -92,7 +92,7 @@ def find_available_videos(dataset_path: Optional[str] = None, dataset: Optional[
     if dataset is None:
         dataset = find_default_dataset(root_path)
     if dataset_path is not None:
-        customlog.log_warn('find_available_videos: Passing a path directly is deprecated')
+        customlog.log_warning('find_available_videos: Passing a path directly is deprecated')
     else:
         dataset_path = generate_dataset_path(dataset, root_path=root_path)
 
@@ -183,7 +183,7 @@ def find_default_dataset(root_path: Optional[str]):
         dataset = available_datasets[0]
         customlog.log_info(f'Auto-selected dataset {dataset}')
     elif len(available_datasets) > 1:
-        customlog.log_warn(f'Several datasets available: {available_datasets}')
+        customlog.log_warning(f'Several datasets available: {available_datasets}')
         dataset = available_datasets[0]
         customlog.log_info(f'Auto-selected dataset {dataset}')
     else:
@@ -194,7 +194,7 @@ def find_dataset(dataset: Optional[str] = None, root_path: Optional[str] = None)
     if dataset is None:
         dataset = find_default_dataset(root_path)
     if not is_this_a_dataset(dataset, root_path=root_path):
-        customlog.log_warn(f'Is not a dataset: {dataset}')
+        customlog.log_warning(f'Is not a dataset: {dataset}')
     return dataset
 
 def generate_dataset_path(dataset: Optional[str] = None, root_path: Optional[str] = None):
@@ -212,18 +212,18 @@ def describe_dataset(dataset_path: Optional[str] = None, dataset: Optional[str] 
         global __ROOT_PATH__
         root_path = __ROOT_PATH__
     if dataset_path is not None:
-        customlog.log_warn('describe_dataset: Passing a path directly is deprecated')
+        customlog.log_warning('describe_dataset: Passing a path directly is deprecated')
     customlog.log_trace(f'describe_dataset: dataset {dataset} from root path {root_path}')
     if dataset is None:
         dataset = find_default_dataset(root_path)
     customlog.log_info(f'Dataset: {dataset}')
     customlog.log_trace(f'Dataset: {dataset} (root path: {root_path})')
     if not is_this_a_dataset(dataset, root_path=root_path):
-        customlog.log_warn(f'Does not seem to be a valid dataset!')
+        customlog.log_warning(f'Does not seem to be a valid dataset!')
     available_acquisitions = find_available_videos(dataset_path=dataset_path, dataset=dataset, root_path=root_path,
                                                    videotype=videotype)
     if len(available_acquisitions) == 0:
-        customlog.log_warn(
+        customlog.log_warning(
             f'No videos {"" if videotype is None else f"of type {videotype} "} found in dataset {dataset} ({root_path})!')
         return
     if makeitshort:
@@ -253,7 +253,7 @@ def find_default_acquisition(dataset: Optional[str] = None, root_path:Optional[s
         acquisition = available_videos[0]
         customlog.log_info(f'Auto-selected acquisition {acquisition}')
     elif len(available_videos) > 1:
-        customlog.log_warn(f'Several acquisitions available: {available_videos}')
+        customlog.log_warning(f'Several acquisitions available: {available_videos}')
         acquisition = available_videos[0]
         customlog.log_info(f'Auto-selected acquisition {acquisition}')
     else:
@@ -263,7 +263,7 @@ def generate_acquisition_path(acquisition: str, dataset: Optional[str] = None, r
     dataset_path = generate_dataset_path(dataset, root_path=root_path)
     acquisition_path = os.path.join(dataset_path, acquisition)
     if not is_this_a_video(acquisition_path):
-        customlog.log_warn(f'There is no video named {acquisition} in {dataset}')
+        customlog.log_warning(f'There is no video named {acquisition} in {dataset}')
     return acquisition_path
 
 def describe_acquisition(dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None,
@@ -462,7 +462,7 @@ def missing_frames(acquisition_path: str) -> List:
     if is_this_a_gcv(acquisition_path):
         return missing_framenumbers_gcv(acquisition_path)
     else:
-        customlog.log_warn(f'Could not deduce the number of missing frames for video {acquisition_path}')
+        customlog.log_warning(f'Could not deduce the number of missing frames for video {acquisition_path}')
     return []
 
 def missing_frames_in_framenumbers(acquisition_path: str, framenumbers: Optional[np.ndarray] = None) -> List:
@@ -560,7 +560,7 @@ def get_frames(acquisition_path: str, framenumbers: Framenumbers = None, subregi
         return None
     framenumbers = format_framenumbers(acquisition_path, framenumbers)
     if framenumbers is None:
-        customlog.log_warn(f"No framenumbers specified: could not get frames for {acquisition_path}")
+        customlog.log_warning(f"No framenumbers specified: could not get frames for {acquisition_path}")
         return None
 
     # Retrieve the frames
@@ -596,11 +596,11 @@ def get_frame(acquisition_path: str, framenumber: Optional[int], subregion: Subr
         customlog.log_error(f"There is no video at {acquisition_path}. Could not get frame {framenumber}.")
         return None
     if framenumber is None:
-        customlog.log_warn(f"No framenumber specified: could not get frame for {acquisition_path}")
+        customlog.log_warning(f"No framenumber specified: could not get frame for {acquisition_path}")
         return None
     frames = get_frames(acquisition_path, np.array([framenumber]), subregion=subregion)
     if frames is None:
-        customlog.log_warn(f"Could not get frame {framenumber} for {acquisition_path}")
+        customlog.log_warning(f"Could not get frame {framenumber} for {acquisition_path}")
         return None
     return frames[0]
 

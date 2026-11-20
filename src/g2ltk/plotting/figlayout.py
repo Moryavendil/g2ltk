@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from . import in_per_mm
 from g2ltk.plotting import in_per_mm
-from g2ltk import log_error, log_warn, log_info, log_debug, log_trace, log_subtrace
+from g2ltk import log_error, log_warning, log_info, log_debug, log_trace, log_subtrace
 
 
 

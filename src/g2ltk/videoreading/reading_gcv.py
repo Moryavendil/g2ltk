@@ -348,21 +348,21 @@ def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, e
         print('End frame < 0')
         return None
     if end_framenumber > last_framenumber:
-        customlog.log_warning(f'The requested end frame ({end_framenumber}) is after the last recorded frame ({last_framenumber}).', verbose=verbose)
-        customlog.log_warning(f'Changing the end frame to {last_framenumber}. You might get less frames than expected.', verbose=verbose)
+        customlog.log_warning(f'The requested end frame ({end_framenumber}) is after the last recorded frame ({last_framenumber}).')
+        customlog.log_warning(f'Changing the end frame to {last_framenumber}. You might get less frames than expected.')
         end_framenumber = last_framenumber
 
     ### Check for missing frames
     missing_framenumbers = identify_missing_framenumbers(all_framenumbers, verbose=verbose)
     if not len(missing_framenumbers) == 0:
-        customlog.log_warning(f'There are missing frames ! Frames {list(missing_framenumbers)} are missing.', verbose=verbose)
+        customlog.log_warning(f'There are missing frames ! Frames {list(missing_framenumbers)} are missing.')
     # here MF means missing frame (abbreviated for code lisibility)
     MFs_after_start = missing_framenumbers >= start_framenumber
     MFs_before_end = missing_framenumbers <= end_framenumber
     MFs_in_requested_interval = MFs_after_start * MFs_before_end
     there_are_MFs_in_the_request_interval:bool = 1 in MFs_in_requested_interval
     if there_are_MFs_in_the_request_interval:
-        customlog.log_warning(f'There are missing frames in the requested interval. The returned frames will not be evenly spaced.', verbose=verbose)
+        customlog.log_warning(f'There are missing frames in the requested interval. The returned frames will not be evenly spaced.')
 
     frames_correctly_spaced = (all_framenumbers - start_framenumber) % interval == 0
     frames_after_start = all_framenumbers >= start_framenumber
@@ -383,7 +383,7 @@ def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, e
         # This happens either if
         # (a) there were missing frames (should be a warning before telling that from the index function) or
         # (b) something elsed foired in this function, a supplementary check should not hurt !
-        customlog.log_warning('STAMPS ARE NOT COHERENT WITH VIDEO', verbose=verbose)
+        customlog.log_warning('STAMPS ARE NOT COHERENT WITH VIDEO')
 
     return stamps_wanted
 

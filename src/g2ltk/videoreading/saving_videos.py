@@ -125,7 +125,7 @@ def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., 
 def convert_tiff_to_gcv(acquisition_path, acquisition_frequency, exposure_time, framenumbers=None, subregion=None):
     gcv_path = split_acquisition_path(acquisition_path)[0] + '_gcv' + '.gcv'
     if os.path.isdir(gcv_path):
-        customlog.log_warn(f'FILE "{gcv_path}" ALREADY EXISTS. Aborting.')
+        customlog.log_warning(f'FILE "{gcv_path}" ALREADY EXISTS. Aborting.')
         return
     os.makedirs(gcv_path)
     metafilepath = os.path.join(gcv_path, 'metainfo.meta')

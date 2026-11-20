@@ -417,16 +417,16 @@ def borders_framewise(frame:np.ndarray, prominence:float = 1, do_fit:bool=False,
     zdiff:np.ndarray = np.abs(z1 - z2)
     space_ok = zdiff < kwargs['max_rivulet_width']
     if (1 - space_ok).sum() > 0:
-        customlog.log_warning(f'Too spaced away (> {kwargs["max_rivulet_width"]} resized px): {(1 - space_ok).sum()} pts', verbose=kwargs['verbose'])
+        customlog.log_warning(f'Too spaced away (> {kwargs["max_rivulet_width"]} resized px): {(1 - space_ok).sum()} pts')
 
     # remove too different peaks
     ydiff:np.ndarray = np.abs(y1 - y2)
     ydiff_ok = ydiff < kwargs['max_borders_luminosity_difference']
     if (1 - ydiff_ok).sum() > 0:
-        customlog.log_warning(f'Border framewise collapse: max_borders_luminosity_difference not respected', verbose=kwargs['verbose'])
-        customlog.log_subinfo(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1 - ydiff_ok).sum()} pts', verbose=kwargs['verbose'])
-        customlog.log_debug(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): min = {ydiff.min()} | median = {np.median(ydiff)} |  max = {ydiff.max()} ', verbose=kwargs['verbose'])
-        customlog.log_subtrace(f'Bad values: {ydiff[~ydiff_ok]}', verbose=kwargs['verbose'])
+        customlog.log_warning(f'Border framewise collapse: max_borders_luminosity_difference not respected')
+        customlog.log_subinfo(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1 - ydiff_ok).sum()} pts')
+        customlog.log_debug(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): min = {ydiff.min()} | median = {np.median(ydiff)} |  max = {ydiff.max()} ')
+        customlog.log_subtrace(f'Bad values: {ydiff[~ydiff_ok]}')
 
     # There are 2 peaks
     deuxmax = space_ok * ydiff_ok
@@ -975,7 +975,7 @@ def find_borders(**parameters):
         if (framenumber+1)%5 == 0:
             force_print(f'Borders finding ({round(100*(framenumber+1)/length, 2)} %)', end = '\r')
     force_print(f'', end = '\r')
-    customlog.log_debug(f'Borders found', verbose=parameters['verbose'])
+    customlog.log_debug(f'Borders found')
 
     return brds
 
@@ -1003,7 +1003,7 @@ def find_bol(verbose:int = 1, **parameters):
         if (framenumber+1)%5 == 0:
             force_print(f'BOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
     force_print(f'', end = '\r')
-    customlog.log_debug(f'BOL computed', verbose=parameters['verbose'])
+    customlog.log_debug(f'BOL computed')
 
     return rivs
 
@@ -1030,7 +1030,7 @@ def find_fwhmol(verbose:int = 1, **parameters):
         if (framenumber+1)%5 == 0:
             force_print(f'FWHMOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
     force_print(f'', end = '\r')
-    customlog.log_debug(f'FWHMOL computed', verbose=parameters['verbose'])
+    customlog.log_debug(f'FWHMOL computed')
 
     return ws
 
