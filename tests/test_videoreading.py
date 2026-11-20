@@ -268,3 +268,107 @@ def test_gcv_frames_are_the_raw_bytes():
     exp = EXPECTED['test_gcv']
     raw = np.fromfile(raw_path, dtype=np.uint8).reshape((exp['n_frames'], exp['height'], exp['width']))
     np.testing.assert_array_equal(all_frames('test_gcv'), raw)
+
+
+### ACQUISITION PATHS WITH AN EXTENSION
+
+EXTENSIONS = {'test_mp4': '.mp4', 'test_mkv': '.mkv', 'test_gcv': '.gcv'}
+
+
+@pytest.mark.parametrize('acquisition_path, expected', [
+    ('d/acq', ('d/acq', None)),
+    ('d/acq.gcv', ('d/acq', 'gcv')),
+    ('d/acq.gcv/', ('d/acq', 'gcv')),  # trailing separator, from tab completion
+    ('d/acq.mp4', ('d/acq', 'mp4')),
+    ('d/acq.mkv', ('d/acq', 'mkv')),
+    ('d/acq.MOV', ('d/acq', 'mov')),
+    ('d/acq.mov', ('d/acq', 'mov')),  # extensions are recognized case-insensitively
+    ('d/flow_1.5mlmin', ('d/flow_1.5mlmin', None)),  # unknown suffix: part of the name
+    ('d/flow_1.5mlmin.mp4', ('d/flow_1.5mlmin', 'mp4')),
+])
+def test_split_acquisition_path(acquisition_path, expected):
+    assert vr.split_acquisition_path(acquisition_path) == expected
+
+
+def test_video_path_for_type():
+    assert vr.video_path_for_type('d/acq', 'mp4') == 'd/acq.mp4'
+    assert vr.video_path_for_type('d/acq', 'mov') == 'd/acq.MOV'
+    assert vr.video_path_for_type('d/acq.mp4', 'mp4') == 'd/acq.mp4'
+    assert vr.video_path_for_type('d/acq.gcv/', 'gcv') == 'd/acq.gcv'
+    assert vr.video_path_for_type('d/acq.mp4', 'gcv') is None  # the extension names another type
+
+
+@pytest.mark.parametrize('acquisition', ACQUISITIONS)
+def test_acquisition_path_with_extension(acquisition):
+    path_with_extension = path_of(acquisition) + EXTENSIONS[acquisition]
+    exp = EXPECTED[acquisition]
+
+    assert vr.is_this_a_video(path_with_extension)
+    for videotype, is_this_a in TYPE_CHECKERS.items():
+        assert is_this_a(path_with_extension) == (videotype == exp['type']), videotype
+    assert not vr.is_this_a_t16(path_with_extension)
+    assert not vr.is_this_a_t8(path_with_extension)
+
+    assert vr.get_number_of_available_frames(path_with_extension) == exp['n_frames']
+    assert vr.get_geometry(path_with_extension) == (exp['n_frames'], exp['height'], exp['width'])
+    assert vr.get_acquisition_frequency(path_with_extension, unit='Hz') == pytest.approx(exp['fps'])
+    np.testing.assert_array_equal(vr.get_t_s(path_with_extension), vr.get_t_s(path_of(acquisition)))
+    np.testing.assert_array_equal(vr.get_frames(path_with_extension), all_frames(acquisition))
+
+
+def test_gcv_path_with_trailing_separator():
+    path = path_of('test_gcv') + '.gcv' + os.sep
+    assert vr.is_this_a_gcv(path)
+    np.testing.assert_array_equal(vr.get_frames(path), all_frames('test_gcv'))
+
+
+@pytest.mark.parametrize('acquisition', ACQUISITIONS)
+def test_acquisition_path_with_wrong_extension(acquisition):
+    for extension in EXTENSIONS.values():
+        if extension != EXTENSIONS[acquisition]:
+            assert not vr.is_this_a_video(path_of(acquisition) + extension)
+
+
+def make_dataset(tmp_path, links):
+    """Creates tmp_path/dataset with symlinks {name in the dataset: reference video in test_data}"""
+    dataset_path = tmp_path / 'dataset'
+    dataset_path.mkdir()
+    for name, filename in links.items():
+        (dataset_path / name).symlink_to(os.path.abspath(os.path.join(DATA_DIR, filename)))
+    return dataset_path
+
+
+def test_extension_selects_the_video_type(tmp_path):
+    # The same acquisition exists as a gcv and as a mp4: the extension chooses which one is read
+    dataset_path = make_dataset(tmp_path, {'both.gcv': 'test_gcv.gcv', 'both.mp4': 'test_mp4.mp4'})
+    both = str(dataset_path / 'both')
+
+    assert vr.get_number_of_available_frames(both) == EXPECTED['test_gcv']['n_frames']  # gcv comes first
+    assert vr.get_number_of_available_frames(both + '.gcv') == EXPECTED['test_gcv']['n_frames']
+    assert vr.get_number_of_available_frames(both + '.mp4') == EXPECTED['test_mp4']['n_frames']
+    assert not vr.is_this_a_gcv(both + '.mp4')
+    np.testing.assert_array_equal(vr.get_frames(both + '.mp4'), all_frames('test_mp4'))
+
+
+def test_acquisition_name_with_dots(tmp_path):
+    dataset_path = make_dataset(tmp_path, {'flow_1.5mlmin.mp4': 'test_mp4.mp4'})
+    assert vr.find_available_videos(dataset='dataset', root_path=str(tmp_path)) == ['flow_1.5mlmin']
+    for acquisition in ['flow_1.5mlmin', 'flow_1.5mlmin.mp4']:
+        assert vr.is_this_a_mp4(str(dataset_path / acquisition))
+        assert vr.get_number_of_available_frames(str(dataset_path / acquisition)) == EXPECTED['test_mp4']['n_frames']
+
+
+def test_generate_acquisition_path_with_extension(tmp_path):
+    make_dataset(tmp_path, {'acq.mp4': 'test_mp4.mp4'})
+    acquisition_path = vr.generate_acquisition_path('acq.mp4', dataset='dataset', root_path=str(tmp_path))
+    assert acquisition_path == os.path.join(str(tmp_path), 'dataset', 'acq.mp4')
+    assert vr.is_this_a_mp4(acquisition_path)
+
+
+def test_save_acquisition_with_extension_to_video(tmp_path):
+    dataset_path = make_dataset(tmp_path, {'acq.gcv': 'test_gcv.gcv'})
+    vr.save_acquisition_to_video(str(dataset_path / 'acq.gcv'), do_timestamp=False, filetype='mkv')
+    # saved as 'acq.mkv', not 'acq.gcv.mkv'
+    assert os.path.isfile(dataset_path / 'acq.mkv')
+    assert not os.path.exists(dataset_path / 'acq.gcv.mkv')
+    assert vr.get_number_of_available_frames(str(dataset_path / 'acq.mkv')) == EXPECTED['test_gcv']['n_frames']

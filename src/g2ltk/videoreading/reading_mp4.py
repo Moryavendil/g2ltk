@@ -3,6 +3,8 @@ import numpy as np
 import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 
+from . import video_path_for_type
+
 from .. import customlog
 
 ###### LOSSY COMPRESSED VIDEO (mp4) READING
@@ -30,7 +32,9 @@ def capture_mp4(acquisition_path:str) -> Optional[Any]:
     # This only captures LOSSY COMPRESSED VIDEOS WITH CODEC H264 AND FILETYPE MP4
 
     # Check for existence
-    video_path = acquisition_path + '.mp4'
+    video_path = video_path_for_type(acquisition_path, 'mp4')
+    if video_path is None:
+        return None  # the acquisition path has the extension of another video type
 
     if not os.path.isfile(video_path):
         customlog.log_debug(f'No mov video named {video_path}')

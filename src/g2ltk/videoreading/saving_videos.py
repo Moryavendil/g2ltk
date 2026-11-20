@@ -7,7 +7,7 @@ from .. import force_print, throw_G2L_warning
 from .. import customlog
 
 from . import are_there_missing_frames, resize_frames, find_available_videos, get_frames, get_times, format_framenumbers
-from . import generate_acquisition_path
+from . import generate_acquisition_path, split_acquisition_path
 from . import is_this_a_gcv, is_this_a_t16
 
 # save videos for easyvisualisation
@@ -103,7 +103,8 @@ def save_acquisition_to_video(acquisition_path:str, do_timestamp:bool = True, fp
                         False # Use the bottom left as origin (invert image)
                         )
 
-    save_frames_to_video(acquisition_path, frames,
+    # Save next to the acquisition, without its extension if it has one ('acq.gcv' -> 'acq.mkv')
+    save_frames_to_video(split_acquisition_path(acquisition_path)[0], frames,
                          fps = fps, filetype=filetype, codec=codec, resize_factor=resize_factor)
 
 def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
@@ -122,7 +123,7 @@ def save_all_gcv_videos(dataset:str, do_timestamp:bool = True, fps:float = 25., 
 
 
 def convert_tiff_to_gcv(acquisition_path, acquisition_frequency, exposure_time, framenumbers=None, subregion=None):
-    gcv_path = acquisition_path + '_gcv' + '.gcv'
+    gcv_path = split_acquisition_path(acquisition_path)[0] + '_gcv' + '.gcv'
     if os.path.isdir(gcv_path):
         customlog.log_warn(f'FILE "{gcv_path}" ALREADY EXISTS. Aborting.')
         return

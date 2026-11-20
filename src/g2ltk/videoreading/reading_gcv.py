@@ -4,7 +4,7 @@ import os # to navigate in the directories
 
 from .. import customlog
 
-from . import are_there_missing_frames, format_framenumbers
+from . import are_there_missing_frames, format_framenumbers, video_path_for_type
 
 Meta = Dict[str, str]
 Stamps = Dict[str, np.ndarray]
@@ -16,6 +16,13 @@ def find_available_gcv(dataset_path:str) ->List[str]:
     available_acquisitions.sort()
     return available_acquisitions
 
+def gcv_path_of(acquisition_path: str) -> str:
+    """Path of the gcv folder of the acquisition. Raises if the acquisition path has the extension of another video type."""
+    gcv_path = video_path_for_type(acquisition_path, 'gcv')
+    if gcv_path is None:
+        raise ValueError(f'{acquisition_path} has the extension of another video type: it is not a gcv.')
+    return gcv_path
+
 def is_this_a_gcv(acquisition_path:str) -> bool:
     """
     Checks if there is a GevCapture Video (GCV) for the given dataset.
@@ -24,7 +31,8 @@ def is_this_a_gcv(acquisition_path:str) -> bool:
     :return:
     """
     customlog.log_subtrace(f'func: is_this_a_gcv ({acquisition_path})')
-    gcv_path = acquisition_path + '.gcv'
+    gcv_path = video_path_for_type(acquisition_path, 'gcv')
+    if gcv_path is None: return False  # the acquisition path has the extension of another video type
     # check that we indeed have a folder containing the right files
     if not os.path.isdir(gcv_path): return False
     # check that the folder contain the right number of files
@@ -108,7 +116,7 @@ def get_frames_gcv(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np
 ### META READING
 
 def retrieve_meta(acquisition_path: str) -> Meta:
-    gcv_path = acquisition_path + '.gcv'
+    gcv_path = gcv_path_of(acquisition_path)
     meta_filename = [f for f in os.listdir(gcv_path) if f.endswith('.meta')][0]
     meta_path = os.path.join(gcv_path, meta_filename)
     if not(os.path.isfile(meta_path)): raise(Exception(f'ERROR: Problem with the {acquisition_path} meta file (it does not exist).'))
@@ -166,7 +174,7 @@ def retrieve_stamps(acquisition_path:str) -> Stamps:
     """
     # get the info in the .stamps file
     # camera time is in ns and computer time in ms
-    gcv_path = acquisition_path + '.gcv'
+    gcv_path = gcv_path_of(acquisition_path)
     stamps_filename = [f for f in os.listdir(gcv_path) if f.endswith('.stamps')][0]
     stamps_path = os.path.join(gcv_path, stamps_filename)
     if not(os.path.isfile(stamps_path)): raise(Exception(f'ERROR: Problem with the {acquisition_path} stamps file (it does not exist).'))
@@ -383,7 +391,7 @@ def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, e
 ## RAWVIDEO READING
 
 def get_number_of_available_frames_rawvideo(acquisition_path: str) -> int:
-    gcv_path = acquisition_path + '.gcv'
+    gcv_path = gcv_path_of(acquisition_path)
 
     rawvideofiles = [f for f in os.listdir(gcv_path) if f.endswith('.raw')]
     if len(rawvideofiles) == 0:
@@ -423,7 +431,7 @@ def get_frames_rawvideo(acquisition_path:str, framenumbers:np.ndarray) -> Option
 
     frames = np.empty([length, height, width], np.uint8)
 
-    gcv_path = acquisition_path + '.gcv'
+    gcv_path = gcv_path_of(acquisition_path)
     rawvideo_filename = [f for f in os.listdir(gcv_path) if f.endswith('.raw')][0]
     rawvideo_path = os.path.join(gcv_path, rawvideo_filename)
     if not(os.path.isfile(rawvideo_path)): raise(Exception(f'ERROR: Problem with the {acquisition_path} rawvideo file (it does not exist).'))

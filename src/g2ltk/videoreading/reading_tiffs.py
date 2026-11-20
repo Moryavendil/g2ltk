@@ -4,6 +4,7 @@ import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 
 from .. import customlog
+from . import split_acquisition_path
 
 ###### TIFF 16-BITS VIDEO (t16) READING
 from PIL import Image
@@ -32,6 +33,10 @@ def is_this_a_tiff(acquisition_path: str) -> bool:
     :param acquisition_path:
     :return:
     """
+    if split_acquisition_path(acquisition_path)[1] is not None:
+        # The acquisition path has the extension of another video type (e.g. a gcv folder)
+        return False
+
     if not os.path.isdir(acquisition_path):
         # Not a directory
         return False

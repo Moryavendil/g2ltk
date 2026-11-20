@@ -1,3 +1,4 @@
+import os
 from typing import Optional, Tuple, List, Union
 
 import cv2
@@ -41,6 +42,46 @@ def is_this_a_video(acquisition_path: str) -> bool:
 
 # Video types that find_available_videos can look for ('mkv' is a losslessly compressed video, with codec FFV1)
 VIDEOTYPES = ['gcv', 't16', 't8', 'mkv', 'mp4', 'mov']
+
+# Extension of each video type stored as a file or folder with an extension (tiffs are folders without extension)
+VIDEO_EXTENSIONS = {'gcv': '.gcv', 'mkv': '.mkv', 'mp4': '.mp4', 'mov': '.MOV'}
+
+def split_acquisition_path(acquisition_path: str) -> Tuple[str, Optional[str]]:
+    """
+    Splits an acquisition path into the path without the video extension and the video type the extension names.
+
+    Acquisition paths are usually given without extension ('dataset/acq'), but can also include one ('dataset/acq.mp4').
+    Only known video extensions are recognized (case-insensitively), so that acquisition names containing dots
+    ('flow_1.5mlmin') are kept whole. A trailing separator ('dataset/acq.gcv/', from tab completion) is ignored.
+
+    :param acquisition_path:
+    :return: (acquisition path without extension, video type named by the extension or None)
+    """
+    acquisition_path = acquisition_path.rstrip('/\\') or acquisition_path
+    base, extension = os.path.splitext(acquisition_path)
+    for videotype, video_extension in VIDEO_EXTENSIONS.items():
+        if extension.lower() == video_extension.lower():
+            return base, videotype
+    return acquisition_path, None
+
+def video_path_for_type(acquisition_path: str, videotype: str) -> Optional[str]:
+    """
+    Path of the file (or folder, for gcv) holding the video of the given type for this acquisition path.
+
+    If the acquisition path has no extension, the extension of the video type is appended.
+    If it has the extension of this video type, it is used as is.
+    If it has the extension of another video type, there is no video of this type: returns None.
+
+    :param acquisition_path:
+    :param videotype: one of the keys of VIDEO_EXTENSIONS
+    :return:
+    """
+    base, explicit_videotype = split_acquisition_path(acquisition_path)
+    if explicit_videotype is None:
+        return base + VIDEO_EXTENSIONS[videotype]
+    if explicit_videotype == videotype:
+        return acquisition_path.rstrip('/\\') or acquisition_path
+    return None
 
 def find_available_videos(dataset_path: Optional[str] = None, dataset: Optional[str] = None,
                           root_path: Optional[str] = None,

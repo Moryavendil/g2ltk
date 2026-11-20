@@ -3,6 +3,8 @@ import numpy as np
 import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 
+from . import video_path_for_type
+
 ###### LOSSLESSLY COMPRESSED VIDEO (mkv, codec FFV1) READING
 
 def find_available_mkv(dataset_path: str) ->List[str]:
@@ -28,7 +30,9 @@ def capture_mkv(acquisition_path:str) -> Optional[Any]:
     # This only captures LOSSLESSY COMPRESSED VIDEOS WITH CODEC FFV1 AND FILETYPE MKV
 
     # Check for existence
-    video_path = acquisition_path + ".mkv"
+    video_path = video_path_for_type(acquisition_path, 'mkv')
+    if video_path is None:
+        return None  # the acquisition path has the extension of another video type
 
     if not os.path.isfile(video_path):
         #Todo: ERROR here
