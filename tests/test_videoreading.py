@@ -36,10 +36,8 @@ pytestmark = pytest.mark.skipif(not os.path.isdir(DATA_DIR), reason=f'No test da
 @pytest.fixture(autouse=True, scope='module')
 def quiet_logs():
     # missing_frames() warns for every non-gcv video: keep the test output readable
-    previous_verbose = customlog.__VERBOSE__
-    customlog.set_verbose('error')
-    yield
-    customlog.__VERBOSE__ = previous_verbose
+    with customlog.verbosity('error'):
+        yield
 
 
 def path_of(acquisition: str) -> str:
@@ -215,11 +213,8 @@ def test_describe_dataset_lists_types(tmp_path, capsys):
         extension = os.path.splitext(filename)[1]
         (dataset_path / (name + extension)).symlink_to(os.path.abspath(os.path.join(DATA_DIR, filename)))
 
-    customlog.set_verbose('info')
-    try:
+    with customlog.verbosity('info'):
         vr.describe_dataset(dataset='dataset', root_path=str(tmp_path))
-    finally:
-        customlog.set_verbose('error')
     output = capsys.readouterr().out
 
     assert "- 'test_gcv' (gcv)" in output

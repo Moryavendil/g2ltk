@@ -21,10 +21,8 @@ from g2ltk import customlog
 @pytest.fixture(autouse=True)
 def info_logs():
     # The tests below check the logged warnings and errors
-    previous_verbose = customlog.__VERBOSE__
-    customlog.set_verbose('info')
-    yield
-    customlog.__VERBOSE__ = previous_verbose
+    with customlog.verbosity('info'):
+        yield
 
 
 ### REGULAR SPACING, STEP AND SPAN

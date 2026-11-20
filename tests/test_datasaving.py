@@ -16,10 +16,8 @@ MODULES = [datasaving, rivulets_datasaving]
 
 @pytest.fixture(autouse=True)
 def quiet_logs():
-    previous_verbose = customlog.__VERBOSE__
-    customlog.set_verbose('error')
-    yield
-    customlog.__VERBOSE__ = previous_verbose
+    with customlog.verbosity('error'):
+        yield
 
 
 @pytest.fixture(params=MODULES, ids=['datasaving', 'rivulets.datasaving'])

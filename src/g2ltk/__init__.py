@@ -24,7 +24,7 @@ def throw_G2L_warning(text:str):
     warnings.warn('Warning: ' + text, category=G2LWarning, stacklevel=3
                   # skip_file_prefixes=_warn_skips # THIS ONLY WORKS FOR PYTHON >= 3.12
                   )
-    sys.stderr.flush() ; force_print('') # force to display warning at runtime
+    sys.stderr.flush()
 
 from .customlog import *
 
