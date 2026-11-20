@@ -522,7 +522,7 @@ def get_geometry(acquisition_path: str, framenumbers: Framenumbers = None, subre
         sampleframe = get_frame(acquisition_path, int(formatted_fns[0]), subregion=subregion)
 
         if sampleframe is None:
-            utility.log_error(f'Video {acquisition_path}: Could not get geometry (frame 0 unavailable)')
+            customlog.log_error(f'Video {acquisition_path}: Could not get geometry (frame 0 unavailable)')
             return None
     height, width = sampleframe.shape
 
