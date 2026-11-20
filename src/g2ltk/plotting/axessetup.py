@@ -3,7 +3,7 @@ import numpy as np
 from typing import Union, Tuple, Optional
 import math
 
-from g2ltk.peakfinder import step
+from g2ltk.arrtools import step
 from g2ltk.fourier import attenuate_power
 
 

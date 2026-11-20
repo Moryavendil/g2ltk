@@ -3,7 +3,7 @@ import numpy as np
 import math
 
 from g2ltk import customlog
-from g2ltk.peakfinder import argval
+from g2ltk.arrtools import argval
 
 ### ARRAYS QOL routines
 # These are the real deal, with the dimensions encoded.

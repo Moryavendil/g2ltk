@@ -5,7 +5,7 @@ from scipy.signal.windows import get_window  # FFT windowing
 from scipy import fft
 
 from g2ltk import customlog
-from g2ltk.peakfinder import step, span, interp_roots, find_global_max
+from g2ltk.arrtools import step, span, interp_roots, find_global_max
 from . import floatarray1D, complexarray1D, attenuate_power, alias_argument
 from .FFTHelp import sanitize_nfft_1d, dtype_nfft, sanitize_zpf_1d, recommanded_welch_overlap
 
