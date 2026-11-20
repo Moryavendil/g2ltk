@@ -11,6 +11,19 @@ save_directory:str = 'analysis_files'
 index_name:str = 'index'
 index_path = os.path.join(save_directory, index_name + '.npz')
 
+def cache_parameters(parameters: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Parameters under which data is saved and looked up in the index.
+
+    The acquisition is always stored without its video extension, so that data computed with
+    acquisition='acq' and acquisition='acq.mp4' share the same file name and index entry.
+    The parameters given are not modified.
+    """
+    acquisition = parameters.get('acquisition', None)
+    if not isinstance(acquisition, str):
+        return parameters
+    return {**parameters, 'acquisition': videoreading.split_acquisition_path(acquisition)[0]}
+
 def ensure_save_directory_exists():
     if not os.path.isdir(save_directory):
         os.mkdir(save_directory)
@@ -26,6 +39,7 @@ def find_filename_without_duplicates(folder:str, name:str, extension:str = 'txt'
     return file_name + '.' + extension
 
 def generate_appropriate_filename(parameters:Dict[str, Any]) -> str:
+    parameters = cache_parameters(parameters)
     toolsversion_str = 'tools_v'+__version__
     datatype = parameters.get('datatype', 'unknown-dtype')
     dataset = str(parameters.get('dataset', None))
@@ -71,13 +85,14 @@ def get_index(verbose:Optional[int]=None) -> Dict[str, Any]:
 
 ### GET THE ITEMS WITH THE CORRESPONDING PARAMETERS
 def get_items(parameters: dict, total_match:bool = False, verbose:Optional[int]=None) -> List[str]:
+    parameters = cache_parameters(parameters)
     # Open the index
     index = get_index(verbose=verbose)
     items = []
     # search the index
     customlog.log_subtrace(f'Searching the index for the parameters: {parameters}', verbose)
     for candidate_file_name in index.keys():
-        candidate_parameters = index[candidate_file_name]
+        candidate_parameters = cache_parameters(index[candidate_file_name])  # also entries saved before cache_parameters existed
         parameters_match = True
         if total_match:
             parameters_match = candidate_parameters.keys() == parameters.keys()
@@ -176,7 +191,7 @@ def add_item_to_index(item:str, parameters: dict, remove_similar_older_entries:b
     # Open the index
     index = get_index(verbose=verbose)
     # Register the file (item)
-    index[item] = parameters
+    index[item] = cache_parameters(parameters)
     # Save the updated index
     set_index(index)
     customlog.log_trace(f'Added item {item} to index', verbose)

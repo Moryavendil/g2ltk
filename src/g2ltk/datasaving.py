@@ -15,6 +15,22 @@ index_name: str = 'index'
 index_path = os.path.join(save_directory, index_name + '.npz')
 
 
+def cache_parameters(parameters: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Parameters under which data is saved and looked up in the index.
+
+    The acquisition is always stored without its video extension, so that data computed with
+    acquisition='acq' and acquisition='acq.mp4' share the same file name and index entry.
+    The parameters given are not modified.
+    """
+    acquisition = parameters.get('acquisition', None)
+    if not isinstance(acquisition, str):
+        return parameters
+    # Imported here: this module avoids importing videoreading when it is loaded
+    from g2ltk.videoreading import split_acquisition_path
+    return {**parameters, 'acquisition': split_acquisition_path(acquisition)[0]}
+
+
 def ensure_save_directory_exists():
     """
     Create the save directory if it does not already exist.
@@ -93,6 +109,7 @@ def generate_appropriate_filename(parameters: Dict[str, Any]) -> str:
         works correctly. Previous versions cast first, making the guard
         always ``True``.
     """
+    parameters = cache_parameters(parameters)
     toolsversion_str = 'g2ltk_v' + __version__
     datatype = parameters.get('datatype', 'unknown-dtype')
 
@@ -223,6 +240,7 @@ def get_items(parameters: dict, total_match: bool = False) -> List[str]:
     """
     IGNORED_KEYS = {'framenumbers', 'verbose'}
 
+    parameters = cache_parameters(parameters)
     index = get_index()
     items = []
 
@@ -235,6 +253,7 @@ def get_items(parameters: dict, total_match: bool = False) -> List[str]:
     query_keys = [k for k in parameters.keys() if k not in IGNORED_KEYS]
 
     for candidate_file_name, candidate_parameters in index.items():
+        candidate_parameters = cache_parameters(candidate_parameters)  # entries saved before cache_parameters existed
         # --- key-set check ---
         if total_match:
             candidate_keys = [k for k in candidate_parameters.keys() if k not in IGNORED_KEYS]
@@ -476,7 +495,7 @@ def add_item_to_index(item: str, parameters: dict,
         erase_items(parameters=parameters, total_match=False)
 
     index = get_index()
-    index[item] = parameters
+    index[item] = cache_parameters(parameters)
     set_index(index)
     customlog.log_trace(f'add_item_to_index: registered "{item}"')
 
