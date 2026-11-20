@@ -711,3 +711,111 @@ def test_riesz2d_invalid_input():
     with pytest.raises(ValueError):
         ft.riesz2d(np.ones((4, 4, 4)))
 
+
+### MONOGENIC SIGNAL
+
+def wrapped(phase):
+    return np.angle(np.exp(1j*phase))
+
+
+# (N0, N1, dy, dx, kx, ky) as in diagonal_grids_to_test, adding wave vectors that are not in the (-pi/2, pi/2] half plane
+monogenic_waves_to_test = diagonal_grids_to_test + [(21, 51, 5 / 21, 5 / 51, -4, 3),
+                                                    (20, 50, 0.25, 0.1, -3, -3),
+                                                    (20, 50, 0.25, 0.1, 0, 3),
+                                                    (20, 50, 0.25, 0.1, 0, -3),
+                                                    (20, 50, 0.25, 0.1, 4, 0)]
+
+
+orientation_references_to_test = [0., np.pi/2, -np.pi/3, 2.]
+
+
+def plane_wave_monogenic(N0, N1, dy, dx, kx, ky, orientation_reference):
+    # a plane wave with kx, ky periods along x, y, and the expected orientation and sign of the phase
+    # (the wave is described with the wave vector +-k whose orientation is within pi/2 of orientation_reference)
+    x = np.arange(N1) * dx
+    y = np.arange(N0) * dy
+    fx0, fy0 = kx / ft.span(x), ky / ft.span(y)
+    Y, X = np.meshgrid(y, x, indexing='ij')
+    phase_wave = 2*np.pi*(fx0*X + fy0*Y) + 0.7
+    theta = np.arctan2(fy0, fx0)
+    # True if k is (up to rounding) at pi/2 of the reference: the sign is then not well-defined
+    ambiguous = np.isclose(np.cos(theta - orientation_reference), 0, atol=1e-9)
+    sign = 1 if np.cos(theta - orientation_reference) > 0 else -1
+    if sign == -1:
+        theta += np.pi
+    theta = orientation_reference + wrapped(theta - orientation_reference)
+    return x, y, fx0, fy0, 1.3 * np.cos(phase_wave), phase_wave, theta, sign, ambiguous
+
+
+@pytest.mark.parametrize("N0, N1, dy, dx, kx, ky", monogenic_waves_to_test)
+@pytest.mark.parametrize("orientation_reference", orientation_references_to_test)
+def test_monogenic2d_plane_wave(N0, N1, dy, dx, kx, ky, orientation_reference):
+    x, y, fx0, fy0, sig, phase_wave, theta, sign, ambiguous = \
+        plane_wave_monogenic(N0, N1, dy, dx, kx, ky, orientation_reference)
+    amplitude, phase, orientation = ft.monogenic2d(sig, x=x, y=y, orientation_reference=orientation_reference)
+
+    assert np.allclose(amplitude, 1.3)
+    defined = np.abs(np.sin(phase)) > 0.1  # where the orientation is defined
+    if ambiguous:
+        # k at pi/2 of the reference: the sign of the phase is set by rounding errors,
+        # but the phase vector phi * (cos(theta), sin(theta)) is phase_wave * k/|k|
+        assert np.allclose(np.cos(orientation[defined] - orientation_reference), 0)
+        k_direction = np.array([fx0, fy0]) / np.hypot(fx0, fy0)
+        phase_along_k = phase * (np.cos(orientation) * k_direction[0] + np.sin(orientation) * k_direction[1])
+        assert np.allclose(wrapped(phase_along_k - phase_wave), 0, atol=1e-10)
+        return
+
+    assert np.allclose(wrapped(phase - sign*phase_wave), 0, atol=1e-10)
+    assert np.allclose(orientation[defined], theta)
+
+
+@pytest.mark.parametrize("shape", shapes_to_test)
+@pytest.mark.parametrize("symmetrize", [False, True])
+@pytest.mark.parametrize("orientation_reference", orientation_references_to_test)
+def test_monogenic2d_conventions(shape, symmetrize, orientation_reference):
+    # f = A cos(phi), R_x f = A sin(phi) cos(theta), R_y f = A sin(phi) sin(theta), with the documented ranges
+    x, y, sig = generate_sig2D(shape)
+    amplitude, phase, orientation = ft.monogenic2d(sig, x=x, y=y, symmetrize=symmetrize,
+                                                   orientation_reference=orientation_reference)
+    rx, ry = ft.riesz2d(sig, x=x, y=y, symmetrize=symmetrize)
+
+    assert amplitude.shape == phase.shape == orientation.shape == sig.shape
+    assert np.allclose(amplitude * np.cos(phase), sig - sig.mean())
+    assert np.allclose(amplitude * np.sin(phase) * np.cos(orientation), rx)
+    assert np.allclose(amplitude * np.sin(phase) * np.sin(orientation), ry)
+    assert (amplitude >= 0).all()
+    assert ((-np.pi < phase) & (phase <= np.pi)).all()
+    assert ((orientation_reference - np.pi/2 < orientation) & (orientation <= orientation_reference + np.pi/2)).all()
+
+
+@pytest.mark.parametrize("shape", shapes_to_test)
+@pytest.mark.parametrize("symmetrize", [False, True])
+def test_monogenic2d_matches_monogenic1d(shape, symmetrize):
+    N0, N1 = shape
+    x = np.arange(N1) * 0.13
+    y = np.arange(N0) * 0.41
+    sig_x = np.random.rand(N1)
+    sig_y = np.random.rand(N0)
+
+    # varying along x: theta = 0, same amplitude and phase as in 1-D
+    amplitude, phase, orientation = ft.monogenic2d(np.tile(sig_x, (N0, 1)), x=x, y=y, symmetrize=symmetrize)
+    amplitude_1d, phase_1d = ft.monogenic1d(sig_x, symmetrize=symmetrize)
+    assert np.allclose(amplitude, amplitude_1d[np.newaxis, :])
+    assert np.allclose(wrapped(phase - phase_1d[np.newaxis, :]), 0)
+    assert np.allclose(orientation, 0)
+
+    # varying along y: theta = +-pi/2 is at the edge of the default convention, so the sign of the phase is not
+    # well-defined, but the phase vector phi * (cos(theta), sin(theta)) is (0, phase_1d)
+    amplitude, phase, orientation = ft.monogenic2d(np.tile(sig_y[:, np.newaxis], (1, N1)), x=x, y=y,
+                                                   symmetrize=symmetrize)
+    amplitude_1d, phase_1d = ft.monogenic1d(sig_y, symmetrize=symmetrize)
+    assert np.allclose(amplitude, amplitude_1d[:, np.newaxis])
+    assert np.allclose(np.abs(np.cos(orientation)), 0)
+    assert np.allclose(phase * np.cos(orientation), 0)
+    assert np.allclose(wrapped(phase * np.sin(orientation) - phase_1d[:, np.newaxis]), 0)
+    # with orientation_reference = pi/2, there is no ambiguity: theta = pi/2 and the phase is the 1-D one
+    amplitude, phase, orientation = ft.monogenic2d(np.tile(sig_y[:, np.newaxis], (1, N1)), x=x, y=y,
+                                                   symmetrize=symmetrize, orientation_reference=np.pi/2)
+    assert np.allclose(orientation, np.pi/2)
+    assert np.allclose(wrapped(phase - phase_1d[:, np.newaxis]), 0)
+

@@ -343,6 +343,89 @@ def riesz2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Optional[flo
     return riesz_x, riesz_y
 
 
+def _fold_orientation(orientation: np.ndarray, orientation_reference: float) -> np.ndarray:
+    # brings the orientation (defined modulo pi) into (orientation_reference - pi/2, orientation_reference + pi/2]
+    return orientation_reference + np.pi / 2 - np.mod(np.pi / 2 - (orientation - orientation_reference), np.pi)
+
+
+def _monogenic2d_components(arr: floatarray2D, x: Optional[floatarray1D], y: Optional[floatarray1D],
+                            symmetrize: bool, remove_mean: bool,
+                            orientation_reference: float) -> Tuple[floatarray2D, floatarray2D, floatarray2D, floatarray2D]:
+    # returns f (after mean removal), R_x f, R_y f and the folded orientation
+    riesz_x, riesz_y = riesz2d(arr, x=x, y=y, symmetrize=symmetrize, remove_mean=remove_mean)
+    # the mean of the symmetrized array is the mean of the array
+    f = np.asarray(arr, dtype=float)
+    if remove_mean:
+        f = f - f.mean()
+    orientation = _fold_orientation(np.arctan2(riesz_y, riesz_x), orientation_reference)
+    return f, riesz_x, riesz_y, orientation
+
+
+def monogenic2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Optional[floatarray1D] = None,
+                symmetrize: bool = False, remove_mean: bool = True,
+                orientation_reference: float = 0.) -> Tuple[floatarray2D, floatarray2D, floatarray2D]:
+    """
+    Returns the local amplitude, local phase and local orientation of a real 2-D array, from its monogenic signal.
+
+    The monogenic signal is (f, R_x f, R_y f), with (R_x, R_y) the Riesz transform (see riesz2d).
+    It is the 2-D generalization of the analytic signal, and is written
+        f = A cos(phi),    R_x f = A sin(phi) cos(theta),    R_y f = A sin(phi) sin(theta).
+    For a plane wave A cos(k.r + phi0), A is the amplitude, theta the direction of k and phi = k.r + phi0.
+
+    Conventions
+    -----------
+    Let theta0 be orientation_reference (0 by default).
+    - amplitude: A = sqrt(f^2 + (R_x f)^2 + (R_y f)^2) >= 0, with f the array after mean removal.
+    - orientation: theta in (theta0 - pi/2, theta0 + pi/2], measured from the x axis (axis 1) towards the y axis
+      (axis 0), in physical coordinates (so it depends on the steps of x and y if they differ).
+      With the default theta0 = 0, theta is in (-pi/2, pi/2].
+    - phase: phi = atan2(R_x f cos(theta) + R_y f sin(theta), f), in (-pi, pi].
+
+    (A, phi, theta) and (A, -phi, theta + pi) describe the same monogenic signal: the orientation is only defined
+    modulo pi, and the sign of the phase depends on it. The convention above picks the direction that is within
+    pi/2 of theta0. In consequence:
+    - for a plane wave whose wave vector k is more than pi/2 away from theta0, phi = -(k.r + phi0)
+      (the wave is written with -k instead);
+    - phi changes sign where the local orientation crosses theta0 +- pi/2. For a wave vector exactly in one of
+      these directions, rounding errors decide between the two, so the sign of phi can change from point to point.
+      Choose theta0 along the (rough) direction of the wave vector to avoid this: for fringes that are roughly
+      perpendicular to y for example, use theta0 = pi/2.
+    - the phase vector phi * (cos(theta), sin(theta)) does not depend on this choice.
+    - for an array that only varies along x, with theta0 = 0, theta = 0 and (A, phi) are those given by
+      FFT1D.monogenic1d.
+
+    Where A sin(phi) = 0 the orientation is not defined (it is theta0 if R_x f = R_y f = 0 exactly,
+    and rounding noise if they are only close to 0).
+
+    Parameters
+    ----------
+    arr
+        Real array, shaped (len(y), len(x))
+    x
+        Coordinates along axis 1. Only its step is used (1 if not given).
+    y
+        Coordinates along axis 0. Only its step is used (1 if not given).
+    symmetrize : bool, optional
+        See riesz2d. Default is False.
+    remove_mean : bool, optional
+        Default is True
+    orientation_reference : float, optional
+        The orientation theta0 (in radians) around which the orientation is folded. Default is 0.
+
+    Returns
+    -------
+    (amplitude, phase, orientation)
+        Three real arrays shaped like arr
+    """
+    f, riesz_x, riesz_y, orientation = _monogenic2d_components(arr, x, y, symmetrize, remove_mean,
+                                                               orientation_reference)
+    riesz_along_orientation = riesz_x * np.cos(orientation) + riesz_y * np.sin(orientation)
+
+    amplitude = np.sqrt(f ** 2 + riesz_x ** 2 + riesz_y ** 2)
+    phase = np.arctan2(riesz_along_orientation, f)
+    return amplitude, phase, orientation
+
+
 ### Power:
 from .FFT1D import window_factor1d
 

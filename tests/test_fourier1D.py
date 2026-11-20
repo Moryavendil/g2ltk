@@ -169,3 +169,30 @@ def test_estimatesignalfrequency():
 
     max_acceptable_error = 1/ft.span(x)
     assert np.abs(f_true - f_est) < max_acceptable_error
+
+
+### MONOGENIC SIGNAL (analytic signal)
+
+@pytest.mark.parametrize("N", N_to_test)
+@pytest.mark.parametrize("symmetrize", [False, True])
+def test_monogenic1d_wraps_hilbert(N, symmetrize):
+    t, sig = generate_sig1D(N)
+    amplitude, phase = ft.monogenic1d(sig, symmetrize=symmetrize)
+    analytic = ft.hilbert(sig, symmetrize=symmetrize)
+    assert np.allclose(amplitude, np.abs(analytic)) and np.allclose(phase, np.angle(analytic))
+    # sig = amplitude * cos(phase)
+    assert np.allclose(amplitude * np.cos(phase), sig - sig.mean())
+    assert (amplitude >= 0).all() and (np.abs(phase) <= np.pi).all()
+
+
+@pytest.mark.parametrize("N", N_to_test)
+@pytest.mark.parametrize("k", [1, 3, -5])
+def test_monogenic1d_wave(N, k):
+    # on-grid wave: constant amplitude, linear phase
+    # (for k < 0, the wave is written with a positive frequency: cos(-2 pi |k| n/N + 0.7) = cos(2 pi |k| n/N - 0.7))
+    n = np.arange(N)
+    phase_wave = 2*np.pi*k*n/N + 0.7
+    phase_expected = np.sign(k) * phase_wave
+    amplitude, phase = ft.monogenic1d(1.3 * np.cos(phase_wave))
+    assert np.allclose(amplitude, 1.3)
+    assert np.allclose(np.angle(np.exp(1j*(phase - phase_expected))), 0, atol=1e-10)

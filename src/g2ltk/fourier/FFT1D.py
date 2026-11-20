@@ -1,4 +1,4 @@
-from typing import Optional, Literal, Union
+from typing import Optional, Literal, Union, Tuple
 import numpy as np
 from scipy import signal
 from scipy.signal.windows import get_window  # FFT windowing
@@ -611,22 +611,51 @@ def hilbert(sig: floatarray1D, symmetrize=False, remove_mean=True) -> floatarray
     """
     Performs a Hilbert transform of the signal.
 
-    This is mainly a wrapper for scipy.signal.hilbert,
-    only here the signal is symmetrized to diminish boundary effects.
+    This is mainly a wrapper for scipy.signal.hilbert, with optional mean removal and symmetrization.
 
     Parameters
     ----------
     sig
-    symmetrize
-    remove_mean
+    symmetrize : bool, optional
+        If True, the signal is mirrored (giving a 2 times longer signal) before the transform,
+        to remove the discontinuity at the boundaries. This forces the phase to 0 or pi near the edges.
+        Default is False.
+    remove_mean : bool, optional
+        Default is True
 
     Returns
     -------
-
+    The analytic signal sig + i H(sig), complex
     """
     sig_prepared = np.concatenate((sig, sig[::-1])) if symmetrize else sig.copy()
     if remove_mean: sig_prepared -= sig_prepared.mean()
     return signal.hilbert(sig_prepared)[:len(sig)]
+
+
+def monogenic1d(sig: floatarray1D, symmetrize: bool = False,
+                remove_mean: bool = True) -> Tuple[floatarray1D, floatarray1D]:
+    """
+    Returns the local amplitude and local phase of a real signal, from its analytic signal (see hilbert).
+
+    In 1-D, the monogenic signal is the analytic signal: sig = amplitude * cos(phase).
+    This is the 1-D counterpart of FFT2D.monogenic2d: for an array that only varies along x,
+    monogenic2d gives the same amplitude and phase, with an orientation of 0.
+
+    Parameters
+    ----------
+    sig
+    symmetrize : bool, optional
+        See hilbert. Default is False.
+    remove_mean : bool, optional
+        Default is True
+
+    Returns
+    -------
+    (amplitude, phase)
+        amplitude = |sig + i H(sig)| >= 0 and phase = arg(sig + i H(sig)), in (-pi, pi]
+    """
+    analytic = hilbert(sig, symmetrize=symmetrize, remove_mean=remove_mean)
+    return np.abs(analytic), np.angle(analytic)
 
 
 def synchronous_enveloppe_detection(sig, x: Optional[floatarray1D] = None, frequency: Optional[float] = None,
