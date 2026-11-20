@@ -28,7 +28,6 @@ Default value for finding functions parameters
  - borders_width (float, 1. - 100.):  width of menisci in px, given to scipy's find_peaks
  - max_rivulet_width    (float, 1. - 1000.): Maximum authorized rivulet width, in pixels 
  - max_borders_luminosity_difference (float, 0 - 255): Maximum authorized luminosity difference between the rivulet borders
- - verbose (int, 0 - 5):                    Debug level
 """
 default_kwargs = {
 
@@ -47,8 +46,8 @@ default_kwargs = {
     'borders_prominence': None,
     'borders_width': None,
     'max_rivulet_width': 20.,
-    'max_borders_luminosity_difference': 50.,
-    'verbose': None
+    'max_borders_luminosity_difference': 50.
+
 }
 
 """
@@ -979,10 +978,10 @@ def find_borders(**parameters):
 
     return brds
 
-def find_bol(verbose:int = 1, **parameters):
+def find_bol(**parameters):
     # First we need the borders
     customlog.log_debug('find_bol: fetching borders')
-    borders_for_this_video = datasaving.fetch_or_generate_data_from_parameters('borders', parameters, verbose=verbose)
+    borders_for_this_video = datasaving.fetch_or_generate_data_from_parameters('borders', parameters)
 
     # Then the frames
     frames = get_frames_from_parameters(**parameters)
@@ -1007,9 +1006,9 @@ def find_bol(verbose:int = 1, **parameters):
 
     return rivs
 
-def find_fwhmol(verbose:int = 1, **parameters):
+def find_fwhmol(**parameters):
     # First we need the borders
-    borders_for_this_video = datasaving.fetch_or_generate_data_from_parameters('borders', parameters, verbose=verbose)
+    borders_for_this_video = datasaving.fetch_or_generate_data_from_parameters('borders', parameters)
 
     # Then the frames
     frames = get_frames_from_parameters(**parameters)

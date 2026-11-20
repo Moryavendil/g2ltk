@@ -267,8 +267,7 @@ def generate_acquisition_path(acquisition: str, dataset: Optional[str] = None, r
     return acquisition_path
 
 def describe_acquisition(dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None,
-                         framenumbers: Optional[np.ndarray] = None, subregion: Subregion = None,
-                         verbose: Optional[int] = None) -> None:
+                         framenumbers: Optional[np.ndarray] = None, subregion: Subregion = None) -> None:
     if root_path is None:
         global __ROOT_PATH__
         root_path = __ROOT_PATH__
@@ -442,11 +441,11 @@ def get_times(acquisition_path: str, framenumbers: Optional[np.ndarray] = None, 
 
     return times
 
-def get_t_s(acquisition_path: str, framenumbers: Framenumbers = None, verbose: Optional[int] = None) -> Optional[
+def get_t_s(acquisition_path: str, framenumbers: Framenumbers = None) -> Optional[
     np.ndarray]:
     return get_times(acquisition_path, framenumbers=framenumbers, unit='s')
 
-def get_t_ms(acquisition_path: str, framenumbers: Framenumbers = None, verbose: Optional[int] = None) -> Optional[
+def get_t_ms(acquisition_path: str, framenumbers: Framenumbers = None) -> Optional[
     np.ndarray]:
     return get_times(acquisition_path, framenumbers=framenumbers, unit='ms')
 
@@ -530,26 +529,26 @@ def get_geometry(acquisition_path: str, framenumbers: Framenumbers = None, subre
 
 ## Space data
 def get_z_px(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None,
-             resize_factor: int = 1, verbose: Optional[int] = None) -> Optional[np.ndarray]:
+             resize_factor: int = 1) -> Optional[np.ndarray]:
     length, height, width = get_geometry(acquisition_path, framenumbers=framenumbers, subregion=subregion)
     return np.arange(height * resize_factor) / resize_factor
 
 def get_x_px(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None,
-             resize_factor: int = 1, verbose: Optional[int] = None) -> Optional[np.ndarray]:
+             resize_factor: int = 1) -> Optional[np.ndarray]:
     length, height, width = get_geometry(acquisition_path, framenumbers=framenumbers, subregion=subregion)
     return np.arange(width * resize_factor) / resize_factor
 
 def get_x_mm(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None,
-             resize_factor: int = 1, px_per_mm: float = 1., verbose: Optional[int] = None) -> Optional[np.ndarray]:
-    return get_x_px(acquisition_path, framenumbers, subregion, resize_factor, verbose) / px_per_mm
+             resize_factor: int = 1, px_per_mm: float = 1.) -> Optional[np.ndarray]:
+    return get_x_px(acquisition_path, framenumbers, subregion, resize_factor) / px_per_mm
 
 def get_x_m(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None,
-            resize_factor: int = 1, px_per_mm: float = 1., verbose: Optional[int] = None) -> Optional[np.ndarray]:
-    return get_x_mm(acquisition_path, framenumbers, subregion, resize_factor, px_per_mm, verbose) / 1e3
+            resize_factor: int = 1, px_per_mm: float = 1.) -> Optional[np.ndarray]:
+    return get_x_mm(acquisition_path, framenumbers, subregion, resize_factor, px_per_mm) / 1e3
 
 def get_x_um(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None,
-             resize_factor: int = 1, px_per_mm: float = 1., verbose: Optional[int] = None) -> Optional[np.ndarray]:
-    return get_x_mm(acquisition_path, framenumbers, subregion, resize_factor, px_per_mm, verbose) * 1e3
+             resize_factor: int = 1, px_per_mm: float = 1.) -> Optional[np.ndarray]:
+    return get_x_mm(acquisition_path, framenumbers, subregion, resize_factor, px_per_mm) * 1e3
 
 
 

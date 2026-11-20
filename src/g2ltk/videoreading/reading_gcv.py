@@ -207,7 +207,6 @@ def missing_framenumbers_gcv(acquisition_path: str) -> List:
     Identifies missing frame in a GCV video using the timestamps.
 
     :param acquisition_path:
-    :param verbose:
     :return:
     """
     full_stamps = retrieve_stamps(acquisition_path)
@@ -225,19 +224,19 @@ def missing_framenumbers_gcv(acquisition_path: str) -> List:
     customlog.log_trace(f'{all_missing_chunks}')
     return all_missing_chunks
 
-def identify_missing_framenumbers(framenumbers:np.ndarray, verbose:Optional[int]=None) -> np.ndarray:
+def identify_missing_framenumbers(framenumbers:np.ndarray) -> np.ndarray:
     """
     Identifies missing frame using the timestamps.
 
     For example, if framenumbers is [1, 2, 3, 7, 8, 9, 11]
-    Then the output is:
+    Then it logs (trace level):
         'Missing frames numbered from 4 to 6 (3 missing frames)'
         'Missing frame number 10'
+    and (debug level):
         'Total: 4 missing frames'
     and the function returns [4 5 6 10]
 
     :param framenumbers:
-    :param verbose:
     :return:
     """
     # Here MF means missing frame (abbreviated for better code lisibility)
@@ -248,17 +247,15 @@ def identify_missing_framenumbers(framenumbers:np.ndarray, verbose:Optional[int]
         first_MF = framenumbers[i_MF] + 1
         last_MF = framenumbers[i_MF + 1] - 1
         number_of_MFs = last_MF - first_MF + 1
-        if verbose >= 2:
-            if number_of_MFs > 1:
-                print(f'Missing frames numbered from {first_MF} to {last_MF} ({number_of_MFs} missing frames)')
-            elif number_of_MFs == 1:
-                print(f'Missing frame number {first_MF}')
-            else:
-                # todo error here
-                print("ERROR: this should not be reached")
+        if number_of_MFs > 1:
+            customlog.log_trace(f'Missing frames numbered from {first_MF} to {last_MF} ({number_of_MFs} missing frames)')
+        elif number_of_MFs == 1:
+            customlog.log_trace(f'Missing frame number {first_MF}')
+        else:
+            customlog.log_error(f'Non-increasing framenumbers: {framenumbers[i_MF]} followed by {framenumbers[i_MF + 1]}')
         MF = np.concatenate((MF, np.arange(first_MF, last_MF + 1, dtype=int)))
-    if len(MF) > 0 and verbose >= 1:
-        print(f'Total: {len(MF)} missing frames')
+    if len(MF) > 0:
+        customlog.log_debug(f'Total: {len(MF)} missing frames')
 
     return MF
 
@@ -316,7 +313,7 @@ def get_monotonic_timebound(acquisition_path:str, framenumbers:Optional[np.ndarr
 
     return float(good_times[0]), float(good_times[-1])
 
-def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, end_framenumber:int = -1, interval:int  = 1, verbose:Optional[int]=None) -> Optional[Stamps]:
+def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, end_framenumber:int = -1, interval:int  = 1) -> Optional[Stamps]:
     """
     This functions gives a selection of stamps that the user wants, from all the stamps available according to the stamps file.
 
@@ -325,7 +322,6 @@ def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, e
     :param start_framenumber:
     :param end_framenumber:
     :param interval:
-    :param verbose:
     :return:
     """
     all_framenumbers = full_stamps['framenumber']
@@ -353,7 +349,7 @@ def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, e
         end_framenumber = last_framenumber
 
     ### Check for missing frames
-    missing_framenumbers = identify_missing_framenumbers(all_framenumbers, verbose=verbose)
+    missing_framenumbers = identify_missing_framenumbers(all_framenumbers)
     if not len(missing_framenumbers) == 0:
         customlog.log_warning(f'There are missing frames ! Frames {list(missing_framenumbers)} are missing.')
     # here MF means missing frame (abbreviated for code lisibility)
