@@ -1,6 +1,5 @@
 import os
 import sys
-from colorama import Fore # change display text color
 
 __DISPLAYSIZE__:int = 80
 
@@ -22,7 +21,7 @@ class G2LWarning(UserWarning):
     pass
 
 def throw_G2L_warning(text:str):
-    warnings.warn(Fore.LIGHTYELLOW_EX + 'Warning: ' + text + Fore.RESET, category=G2LWarning, stacklevel=3
+    warnings.warn('Warning: ' + text, category=G2LWarning, stacklevel=3
                   # skip_file_prefixes=_warn_skips # THIS ONLY WORKS FOR PYTHON >= 3.12
                   )
     sys.stderr.flush() ; force_print('') # force to display warning at runtime

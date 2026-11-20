@@ -1,7 +1,18 @@
 from typing import Union, Dict
-from colorama import Fore # change display text color
 
 from g2ltk import force_print, throw_G2L_warning
+
+
+class Fore:
+    """ANSI escape codes to change the display text color (same names as colorama.Fore)"""
+    GREEN = '\x1b[32m'
+    LIGHTRED_EX = '\x1b[91m'
+    LIGHTGREEN_EX = '\x1b[92m'
+    LIGHTYELLOW_EX = '\x1b[93m'
+    LIGHTBLUE_EX = '\x1b[94m'
+    LIGHTMAGENTA_EX = '\x1b[95m'
+    LIGHTCYAN_EX = '\x1b[96m'
+    RESET = '\x1b[39m'
 
 """
 This absolutely horrendous portion of code is not meant to be read or used by anyone other than me.
