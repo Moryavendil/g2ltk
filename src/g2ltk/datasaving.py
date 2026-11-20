@@ -640,7 +640,8 @@ def fetch_or_generate_data_from_parameters(datatype: str, parameters: dict,
         called once, the result is saved, and returned.  No chunking is
         performed.
 
-    **Video mode** (``'framenumbers'`` key present)
+    **Video mode** (``'framenumbers'`` key present) — *disabled for now*: logs an
+    error and returns ``None`` (see the TODO in the code).
         Checks which framenumbers are already cached.  If the wanted subset is
         fully covered, the cached slice is returned.  Otherwise the missing
         frames are generated in chunks of 500, the complete array is saved,
@@ -709,112 +710,123 @@ def fetch_or_generate_data_from_parameters(datatype: str, parameters: dict,
     # ------------------------------------------------------------------ #
     # VIDEO MODE — framenumbers key is present                            #
     # ------------------------------------------------------------------ #
-    customlog.log_debug('fetch_or_generate_data_from_parameters: video mode (framenumbers present)')
+    # TODO: video mode is disabled for now. It relies on rivuletfinding and videoreading, which this
+    #  module does not import (see the top of the file), so it could only fail with a NameError.
+    #  Re-enable it once the acquisition path and number of frames can be obtained without rivuletfinding.
+    customlog.log_error('fetch_or_generate_data_from_parameters: video mode (framenumbers in parameters) '
+                        'is not available for now')
+    return None
 
-    # Pre-generate border data for derived types (rivulet-specific)
-    if datatype in ('bol', 'fwhmol'):
-        customlog.log_debug(f'Pre-generating "borders" required by "{datatype}"')
-        fetch_or_generate_data_from_parameters('borders', {**parameters},
-                                               data_generating_fn=data_generating_fn)
-
-    available_fns = framenumbers_available(parameters)
-    wanted_fns = parameters['framenumbers']
-    customlog.log_trace(f'wanted_framenumbers    = {wanted_fns}')
-    customlog.log_trace(f'available_framenumbers = {available_fns}')
-
-    if available_fns is None:
-        # All frames are cached
-        customlog.log_debug('All framenumbers available in cache')
-        data = fetch_saved_data(parameters)
-
-        if data is None:
-            # Cache reported everything available but fetch failed — fall through to regeneration
-            customlog.log_warning(
-                'fetch_or_generate_data_from_parameters: '
-                'cache indicated all fns available but fetch returned None — regenerating'
-            )
-        else:
-            return data if wanted_fns is None else data[wanted_fns]
-
-    else:
-        # Partial or no cache
-        if wanted_fns is not None:
-            overlap = np.isin(wanted_fns, available_fns, assume_unique=True)
-            customlog.log_debug(
-                f'{len(available_fns)} fns available, '
-                f'{len(wanted_fns)} wanted, '
-                f'{overlap.sum()} overlap'
-            )
-            if overlap.sum() == len(wanted_fns):
-                # All wanted frames are cached — return the slice directly
-                customlog.log_debug('All wanted framenumbers cached — skipping generation')
-                data = fetch_saved_data(parameters)
-                return data[np.isin(available_fns, wanted_fns, assume_unique=True)]
-            else:
-                # Some wanted frames are missing — generate the union
-                total_fns = np.sort(np.unique(np.concatenate((wanted_fns, available_fns))))
-                customlog.log_debug(
-                    f'Need to generate {len(total_fns) - len(available_fns)} new frame(s)'
-                )
-        else:
-            customlog.log_debug('All framenumbers wanted; will generate everything')
-            total_fns = None
-
-    # --- Generation (video mode) ---
-    customlog.log_debug('Generating video data')
-    total_fns_explicit = total_fns
-    if total_fns is None:
-        acquisition_path = rivuletfinding.get_acquisition_path_from_parameters(**parameters)
-        total_fns_explicit = np.arange(
-            videoreading.get_number_of_available_frames(acquisition_path)
-        )
-        customlog.log_debug(f'Total frames in acquisition: {len(total_fns_explicit)}')
-
-    if len(total_fns_explicit) == 0:
-        customlog.log_warning('fetch_or_generate_data_from_parameters: no frames to generate')
-        return None
-
-    chunk_size: int = 500
-    number_of_chunks: int = (
-        len(total_fns_explicit) // chunk_size
-        + (len(total_fns_explicit) % chunk_size != 0)
-    )
-    customlog.log_debug(
-        f'Splitting {len(total_fns_explicit)} frame(s) into '
-        f'{number_of_chunks} chunk(s) of {chunk_size}'
-    )
-
-    # First chunk
-    parameters['framenumbers'] = total_fns_explicit[:chunk_size]
-    customlog.log_info(f'Generating {datatype} (chunk 1/{number_of_chunks})')
-    data = data_generating_fn(parameters)
-
-    if data is None:
-        customlog.log_error(
-            'fetch_or_generate_data_from_parameters: '
-            'first chunk returned None — aborting generation'
-        )
-        return None
-
-    # Subsequent chunks
-    for i in range(1, number_of_chunks):
-        customlog.log_info(f'Generating {datatype} (chunk {i + 1}/{number_of_chunks})')
-        parameters['framenumbers'] = total_fns_explicit[i * chunk_size:(i + 1) * chunk_size]
-        chunk = data_generating_fn(parameters)
-
-        if chunk is None:
-            customlog.log_warning(
-                f'fetch_or_generate_data_from_parameters: '
-                f'chunk {i + 1}/{number_of_chunks} returned None — skipping'
-            )
-            continue
-
-        data = np.concatenate((data, chunk))
-
-    # Save the full generated array, then recurse once to return the right subset
-    parameters['framenumbers'] = total_fns
-    save_data(data, parameters)
-
-    parameters['framenumbers'] = wanted_fns
-    return fetch_or_generate_data_from_parameters(datatype, parameters,
-                                                  data_generating_fn=data_generating_fn)
+    # Disabled video mode, kept for reference
+    # # ------------------------------------------------------------------ #
+    # # VIDEO MODE — framenumbers key is present                            #
+    # # ------------------------------------------------------------------ #
+    # customlog.log_debug('fetch_or_generate_data_from_parameters: video mode (framenumbers present)')
+    #
+    # # Pre-generate border data for derived types (rivulet-specific)
+    # if datatype in ('bol', 'fwhmol'):
+    #     customlog.log_debug(f'Pre-generating "borders" required by "{datatype}"')
+    #     fetch_or_generate_data_from_parameters('borders', {**parameters},
+    #                                            data_generating_fn=data_generating_fn)
+    #
+    # available_fns = framenumbers_available(parameters)
+    # wanted_fns = parameters['framenumbers']
+    # customlog.log_trace(f'wanted_framenumbers    = {wanted_fns}')
+    # customlog.log_trace(f'available_framenumbers = {available_fns}')
+    #
+    # if available_fns is None:
+    #     # All frames are cached
+    #     customlog.log_debug('All framenumbers available in cache')
+    #     data = fetch_saved_data(parameters)
+    #
+    #     if data is None:
+    #         # Cache reported everything available but fetch failed — fall through to regeneration
+    #         customlog.log_warning(
+    #             'fetch_or_generate_data_from_parameters: '
+    #             'cache indicated all fns available but fetch returned None — regenerating'
+    #         )
+    #     else:
+    #         return data if wanted_fns is None else data[wanted_fns]
+    #
+    # else:
+    #     # Partial or no cache
+    #     if wanted_fns is not None:
+    #         overlap = np.isin(wanted_fns, available_fns, assume_unique=True)
+    #         customlog.log_debug(
+    #             f'{len(available_fns)} fns available, '
+    #             f'{len(wanted_fns)} wanted, '
+    #             f'{overlap.sum()} overlap'
+    #         )
+    #         if overlap.sum() == len(wanted_fns):
+    #             # All wanted frames are cached — return the slice directly
+    #             customlog.log_debug('All wanted framenumbers cached — skipping generation')
+    #             data = fetch_saved_data(parameters)
+    #             return data[np.isin(available_fns, wanted_fns, assume_unique=True)]
+    #         else:
+    #             # Some wanted frames are missing — generate the union
+    #             total_fns = np.sort(np.unique(np.concatenate((wanted_fns, available_fns))))
+    #             customlog.log_debug(
+    #                 f'Need to generate {len(total_fns) - len(available_fns)} new frame(s)'
+    #             )
+    #     else:
+    #         customlog.log_debug('All framenumbers wanted; will generate everything')
+    #         total_fns = None
+    #
+    # # --- Generation (video mode) ---
+    # customlog.log_debug('Generating video data')
+    # total_fns_explicit = total_fns
+    # if total_fns is None:
+    #     acquisition_path = rivuletfinding.get_acquisition_path_from_parameters(**parameters)
+    #     total_fns_explicit = np.arange(
+    #         videoreading.get_number_of_available_frames(acquisition_path)
+    #     )
+    #     customlog.log_debug(f'Total frames in acquisition: {len(total_fns_explicit)}')
+    #
+    # if len(total_fns_explicit) == 0:
+    #     customlog.log_warning('fetch_or_generate_data_from_parameters: no frames to generate')
+    #     return None
+    #
+    # chunk_size: int = 500
+    # number_of_chunks: int = (
+    #     len(total_fns_explicit) // chunk_size
+    #     + (len(total_fns_explicit) % chunk_size != 0)
+    # )
+    # customlog.log_debug(
+    #     f'Splitting {len(total_fns_explicit)} frame(s) into '
+    #     f'{number_of_chunks} chunk(s) of {chunk_size}'
+    # )
+    #
+    # # First chunk
+    # parameters['framenumbers'] = total_fns_explicit[:chunk_size]
+    # customlog.log_info(f'Generating {datatype} (chunk 1/{number_of_chunks})')
+    # data = data_generating_fn(parameters)
+    #
+    # if data is None:
+    #     customlog.log_error(
+    #         'fetch_or_generate_data_from_parameters: '
+    #         'first chunk returned None — aborting generation'
+    #     )
+    #     return None
+    #
+    # # Subsequent chunks
+    # for i in range(1, number_of_chunks):
+    #     customlog.log_info(f'Generating {datatype} (chunk {i + 1}/{number_of_chunks})')
+    #     parameters['framenumbers'] = total_fns_explicit[i * chunk_size:(i + 1) * chunk_size]
+    #     chunk = data_generating_fn(parameters)
+    #
+    #     if chunk is None:
+    #         customlog.log_warning(
+    #             f'fetch_or_generate_data_from_parameters: '
+    #             f'chunk {i + 1}/{number_of_chunks} returned None — skipping'
+    #         )
+    #         continue
+    #
+    #     data = np.concatenate((data, chunk))
+    #
+    # # Save the full generated array, then recurse once to return the right subset
+    # parameters['framenumbers'] = total_fns
+    # save_data(data, parameters)
+    #
+    # parameters['framenumbers'] = wanted_fns
+    # return fetch_or_generate_data_from_parameters(datatype, parameters,
+    #                                               data_generating_fn=data_generating_fn)

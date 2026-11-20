@@ -119,3 +119,20 @@ def test_fetch_or_generate_with_extension(tmp_path, monkeypatch):
         data = datasaving.fetch_or_generate('bos', dataset='ds', acquisition=acquisition, data_generating_fn=generate)
         np.testing.assert_array_equal(data, np.arange(4))
     assert calls == ['acq']  # generated once, fetched the second time
+
+
+def test_video_mode_is_disabled(tmp_path, monkeypatch):
+    # With 'framenumbers' in the parameters, fetch_or_generate_data_from_parameters returns None without generating
+    save_directory = str(tmp_path / 'cache')
+    monkeypatch.setattr(datasaving, 'save_directory', save_directory)
+    monkeypatch.setattr(datasaving, 'index_path', os.path.join(save_directory, 'index.npz'))
+    calls = []
+
+    def generate(parameters):
+        calls.append(parameters)
+        return np.arange(4)
+
+    data = datasaving.fetch_or_generate('bos', dataset='ds', acquisition='acq',
+                                        parameters={'framenumbers': None}, data_generating_fn=generate)
+    assert data is None
+    assert calls == []
