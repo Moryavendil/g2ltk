@@ -607,7 +607,7 @@ def estimate_phase(sig, x: Optional[floatarray1D] = None, frequency: Optional[fl
     return np.angle(np.sum(sig * np.exp(-1j * 2 * np.pi * frequency * x)))
 
 
-def hilbert(sig: floatarray1D, symmetrize=True, remove_mean=True) -> floatarray1D:
+def hilbert(sig: floatarray1D, symmetrize=False, remove_mean=True) -> floatarray1D:
     """
     Performs a Hilbert transform of the signal.
 
