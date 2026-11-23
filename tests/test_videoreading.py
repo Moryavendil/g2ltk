@@ -367,3 +367,155 @@ def test_save_acquisition_with_extension_to_video(tmp_path):
     assert os.path.isfile(dataset_path / 'acq.mkv')
     assert not os.path.exists(dataset_path / 'acq.gcv.mkv')
     assert vr.get_number_of_available_frames(str(dataset_path / 'acq.mkv')) == EXPECTED['test_gcv']['n_frames']
+
+
+### DESIGNATING AN ACQUISITION: BY DATASET, OR BY PATH
+
+@pytest.fixture
+def other_root_path(tmp_path):
+    """A default root path containing an unrelated dataset, restored afterwards"""
+    previous_root_path = getattr(vr, '__ROOT_PATH__')
+    other_root = tmp_path / 'other_root'
+    (other_root / 'other_dataset').mkdir(parents=True)
+    (other_root / 'other_dataset' / 'other.mp4').symlink_to(os.path.abspath(os.path.join(DATA_DIR, 'test_mp4.mp4')))
+    vr.set_default_root_path(str(other_root))
+    try:
+        yield str(other_root)
+    finally:
+        vr.set_default_root_path(previous_root_path)
+
+
+def test_acquisition_by_dataset_uses_root_path(tmp_path, other_root_path):
+    make_dataset(tmp_path, {'acq.mp4': 'test_mp4.mp4'})
+    # explicit root path
+    acquisition_path = vr.generate_acquisition_path('acq', dataset='dataset', root_path=str(tmp_path))
+    assert acquisition_path == os.path.join(str(tmp_path), 'dataset', 'acq')
+    # default root path
+    acquisition_path = vr.generate_acquisition_path('other', dataset='other_dataset')
+    assert acquisition_path == os.path.join(other_root_path, 'other_dataset', 'other')
+    assert vr.is_this_a_mp4(acquisition_path)
+
+
+@pytest.mark.parametrize('extension', ['', '.mp4'])
+def test_acquisition_by_path_ignores_root_path(tmp_path, other_root_path, extension):
+    dataset_path = make_dataset(tmp_path, {'acq.mp4': 'test_mp4.mp4'})
+    for path in [str(dataset_path / 'acq') + extension, os.path.relpath(str(dataset_path / 'acq')) + extension]:
+        # the default root path (which has a dataset that could be auto-selected) does not apply
+        assert vr.generate_acquisition_path(path) == path
+        # nor an explicit one, without a dataset
+        assert vr.generate_acquisition_path(path, root_path=other_root_path) == path
+        assert vr.get_number_of_available_frames(vr.generate_acquisition_path(path)) == EXPECTED['test_mp4']['n_frames']
+
+
+def test_describe_acquisition_by_path(tmp_path, other_root_path, capsys):
+    dataset_path = make_dataset(tmp_path, {'acq.mp4': 'test_mp4.mp4'})
+    with customlog.verbosity('info'):
+        vr.describe_acquisition(acquisition=str(dataset_path / 'acq'))
+    output = capsys.readouterr().out
+    assert f'{EXPECTED["test_mp4"]["n_frames"]} frames' in output
+    assert 'other_dataset' not in output
+
+
+def test_describe_acquisition_by_dataset(tmp_path, other_root_path, capsys):
+    make_dataset(tmp_path, {'acq.mp4': 'test_mp4.mp4'})
+    with customlog.verbosity('info'):
+        vr.describe_acquisition('dataset', 'acq', root_path=str(tmp_path))
+    output = capsys.readouterr().out
+    assert '"acq" (dataset)' in output
+    assert f'{EXPECTED["test_mp4"]["n_frames"]} frames' in output
+
+
+def test_describe_acquisition_auto_selects(other_root_path, capsys):
+    # neither dataset nor acquisition given: both are auto-selected in the default root path
+    with customlog.verbosity('info'):
+        vr.describe_acquisition()
+    output = capsys.readouterr().out
+    assert '"other" (other_dataset)' in output
+
+
+### READING FUNCTIONS WITH THE dataset=, acquisition= KEYWORDS
+
+# (function, extra arguments): every reading function accepting the dataset=, acquisition=, root_path= keywords
+KEYWORD_FUNCTIONS = [
+    (vr.get_number_of_available_frames, {}),
+    (vr.get_acquisition_frequency, {'unit': 'Hz'}),
+    (vr.get_acquisition_duration, {'unit': 's'}),
+    (vr.get_t_frames, {}),
+    (vr.get_times, {'unit': 's'}),
+    (vr.get_t_s, {}),
+    (vr.get_t_ms, {}),
+    (vr.missing_frames, {}),
+    (vr.missing_frames_in_framenumbers, {}),
+    (vr.are_there_missing_frames, {}),
+    (vr.get_geometry, {'framenumbers': [1, 4], 'subregion': (10, 20, 110, 70)}),
+    (vr.get_z_px, {'resize_factor': 2}),
+    (vr.get_x_px, {}),
+    (vr.get_x_mm, {'px_per_mm': 10.}),
+    (vr.get_x_m, {'px_per_mm': 10.}),
+    (vr.get_x_um, {'px_per_mm': 10.}),
+    (vr.get_frames, {'framenumbers': [3, 1], 'subregion': (10, 20, 110, 70)}),
+    (vr.get_frame, {'framenumber': 2}),
+]
+
+
+def assert_same_result(a, b):
+    if isinstance(a, np.ndarray) or isinstance(b, np.ndarray):
+        np.testing.assert_array_equal(a, b)
+    else:
+        assert a == b
+
+
+@pytest.mark.parametrize('function, kwargs', KEYWORD_FUNCTIONS, ids=[f.__name__ for f, _ in KEYWORD_FUNCTIONS])
+def test_reading_by_dataset_or_by_path(tmp_path, other_root_path, function, kwargs):
+    dataset_path = make_dataset(tmp_path, {'acq.gcv': 'test_gcv.gcv'})
+    expected = function(str(dataset_path / 'acq'), **kwargs)
+    assert expected is not None
+    # by dataset, with an explicit root path
+    assert_same_result(function(dataset='dataset', acquisition='acq', root_path=str(tmp_path), **kwargs), expected)
+    # by path, given as the acquisition keyword (the default root path does not apply)
+    assert_same_result(function(acquisition=str(dataset_path / 'acq'), **kwargs), expected)
+
+
+def test_reading_by_dataset_with_default_root_path(other_root_path):
+    frames = vr.get_frames(dataset='other_dataset', acquisition='other', framenumbers=[0])
+    np.testing.assert_array_equal(frames, all_frames('test_mp4')[[0]])
+    assert vr.get_geometry(dataset='other_dataset', acquisition='other') == \
+        (EXPECTED['test_mp4']['n_frames'], EXPECTED['test_mp4']['height'], EXPECTED['test_mp4']['width'])
+
+
+def test_reading_acquisition_designated_twice(tmp_path):
+    dataset_path = make_dataset(tmp_path, {'acq.mp4': 'test_mp4.mp4'})
+    with pytest.raises(ValueError):
+        vr.get_frames(str(dataset_path / 'acq'), dataset='dataset', acquisition='acq', root_path=str(tmp_path))
+    with pytest.raises(ValueError):
+        vr.get_geometry(str(dataset_path / 'acq'), root_path=str(tmp_path))
+
+
+def test_reading_without_acquisition():
+    with pytest.raises(ValueError):
+        vr.get_frames()
+    with pytest.raises(ValueError):
+        vr.get_t_s(dataset='dataset')
+
+
+### DATASHEETS WITH AN EXPLICIT ROOT PATH
+
+def test_datasheets_with_root_path(tmp_path, other_root_path):
+    pd = pytest.importorskip('pandas')
+    pytest.importorskip('openpyxl')
+    dataset_path = make_dataset(tmp_path, {'acq1.mp4': 'test_mp4.mp4', 'acq2.mp4': 'test_mp4.mp4'})
+    # the metainfo sheet starts with two lines of header (read with skiprows=2)
+    with pd.ExcelWriter(dataset_path / 'dataworkbook.xlsx', engine='openpyxl') as writer:
+        pd.DataFrame([['header'], ['header'], ['acquisition'], ['acq1'], ['acq2']]).to_excel(
+            writer, sheet_name='metainfo', index=False, header=False)
+
+    root_path = str(tmp_path)
+    assert vr.generate_dataworkbook_path('dataset', root_path=root_path) == str(dataset_path / 'dataworkbook.xlsx')
+    assert list(vr.obtain_acquisition_titles('dataset', root_path=root_path)) == ['acq1', 'acq2']
+
+    worksheet = vr.load_or_create_worksheet('dataset', 'results', columns=['height'], root_path=root_path)
+    assert list(worksheet['acquisition']) == ['acq1', 'acq2']
+    # adding a column rewrites the worksheet, in the dataset of the given root path
+    worksheet = vr.load_or_create_worksheet('dataset', 'results', columns=['height', 'width'], root_path=root_path)
+    assert 'width' in worksheet.keys()
+    assert 'width' in pd.read_excel(dataset_path / 'dataworkbook.xlsx', sheet_name='results').keys()

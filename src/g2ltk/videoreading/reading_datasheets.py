@@ -14,8 +14,8 @@ __dataworkbook_acquisition_column_name_default__ = 'acquisition'
 
 possible_acquisition_column_name = ['title', 'acquisition_title']
 
-def generate_dataworkbook_path(dataset:str) -> Optional[str]:
-    dataset_path = generate_dataset_path(dataset)
+def generate_dataworkbook_path(dataset:str, root_path:Optional[str] = None) -> Optional[str]:
+    dataset_path = generate_dataset_path(dataset, root_path=root_path)
 
     ext = '.xlsx'
     xlsx_spreadsheets = [f[:-len(ext)] for f in os.listdir(dataset_path) if os.path.isfile(os.path.join(dataset_path, f)) and f.endswith(ext)]
@@ -49,8 +49,8 @@ def generate_dataworkbook_path(dataset:str) -> Optional[str]:
     datasheet_path = os.path.join(dataset_path, datasheet_name)
     return datasheet_path
 
-def obtain_metainfo(dataset:str) -> Optional[Any]:
-    datasheet_path = generate_dataworkbook_path(dataset)
+def obtain_metainfo(dataset:str, root_path:Optional[str] = None) -> Optional[Any]:
+    datasheet_path = generate_dataworkbook_path(dataset, root_path=root_path)
     if datasheet_path is None:
         return None
 
@@ -65,8 +65,8 @@ def obtain_metainfo(dataset:str) -> Optional[Any]:
     metainfo = pd.read_excel(datasheet_file, sheet_name=metasheet_name, skiprows=2)
     return metainfo
 
-def obtain_acquisition_titles(dataset:str) -> Optional[np.ndarray]:
-    metainfo = obtain_metainfo(dataset)
+def obtain_acquisition_titles(dataset:str, root_path:Optional[str] = None) -> Optional[np.ndarray]:
+    metainfo = obtain_metainfo(dataset, root_path=root_path)
     if metainfo is None:
         return None
 
@@ -86,7 +86,7 @@ def obtain_acquisition_titles(dataset:str) -> Optional[np.ndarray]:
 
     acquisition_titles:np.ndarray = metainfo[acquisition_title_key][valid].to_numpy()
 
-    all_videos:List[str] = find_available_videos(dataset=dataset)
+    all_videos:List[str] = find_available_videos(dataset=dataset, root_path=root_path)
 
     for real_video in all_videos:
         if real_video not in acquisition_titles:
@@ -99,8 +99,9 @@ def obtain_acquisition_titles(dataset:str) -> Optional[np.ndarray]:
 
     return acquisition_titles
 
-def load_or_create_worksheet(dataset:str, sheet_name:str, columns:Optional[List[str]]=None) -> Optional[pd.DataFrame]:
-    workbook_path = generate_dataworkbook_path(dataset)
+def load_or_create_worksheet(dataset:str, sheet_name:str, columns:Optional[List[str]]=None,
+                             root_path:Optional[str] = None) -> Optional[pd.DataFrame]:
+    workbook_path = generate_dataworkbook_path(dataset, root_path=root_path)
     if workbook_path is None:
         customlog.log_error(f'Did not found datasheet for dataset {dataset}.')
         return None
@@ -124,14 +125,14 @@ def load_or_create_worksheet(dataset:str, sheet_name:str, columns:Optional[List[
                     # return None
 
                     # New behaviour : we add the missing columns
-                    acquisition_titles = obtain_acquisition_titles(dataset)
+                    acquisition_titles = obtain_acquisition_titles(dataset, root_path=root_path)
                     for wanted_key in unexisting_wanted_key:
                         datasheet[wanted_key] = np.full(len(acquisition_titles), np.nan)
-                    overwrite_datasheet(dataset, datasheet, sheet_name=sheet_name)
+                    overwrite_datasheet(dataset, datasheet, sheet_name=sheet_name, root_path=root_path)
                     customlog.log_warning(f"Added columns {unexisting_wanted_key} to worksheet {sheet_name}.")
     else:
         # We must create the sheet ourselves
-        acquisition_titles = obtain_acquisition_titles(dataset)
+        acquisition_titles = obtain_acquisition_titles(dataset, root_path=root_path)
         datadict = {__dataworkbook_acquisition_column_name_default__: acquisition_titles}
         for column in columns:
             datadict[column] = np.full(len(acquisition_titles), np.nan)
@@ -146,8 +147,8 @@ def load_or_create_worksheet(dataset:str, sheet_name:str, columns:Optional[List[
     return pd.read_excel(workbook_path, sheet_name=sheet_name)
 
 
-def overwrite_datasheet(dataset:str, datasheet:pd.DataFrame, sheet_name:str):
-    workbook_path = generate_dataworkbook_path(dataset)
+def overwrite_datasheet(dataset:str, datasheet:pd.DataFrame, sheet_name:str, root_path:Optional[str] = None):
+    workbook_path = generate_dataworkbook_path(dataset, root_path=root_path)
     if workbook_path is None:
         customlog.log_error(f'Did not found datasheet for dataset {dataset}.')
         return None

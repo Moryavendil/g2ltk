@@ -878,18 +878,18 @@ def borders(frame:np.ndarray, do_fit:bool = False, w0:float = 1., **kwargs) -> n
 ### GLOBAL METHOD
 
 def get_acquisition_path_from_parameters(**parameters) -> str:
-    # Dataset selection
-    dataset = parameters.get('dataset', 'unspecified-dataset')
-    if not videoreading.is_this_a_dataset(dataset):
-        print(f'WARNING (RVFD): Is not a dataset: {dataset}.')
+    """
+    Path of the acquisition designated by the parameters (see videoreading.generate_acquisition_path):
+    either 'dataset' and 'acquisition' (and optionally 'root_path'), or only 'acquisition', which is then a path.
+    """
+    dataset = parameters.get('dataset', None)
+    root_path = parameters.get('root_path', None)
+    if dataset is not None and not videoreading.is_this_a_dataset(dataset, root_path=root_path):
+        customlog.log_warning(f'Is not a dataset: {dataset}.')
 
-    # Acquisition selection
     acquisition = parameters.get('acquisition', 'unspecified-acquisition')
-    acquisition_path = videoreading.generate_acquisition_path(acquisition, dataset=dataset)
-    if not(videoreading.is_this_a_video(acquisition_path)):
-        print(f'WARNING (RVFD): There is no acquisition named {acquisition} for the dataset {dataset}.')
-
-    return acquisition_path
+    # generate_acquisition_path warns if there is no video there
+    return videoreading.generate_acquisition_path(acquisition, dataset=dataset, root_path=root_path)
 
 def get_frames_from_parameters(**parameters):
     acquisition_path = get_acquisition_path_from_parameters(**parameters)
@@ -911,16 +911,7 @@ def get_frames_from_parameters(**parameters):
     return frames
 
 def find_bos(**parameters):
-    # Dataset selection
-    dataset = parameters.get('dataset', 'unspecified-dataset')
-    if not videoreading.is_this_a_dataset(dataset):
-        print(f'WARNING (RVFD): Is not a dataset: {dataset}.')
-
-    # Acquisition selection
-    acquisition = parameters.get('acquisition', 'unspecified-acquisition')
-    acquisition_path = videoreading.generate_acquisition_path(acquisition, dataset=dataset)
-    if not(videoreading.is_this_a_video(acquisition_path)):
-        print(f'WARNING (RVFD): There is no acquisition named {acquisition} for the dataset {dataset}.')
+    acquisition_path = get_acquisition_path_from_parameters(**parameters)
 
     # Parameters getting
     roi = parameters.get('roi', None)

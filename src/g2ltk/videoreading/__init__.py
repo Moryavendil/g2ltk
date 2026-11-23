@@ -259,30 +259,94 @@ def find_default_acquisition(dataset: Optional[str] = None, root_path:Optional[s
     else:
         customlog.log_error(f'No acquisitions available for dataset {dataset}')
     return acquisition
-def generate_acquisition_path(acquisition: str, dataset: Optional[str] = None, root_path:Optional[str] = None):
+def generate_acquisition_path(acquisition: str, dataset: Optional[str] = None, root_path:Optional[str] = None) -> str:
+    """
+    Path of an acquisition, to give to the functions reading videos (get_frames, get_geometry...).
+
+    There are two ways of designating an acquisition:
+    - by dataset: acquisition is the name of a video in the dataset, and the path is
+      root_path/dataset/acquisition (root_path defaults to the one set with set_default_root_path);
+    - by path: dataset is None, and acquisition is the path to the video itself (absolute, or relative to the
+      current directory). The root path does not apply, and is ignored if given.
+
+    :param acquisition: name of the acquisition in the dataset, or path to the acquisition if dataset is None
+    :param dataset: name of the dataset, or None if acquisition is a path
+    :param root_path: folder containing the dataset (only used with dataset)
+    :return:
+    """
+    if dataset is None:
+        if root_path is not None:
+            customlog.log_warning(f'generate_acquisition_path: root_path {root_path} is ignored, since no dataset is given '
+                                  f'(acquisition {acquisition} is taken as a path)')
+        acquisition_path = acquisition
+        if not is_this_a_video(acquisition_path):
+            customlog.log_warning(f'There is no video at {acquisition_path}')
+        return acquisition_path
     dataset_path = generate_dataset_path(dataset, root_path=root_path)
     acquisition_path = os.path.join(dataset_path, acquisition)
     if not is_this_a_video(acquisition_path):
         customlog.log_warning(f'There is no video named {acquisition} in {dataset}')
     return acquisition_path
 
+def resolve_acquisition_path(acquisition_path: Optional[str] = None, dataset: Optional[str] = None,
+                             acquisition: Optional[str] = None, root_path: Optional[str] = None) -> str:
+    """
+    Path of the acquisition given to a function reading videos (get_frames, get_geometry, get_t_s...).
+
+    These functions designate the acquisition either by its path (acquisition_path, their first argument),
+    or with the keywords dataset, acquisition and root_path (see generate_acquisition_path), but not both.
+
+    :param acquisition_path: path to the acquisition
+    :param dataset: name of the dataset, or None if acquisition is a path
+    :param acquisition: name of the acquisition in the dataset, or path to the acquisition if dataset is None
+    :param root_path: folder containing the dataset (only used with dataset)
+    :return:
+    """
+    if acquisition_path is not None:
+        if dataset is not None or acquisition is not None or root_path is not None:
+            raise ValueError(f'Acquisition designated twice: give either acquisition_path ({acquisition_path}), '
+                             f'or the keywords dataset ({dataset}), acquisition ({acquisition}) '
+                             f'and root_path ({root_path}), not both.')
+        return acquisition_path
+    if acquisition is None:
+        raise ValueError('No acquisition given: give either acquisition_path, '
+                         'or the keyword acquisition (with dataset and root_path if needed).')
+    return generate_acquisition_path(acquisition, dataset=dataset, root_path=root_path)
+
 def describe_acquisition(dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None,
                          framenumbers: Optional[np.ndarray] = None, subregion: Subregion = None) -> None:
-    if root_path is None:
-        global __ROOT_PATH__
-        root_path = __ROOT_PATH__
+    """
+    Logs information about an acquisition, designated either by dataset and name, or by path (see generate_acquisition_path).
+
+    If no acquisition is given, one is auto-selected in the dataset (itself auto-selected in the root path if not given).
+
+    :param dataset: name of the dataset, or None if acquisition is a path
+    :param acquisition: name of the acquisition in the dataset, or path to the acquisition if dataset is None
+    :param root_path: folder containing the dataset (only used with dataset)
+    :param framenumbers:
+    :param subregion:
+    :return:
+    """
     customlog.log_subtrace('func:describe_acquisition')
 
-    if dataset is None:
-        dataset = find_default_dataset(root_path=root_path)
     if acquisition is None:
+        if dataset is None:
+            dataset = find_default_dataset(root_path=root_path)
         acquisition = find_default_acquisition(dataset=dataset, root_path=root_path)
-    customlog.log_info(f'Acquisition: "{acquisition}" ({dataset})')
+        if acquisition is None:
+            return
+    if dataset is None:
+        customlog.log_info(f'Acquisition: "{acquisition}"')
+    else:
+        customlog.log_info(f'Acquisition: "{acquisition}" ({dataset})')
 
     acquisition_path = generate_acquisition_path(acquisition, dataset=dataset, root_path=root_path)
     if not (is_this_a_video(acquisition_path)):
-        customlog.log_debug(f'Videos in {dataset} are {find_available_videos(dataset=dataset, root_path=root_path)}')
-        customlog.log_error(f'No video named {acquisition} in dataset {dataset}')
+        if dataset is None:
+            customlog.log_error(f'No video at {acquisition_path}')
+        else:
+            customlog.log_debug(f'Videos in {dataset} are {find_available_videos(dataset=dataset, root_path=root_path)}')
+            customlog.log_error(f'No video named {acquisition} in dataset {dataset}')
         return
 
     # general
@@ -329,8 +393,14 @@ def describe_acquisition(dataset: Optional[str] = None, acquisition: Optional[st
         pass
 
 
+# The functions below designate the acquisition either by its path (acquisition_path, their first argument),
+# or with the keywords dataset=, acquisition= (and root_path=): see resolve_acquisition_path.
+#   get_frames('path/to/dataset/acq')  or  get_frames(dataset='dataset', acquisition='acq')
+
 # Framenumbers
-def get_number_of_available_frames(acquisition_path: str) -> Optional[int]:
+def get_number_of_available_frames(acquisition_path: Optional[str] = None,
+                                   *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[int]:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     if not is_this_a_video(acquisition_path):
         customlog.log_error(f"There is no video at {acquisition_path}. Could not get number of available frames.")
         return None
@@ -350,7 +420,9 @@ def get_number_of_available_frames(acquisition_path: str) -> Optional[int]:
         customlog.log_error(f'Cannot get number of available frames for {acquisition_path}')
     return None
 
-def get_acquisition_frequency(acquisition_path: str, unit=None) -> float:
+def get_acquisition_frequency(acquisition_path: Optional[str] = None, unit=None,
+                              *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> float:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     if not is_this_a_video(acquisition_path):
         customlog.log_error(f"There is no video at {acquisition_path}. Could not get acquisition frequency.")
         return -1.
@@ -370,7 +442,9 @@ def get_acquisition_frequency(acquisition_path: str, unit=None) -> float:
         customlog.log_error(f"Could not get acquisition frequency for {acquisition_path}: returning -1.")
         return -1.
 
-def get_acquisition_duration(acquisition_path: str, framenumbers: Optional[np.ndarray], unit=None) -> Optional[float]:
+def get_acquisition_duration(acquisition_path: Optional[str] = None, framenumbers: Optional[np.ndarray] = None, unit=None,
+                             *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[float]:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     customlog.log_subtrace('func:get_acquisition_duration')
     framenumbers = format_framenumbers(acquisition_path, framenumbers)
     if framenumbers is None:
@@ -415,10 +489,14 @@ def format_framenumbers(acquisition_path: str, framenumbers: Framenumbers = None
     return framenumbers
 
 ## Time data
-def get_t_frames(acquisition_path: str, framenumbers: Framenumbers = None) -> Optional[np.ndarray]:
+def get_t_frames(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None,
+                 *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
     """Returns the time, in frames (integers)"""
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     return format_framenumbers(acquisition_path, framenumbers=framenumbers).astype(float)
-def get_times(acquisition_path: str, framenumbers: Optional[np.ndarray] = None, unit=None) -> Optional[np.ndarray]:
+def get_times(acquisition_path: Optional[str] = None, framenumbers: Optional[np.ndarray] = None, unit=None,
+              *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     framenumbers = format_framenumbers(acquisition_path, framenumbers)
     if framenumbers is None:
         customlog.log_error("ERROR Wrong framenumber, couldnt format it")
@@ -441,30 +519,36 @@ def get_times(acquisition_path: str, framenumbers: Optional[np.ndarray] = None, 
 
     return times
 
-def get_t_s(acquisition_path: str, framenumbers: Framenumbers = None) -> Optional[
-    np.ndarray]:
+def get_t_s(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None,
+            *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     return get_times(acquisition_path, framenumbers=framenumbers, unit='s')
 
-def get_t_ms(acquisition_path: str, framenumbers: Framenumbers = None) -> Optional[
-    np.ndarray]:
+def get_t_ms(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None,
+             *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     return get_times(acquisition_path, framenumbers=framenumbers, unit='ms')
 
 
 ## Missing frames
-def missing_frames(acquisition_path: str) -> List:
+def missing_frames(acquisition_path: Optional[str] = None,
+                   *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> List:
     """
     Identifies missing frame in a video.
 
     :param acquisition_path:
     :return:
     """
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     if is_this_a_gcv(acquisition_path):
         return missing_framenumbers_gcv(acquisition_path)
     else:
         customlog.log_warning(f'Could not deduce the number of missing frames for video {acquisition_path}')
     return []
 
-def missing_frames_in_framenumbers(acquisition_path: str, framenumbers: Optional[np.ndarray] = None) -> List:
+def missing_frames_in_framenumbers(acquisition_path: Optional[str] = None, framenumbers: Optional[np.ndarray] = None,
+                                   *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> List:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     customlog.log_subtrace('func:get_acquisition_duration')
     all_missing_chunks = missing_frames(acquisition_path)
     explicit_framenumbers = format_framenumbers(acquisition_path, framenumbers)
@@ -481,7 +565,9 @@ def missing_frames_in_framenumbers(acquisition_path: str, framenumbers: Optional
 
     return missing_chunks_in_framenumbers
 
-def are_there_missing_frames(acquisition_path: str, framenumbers: Optional[np.ndarray] = None) -> bool:
+def are_there_missing_frames(acquisition_path: Optional[str] = None, framenumbers: Optional[np.ndarray] = None,
+                             *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> bool:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     missing_chunks = missing_frames_in_framenumbers(acquisition_path, framenumbers=framenumbers)
 
     nbr_of_missing_chunks = len(missing_chunks)
@@ -500,7 +586,9 @@ def are_there_missing_frames(acquisition_path: str, framenumbers: Optional[np.nd
 
 
 # ROI | subRegion
-def get_geometry(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None) -> Optional[Tuple]:
+def get_geometry(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None, subregion: Subregion = None,
+                 *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[Tuple]:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     customlog.log_subtrace('func:get_geometry')
     if not is_this_a_video(acquisition_path):
         customlog.log_error(f"There is no video at {acquisition_path}. Could not get geometry.")
@@ -528,32 +616,44 @@ def get_geometry(acquisition_path: str, framenumbers: Framenumbers = None, subre
     return length, height, width
 
 ## Space data
-def get_z_px(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None,
-             resize_factor: int = 1) -> Optional[np.ndarray]:
+def get_z_px(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None, subregion: Subregion = None,
+             resize_factor: int = 1,
+             *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     length, height, width = get_geometry(acquisition_path, framenumbers=framenumbers, subregion=subregion)
     return np.arange(height * resize_factor) / resize_factor
 
-def get_x_px(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None,
-             resize_factor: int = 1) -> Optional[np.ndarray]:
+def get_x_px(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None, subregion: Subregion = None,
+             resize_factor: int = 1,
+             *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     length, height, width = get_geometry(acquisition_path, framenumbers=framenumbers, subregion=subregion)
     return np.arange(width * resize_factor) / resize_factor
 
-def get_x_mm(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None,
-             resize_factor: int = 1, px_per_mm: float = 1.) -> Optional[np.ndarray]:
+def get_x_mm(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None, subregion: Subregion = None,
+             resize_factor: int = 1, px_per_mm: float = 1.,
+             *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     return get_x_px(acquisition_path, framenumbers, subregion, resize_factor) / px_per_mm
 
-def get_x_m(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None,
-            resize_factor: int = 1, px_per_mm: float = 1.) -> Optional[np.ndarray]:
+def get_x_m(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None, subregion: Subregion = None,
+            resize_factor: int = 1, px_per_mm: float = 1.,
+            *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     return get_x_mm(acquisition_path, framenumbers, subregion, resize_factor, px_per_mm) / 1e3
 
-def get_x_um(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None,
-             resize_factor: int = 1, px_per_mm: float = 1.) -> Optional[np.ndarray]:
+def get_x_um(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None, subregion: Subregion = None,
+             resize_factor: int = 1, px_per_mm: float = 1.,
+             *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     return get_x_mm(acquisition_path, framenumbers, subregion, resize_factor, px_per_mm) * 1e3
 
 
 
 # Frames getting
-def get_frames(acquisition_path: str, framenumbers: Framenumbers = None, subregion: Subregion = None) -> Optional[np.ndarray]:
+def get_frames(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None, subregion: Subregion = None,
+               *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     if not is_this_a_video(acquisition_path):
         customlog.log_error(f"There is no video at {acquisition_path}. Could not get frames")
         return None
@@ -590,7 +690,9 @@ def get_frames(acquisition_path: str, framenumbers: Framenumbers = None, subregi
 
     return frames
 
-def get_frame(acquisition_path: str, framenumber: Optional[int], subregion: Subregion = None) -> Optional[np.ndarray]:
+def get_frame(acquisition_path: Optional[str] = None, framenumber: Optional[int] = None, subregion: Subregion = None,
+              *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     if not is_this_a_video(acquisition_path):
         customlog.log_error(f"There is no video at {acquisition_path}. Could not get frame {framenumber}.")
         return None
