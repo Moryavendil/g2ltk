@@ -3,6 +3,8 @@ Tests for g2ltk.videoreading on the reference videos in test_data/:
     - test_mp4.mp4  : lossy compressed video (H.264)
     - test_mkv.mkv  : losslessly compressed video (FFV1)
     - test_gcv.gcv/ : GevCapture video (meta + stamps + raw video)
+The mp4 and mkv videos were recorded with Limrendir: captured at 25 fps and played at 30 fps, with the recording
+settings (capture frame rate...) in their comment tag.
 """
 import os
 from functools import lru_cache
@@ -21,8 +23,10 @@ GCV_TLAST_S = 0.800878
 
 # Expected properties of the reference videos
 EXPECTED = {
-    'test_mp4': {'type': 'mp4', 'n_frames': 43, 'height': 256, 'width': 256, 'fps': 30.},
-    'test_mkv': {'type': 'mkv', 'n_frames': 53, 'height': 256, 'width': 256, 'fps': 30.},
+    # mp4 and mkv frequency is the capture frame rate measured by Limrendir (measuredCaptureFrequency in their tags),
+    # not the frame rate of the video file (30 fps)
+    'test_mp4': {'type': 'mp4', 'n_frames': 43, 'height': 256, 'width': 256, 'fps': 24.999524},
+    'test_mkv': {'type': 'mkv', 'n_frames': 53, 'height': 256, 'width': 256, 'fps': 24.994953},
     # gcv frequency is computed from the camera timestamps: (N - 1) / (t_last - t_0), close to the nominal 25 Hz
     'test_gcv': {'type': 'gcv', 'n_frames': 21, 'height': 256, 'width': 256, 'fps': 20 / GCV_TLAST_S},
 }
@@ -519,3 +523,127 @@ def test_datasheets_with_root_path(tmp_path, other_root_path):
     worksheet = vr.load_or_create_worksheet('dataset', 'results', columns=['height', 'width'], root_path=root_path)
     assert 'width' in worksheet.keys()
     assert 'width' in pd.read_excel(dataset_path / 'dataworkbook.xlsx', sheet_name='results').keys()
+
+
+### VIDEOS RECORDED WITH LIMRENDIR (mkv, mp4): RECORDING SETTINGS IN THEIR TAGS
+
+from g2ltk.videoreading import reading_videotags
+
+LIMRENDIR_SETTINGS = {
+    'test_mp4': {'captureFrequency': '25.000000', 'playbackFrequency': '30', 'measuredCaptureFrequency': '24.999524',
+                 'recordedFrames': '43', 'lostFrames': '0', 'captureProg': 'Limrendir version 0.8.2'},
+    'test_mkv': {'captureFrequency': '25.000000', 'playbackFrequency': '30', 'measuredCaptureFrequency': '24.994953',
+                 'recordedFrames': '53', 'lostFrames': '0', 'captureProg': 'Limrendir version 0.8.2'},
+}
+
+
+@pytest.mark.parametrize('acquisition', list(LIMRENDIR_SETTINGS))
+def test_limrendir_recording_settings(acquisition):
+    settings = vr.get_recording_settings(path_of(acquisition))
+    for key, value in LIMRENDIR_SETTINGS[acquisition].items():
+        assert settings[key] == value, key
+    # the number of frames of the video is the one recorded
+    assert vr.get_number_of_available_frames(path_of(acquisition)) == int(settings['recordedFrames'])
+
+
+@pytest.mark.parametrize('acquisition', list(LIMRENDIR_SETTINGS))
+def test_limrendir_times_use_capture_frequency(acquisition):
+    # the video files are played at 30 fps, but the times are those of the capture
+    fps = float(LIMRENDIR_SETTINGS[acquisition]['measuredCaptureFrequency'])
+    t = vr.get_t_s(path_of(acquisition))
+    np.testing.assert_allclose(t, np.arange(EXPECTED[acquisition]['n_frames']) / fps)
+    t = vr.get_t_ms(dataset='.', acquisition=acquisition, root_path=DATA_DIR)
+    np.testing.assert_allclose(t, np.arange(EXPECTED[acquisition]['n_frames']) / fps * 1e3)
+
+
+def test_limrendir_settings_by_extension(tmp_path):
+    # the settings are those of the video read: with an explicit extension, the one of that type
+    dataset_path = make_dataset(tmp_path, {'both.mkv': 'test_mkv.mkv', 'both.mp4': 'test_mp4.mp4'})
+    assert vr.get_recording_settings(str(dataset_path / 'both.mp4'))['recordedFrames'] == '43'
+    assert vr.get_recording_settings(str(dataset_path / 'both.mkv'))['recordedFrames'] == '53'
+    assert vr.get_recording_settings(str(dataset_path / 'both'))['recordedFrames'] == '53'  # mkv is read first
+
+
+def test_video_without_recording_settings(tmp_path):
+    # a mkv video written by g2ltk (from the gcv video) has no tags: its frame rate is the one of the file
+    dataset_path = make_dataset(tmp_path, {'acq.gcv': 'test_gcv.gcv'})
+    vr.save_acquisition_to_video(str(dataset_path / 'acq.gcv'), do_timestamp=False, filetype='mkv', fps=12.)
+    acquisition_path = str(dataset_path / 'acq.mkv')
+    assert vr.get_recording_settings(acquisition_path) is None
+    assert vr.get_acquisition_frequency(acquisition_path, unit='Hz') == pytest.approx(12.)
+    assert vr.get_recording_settings(path_of('test_gcv')) is None
+
+
+def test_unreadable_tags(tmp_path):
+    # files that are not valid mkv / mp4 have no settings, without error
+    for name, content in [('garbage.mkv', b'\x1a\x45\xdf\xa3' + bytes(range(256)) * 3), ('garbage.mp4', b'\x00\x00\x00\x10moov' + b'\xff' * 50),
+                          ('empty.mkv', b''), ('empty.mp4', b'')]:
+        (tmp_path / name).write_bytes(content)
+        assert reading_videotags.get_recording_settings_of_file(str(tmp_path / name)) is None
+    assert reading_videotags.get_recording_settings_of_file(str(tmp_path / 'does_not_exist.mkv')) is None
+
+
+def test_parse_recording_settings():
+    tags = ['x264',
+            'Recorded at 156.00 fps, played at 30 fps (5.20x slower)\ncaptureFrequency=156.000000\nslowdownFactor=5.2',
+            'Recorded at 156.00 fps\ncaptureFrequency=156.000000\nlostFrames=2\nmeasuredCaptureFrequency=155.5\n',
+            'title=not settings']
+    settings = reading_videotags.parse_recording_settings(tags)
+    # the later tags (written at the end of the recording) complete the earlier ones
+    assert settings == {'captureFrequency': '156.000000', 'slowdownFactor': '5.2', 'lostFrames': '2',
+                        'measuredCaptureFrequency': '155.5'}
+    assert reading_videotags.parse_recording_settings(['x264', 'title=a=b']) is None
+    assert reading_videotags.parse_recording_settings([]) is None
+
+
+def test_recorded_capture_frequency():
+    frequency = reading_videotags.recorded_capture_frequency
+    assert frequency({'captureFrequency': '156.0', 'measuredCaptureFrequency': '155.5'}) == 155.5
+    # the measured frequency is only there when the recording was ended properly
+    assert frequency({'captureFrequency': '156.0'}) == 156.
+    assert frequency({'captureFrequency': '156.0', 'measuredCaptureFrequency': 'nan?'}) == 156.
+    assert frequency({'captureFrequency': '0'}) is None
+    assert frequency({}) is None
+    assert frequency(None) is None
+
+
+def test_unescape_gstreamer_string():
+    unescape = reading_videotags._unescape_gstreamer_string
+    assert unescape(b'"Recorded\\ at\\ 25.00\\ fps\\,\\ x\\012captureFrequency\\=25.000000\\012"') == \
+        b'Recorded at 25.00 fps, x\ncaptureFrequency=25.000000\n'
+    assert unescape('"caf\\303\\251\\ \\"q\\"\\\\"'.encode()).decode() == 'caf\u00e9 "q"\\'
+    # not serialized: as is
+    assert unescape(b'captureFrequency=25') == b'captureFrequency=25'
+
+
+### MISSING FRAMES OF VIDEOS WITHOUT FRAME NUMBERS
+
+@pytest.mark.parametrize('acquisition', ['test_mp4', 'test_mkv'])
+def test_no_missing_frames_warning(acquisition, capsys):
+    with customlog.verbosity('warning'):
+        vr.describe_acquisition(acquisition=path_of(acquisition))
+        assert not vr.are_there_missing_frames(path_of(acquisition))
+    assert 'WARN' not in capsys.readouterr().out
+
+
+def test_lost_frames_warned_once(tmp_path, capsys):
+    # a Limrendir recording in which frames were lost: the frames cannot be located, this is warned once
+    content = open(os.path.join(DATA_DIR, 'test_mp4.mp4'), 'rb').read()
+    assert content.count(b'lostFrames=0') == 1
+    (tmp_path / 'lost.mp4').write_bytes(content.replace(b'lostFrames=0', b'lostFrames=3'))
+    acquisition_path = str(tmp_path / 'lost')
+    with customlog.verbosity('warning'):
+        assert vr.missing_frames(acquisition_path) == []
+        vr.describe_acquisition(acquisition=acquisition_path)
+    output = capsys.readouterr().out
+    assert output.count('3 frames were lost') == 1
+
+
+@pytest.mark.parametrize('acquisition', ACQUISITIONS)
+def test_time_units(acquisition):
+    acquisition_path = path_of(acquisition)
+    t_s = vr.get_t_s(acquisition_path)
+    np.testing.assert_allclose(vr.get_t_ms(acquisition_path), t_s * 1e3)
+    np.testing.assert_allclose(vr.get_times(acquisition_path, unit='us'), t_s * 1e6)
+    duration_s = vr.get_acquisition_duration(acquisition_path, unit='s')
+    assert vr.get_acquisition_duration(acquisition_path, unit='ms') == pytest.approx(duration_s * 1e3)

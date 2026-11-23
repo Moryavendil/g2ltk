@@ -4,7 +4,7 @@ import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 
 from .. import customlog
-from . import split_acquisition_path
+from . import split_acquisition_path, seconds_to
 
 ###### TIFF 16-BITS VIDEO (t16) READING
 from PIL import Image
@@ -259,4 +259,4 @@ def get_acquisition_duration_t16(acquisition_path: str, framenumbers:np.ndarray,
     acqu_freq: float = get_acquisition_frequency_t16(acquisition_path, unit =  'Hz')
     acqu_frames: float = len(framenumbers)
 
-    return (acqu_frames - 1) / acqu_freq
+    return (acqu_frames - 1) / acqu_freq * seconds_to(unit)

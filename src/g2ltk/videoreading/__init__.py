@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Tuple, List, Union
+from typing import Optional, Tuple, List, Union, Dict
 
 import cv2
 import numpy as np
@@ -442,6 +442,18 @@ def get_acquisition_frequency(acquisition_path: Optional[str] = None, unit=None,
         customlog.log_error(f"Could not get acquisition frequency for {acquisition_path}: returning -1.")
         return -1.
 
+# Time units, as the number of them in a second (same units as the timestamps of gcv videos)
+TIME_UNITS = {'ns': 1e9, 'us': 1e6, 'ms': 1e3, 's': 1., 'min': 1 / 60}
+
+def seconds_to(unit: Optional[str]) -> float:
+    """Number of the given time unit in a second (None: s), to convert times from seconds."""
+    if unit is None:
+        return 1.
+    if unit not in TIME_UNITS:
+        customlog.log_warning(f'Unrecognized time unit: {unit}, using s')
+        return 1.
+    return TIME_UNITS[unit]
+
 def get_acquisition_duration(acquisition_path: Optional[str] = None, framenumbers: Optional[np.ndarray] = None, unit=None,
                              *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[float]:
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
@@ -461,7 +473,7 @@ def get_acquisition_duration(acquisition_path: Optional[str] = None, framenumber
         freq_hz = get_acquisition_frequency(acquisition_path, unit='Hz')
         try:
             duration_s = (framenumbers.max() - framenumbers.min()) / freq_hz
-            return duration_s
+            return duration_s * seconds_to(unit)
         except:
             pass
         customlog.log_error('Could not get acquisition duration')
@@ -507,10 +519,11 @@ def get_times(acquisition_path: Optional[str] = None, framenumbers: Optional[np.
         times = get_times_gcv(acquisition_path, framenumbers, unit=unit)
     elif is_this_a_t16(acquisition_path):
         times = (np.arange(framenumbers.max() + 1) / get_acquisition_frequency_t16(acquisition_path))[framenumbers]
+        times = times * seconds_to(unit)
     else:
         freq_hz = get_acquisition_frequency(acquisition_path, unit='Hz')
         try:
-            times = framenumbers / freq_hz
+            times = framenumbers / freq_hz * seconds_to(unit)
             return times
         except:
             pass
@@ -530,6 +543,27 @@ def get_t_ms(acquisition_path: Optional[str] = None, framenumbers: Framenumbers 
     return get_times(acquisition_path, framenumbers=framenumbers, unit='ms')
 
 
+## Recording settings
+def get_recording_settings(acquisition_path: Optional[str] = None,
+                           *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[Dict[str, str]]:
+    """
+    Recording settings written by Limrendir in the tags of mkv and mp4 videos (see reading_videotags).
+
+    Limrendir plays these videos at a fixed frame rate: the capture frame rate is in these settings, and is used
+    instead of the frame rate of the video file (see get_acquisition_frequency).
+
+    :param acquisition_path:
+    :return: the settings ("key": "value"), or None for other videos
+    """
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
+    if is_this_a_gcv(acquisition_path) or is_this_a_t16(acquisition_path) or is_this_a_t8(acquisition_path):
+        return None
+    if is_this_a_mkv(acquisition_path):
+        return get_recording_settings_mkv(acquisition_path)
+    if is_this_a_mp4(acquisition_path):
+        return get_recording_settings_mp4(acquisition_path)
+    return None
+
 ## Missing frames
 def missing_frames(acquisition_path: Optional[str] = None,
                    *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> List:
@@ -542,9 +576,21 @@ def missing_frames(acquisition_path: Optional[str] = None,
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     if is_this_a_gcv(acquisition_path):
         return missing_framenumbers_gcv(acquisition_path)
-    else:
-        customlog.log_warning(f'Could not deduce the number of missing frames for video {acquisition_path}')
+    # The other videos have no frame numbers: the frames lost during their recording, if any, cannot be located.
+    # Those recorded with Limrendir have the number of lost frames in their tags.
+    lost_frames = recorded_lost_frames(get_recording_settings(acquisition_path))
+    if lost_frames is not None and lost_frames > 0:
+        if acquisition_path not in _warned_lost_frames:  # once per video, this is called often
+            _warned_lost_frames.add(acquisition_path)
+            customlog.log_warning(f'{lost_frames} frames were lost during the recording of {acquisition_path} '
+                                  f'(according to its tags), at unknown positions: '
+                                  f'the times of the frames after them are underestimated')
+    elif lost_frames is None:
+        customlog.log_debug(f'No frame numbers for video {acquisition_path}: missing frames cannot be detected')
     return []
+
+# Videos for which the lost frames were already warned about (see missing_frames)
+_warned_lost_frames = set()
 
 def missing_frames_in_framenumbers(acquisition_path: Optional[str] = None, framenumbers: Optional[np.ndarray] = None,
                                    *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> List:
@@ -718,6 +764,7 @@ from .reading_tiffs import *
 
 ### LOSSLESSLY COMPRESSED VIDEO (mkv) READING
 
+from .reading_videotags import *
 from .reading_mkv import *
 
 ### LOSSY COMPRESSED VIDEO (mp4) READING

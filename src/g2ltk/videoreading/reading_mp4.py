@@ -4,6 +4,7 @@ import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 
 from . import video_path_for_type
+from .reading_videotags import get_recording_settings_of_file, recorded_capture_frequency
 
 from .. import customlog
 
@@ -66,7 +67,24 @@ def get_number_of_available_frames_mp4(acquisition_path: str) -> Optional[int]:
     return n_framenumbers_tot
 
 
+def get_recording_settings_mp4(acquisition_path: str) -> Optional[Dict[str, str]]:
+    """
+    Recording settings written by Limrendir in the tags of the mp4 video (see reading_videotags), or None.
+
+    :param acquisition_path:
+    :return:
+    """
+    video_path = video_path_for_type(acquisition_path, 'mp4')
+    if video_path is None:
+        return None
+    return get_recording_settings_of_file(video_path)
+
 def get_acquisition_frequency_mp4(acquisition_path, unit='Hz'):
+    # Videos recorded with Limrendir are played at a fixed frame rate, which is not the one of the acquisition:
+    # the capture frame rate is in their tags
+    capture_frequency = recorded_capture_frequency(get_recording_settings_mp4(acquisition_path))
+    if capture_frequency is not None:
+        return capture_frequency
     video = capture_mp4(acquisition_path)
     if video is not None:
         fps = video.get(cv2.CAP_PROP_FPS)
