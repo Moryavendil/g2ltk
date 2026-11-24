@@ -1,0 +1,7 @@
+# Notebooks go through a clean filter that strips their outputs before they reach git.
+# The filter is defined locally (see scripts/cleanipynb.py), once per clone:
+#   pip install nbstripout
+#   git config filter.cleanipynb.clean "python scripts/cleanipynb.py"
+#   git config filter.cleanipynb.smudge cat
+#   git config filter.cleanipynb.required true
+*.ipynb filter=cleanipynb
