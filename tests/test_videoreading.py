@@ -491,6 +491,7 @@ def test_describe_acquisition_auto_selects(other_root_path, capsys):
 
 # (function, extra arguments): every reading function accepting the dataset=, acquisition=, root_path= keywords
 KEYWORD_FUNCTIONS = [
+    (vr.is_this_a_video, {}),
     (vr.get_number_of_available_frames, {}),
     (vr.get_acquisition_frequency, {'unit': 'Hz'}),
     (vr.get_acquisition_duration, {'unit': 's'}),
@@ -550,6 +551,22 @@ def test_reading_without_acquisition():
         vr.get_frames()
     with pytest.raises(ValueError):
         vr.get_t_s(dataset='dataset')
+    with pytest.raises(ValueError):
+        vr.is_this_a_video()
+
+
+def test_is_not_a_video_by_dataset_or_by_path(tmp_path, other_root_path, capsys):
+    # no video: is_this_a_video answers False, without warning (unlike generate_acquisition_path)
+    dataset_path = make_dataset(tmp_path, {'acq.mp4': 'test_mp4.mp4'})
+    with customlog.verbosity('warning'):
+        assert not vr.is_this_a_video(dataset='dataset', acquisition='missing', root_path=str(tmp_path))
+        assert not vr.is_this_a_video(dataset='missing_dataset', acquisition='acq', root_path=str(tmp_path))
+        assert not vr.is_this_a_video(acquisition=str(dataset_path / 'missing'))
+        assert not vr.is_this_a_video(str(dataset_path / 'missing'))
+        # the default root path applies with a dataset
+        assert vr.is_this_a_video(dataset='other_dataset', acquisition='other')
+        assert not vr.is_this_a_video(dataset='other_dataset', acquisition='acq')
+    assert capsys.readouterr().out == ''
 
 
 ### DATASHEETS WITH AN EXPLICIT ROOT PATH

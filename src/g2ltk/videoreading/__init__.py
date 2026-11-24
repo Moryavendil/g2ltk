@@ -20,13 +20,22 @@ def alert_me_if_there_is_no_video(acquisition_path: str) -> None:
         for i in range(10):
             customlog.log_warning(f'No video named {acquisition_path} exists !')
 
-def is_this_a_video(acquisition_path: str) -> bool:
+def is_this_a_video(acquisition_path: Optional[str] = None,
+                    *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> bool:
     """
-    Checks if there is a video of any kind for the given acquisition path.
+    Checks if there is a video of any kind for the given acquisition, designated like in the functions reading videos:
+    either by its path (acquisition_path, the first argument), or with the keywords dataset, acquisition and root_path
+    (see resolve_acquisition_path).
+      is_this_a_video('path/to/dataset/acq')  or  is_this_a_video(dataset='dataset', acquisition='acq')
 
-    :param acquisition_path:
+    :param acquisition_path: path to the acquisition
+    :param dataset: name of the dataset, or None if acquisition is a path
+    :param acquisition: name of the acquisition in the dataset, or path to the acquisition if dataset is None
+    :param root_path: folder containing the dataset (only used with dataset)
     :return:
     """
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition,
+                                                root_path=root_path, warn_if_no_video=False)
     if is_this_a_gcv(acquisition_path):
         return True
     elif is_this_a_t16(acquisition_path):
@@ -267,7 +276,8 @@ def find_default_acquisition(dataset: Optional[str] = None, root_path:Optional[s
     else:
         customlog.log_error(f'No acquisitions available for dataset {dataset}')
     return acquisition
-def generate_acquisition_path(acquisition: str, dataset: Optional[str] = None, root_path:Optional[str] = None) -> str:
+def generate_acquisition_path(acquisition: str, dataset: Optional[str] = None, root_path:Optional[str] = None,
+                              *, warn_if_no_video: bool = True) -> str:
     """
     Path of an acquisition, to give to the functions reading videos (get_frames, get_geometry...).
 
@@ -280,6 +290,7 @@ def generate_acquisition_path(acquisition: str, dataset: Optional[str] = None, r
     :param acquisition: name of the acquisition in the dataset, or path to the acquisition if dataset is None
     :param dataset: name of the dataset, or None if acquisition is a path
     :param root_path: folder containing the dataset (only used with dataset)
+    :param warn_if_no_video: log a warning if there is no video at the path (False for is_this_a_video)
     :return:
     """
     if dataset is None:
@@ -287,17 +298,18 @@ def generate_acquisition_path(acquisition: str, dataset: Optional[str] = None, r
             customlog.log_warning(f'generate_acquisition_path: root_path {root_path} is ignored, since no dataset is given '
                                   f'(acquisition {acquisition} is taken as a path)')
         acquisition_path = acquisition
-        if not is_this_a_video(acquisition_path):
+        if warn_if_no_video and not is_this_a_video(acquisition_path):
             customlog.log_warning(f'There is no video at {acquisition_path}')
         return acquisition_path
     dataset_path = generate_dataset_path(dataset, root_path=root_path)
     acquisition_path = os.path.join(dataset_path, acquisition)
-    if not is_this_a_video(acquisition_path):
+    if warn_if_no_video and not is_this_a_video(acquisition_path):
         customlog.log_warning(f'There is no video named {acquisition} in {dataset}')
     return acquisition_path
 
 def resolve_acquisition_path(acquisition_path: Optional[str] = None, dataset: Optional[str] = None,
-                             acquisition: Optional[str] = None, root_path: Optional[str] = None) -> str:
+                             acquisition: Optional[str] = None, root_path: Optional[str] = None,
+                             *, warn_if_no_video: bool = True) -> str:
     """
     Path of the acquisition given to a function reading videos (get_frames, get_geometry, get_t_s...).
 
@@ -308,6 +320,7 @@ def resolve_acquisition_path(acquisition_path: Optional[str] = None, dataset: Op
     :param dataset: name of the dataset, or None if acquisition is a path
     :param acquisition: name of the acquisition in the dataset, or path to the acquisition if dataset is None
     :param root_path: folder containing the dataset (only used with dataset)
+    :param warn_if_no_video: log a warning if there is no video at the path (False for is_this_a_video)
     :return:
     """
     if acquisition_path is not None:
@@ -319,7 +332,8 @@ def resolve_acquisition_path(acquisition_path: Optional[str] = None, dataset: Op
     if acquisition is None:
         raise ValueError('No acquisition given: give either acquisition_path, '
                          'or the keyword acquisition (with dataset and root_path if needed).')
-    return generate_acquisition_path(acquisition, dataset=dataset, root_path=root_path)
+    return generate_acquisition_path(acquisition, dataset=dataset, root_path=root_path,
+                                     warn_if_no_video=warn_if_no_video)
 
 def describe_acquisition(acquisition_path: Optional[str] = None,
                          framenumbers: Framenumbers = None, subregion: Subregion = None,
