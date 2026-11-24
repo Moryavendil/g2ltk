@@ -67,8 +67,14 @@ def test_detected_type(acquisition):
         assert is_this_a(path_of(acquisition)) == (videotype == expected_type), videotype
 
 
+@pytest.mark.parametrize('acquisition', ACQUISITIONS)
+def test_get_video_type(acquisition):
+    assert vr.get_video_type(path_of(acquisition)) == EXPECTED[acquisition]['type']
+
+
 def test_not_a_video():
     assert not vr.is_this_a_video(path_of('this_video_does_not_exist'))
+    assert vr.get_video_type(path_of('this_video_does_not_exist')) is None
 
 
 ### METADATA
@@ -426,6 +432,8 @@ def test_describe_acquisition_by_path(tmp_path, other_root_path, capsys):
     with customlog.verbosity('info'):
         vr.describe_acquisition(acquisition=str(dataset_path / 'acq'))
     output = capsys.readouterr().out
+    assert f'Acquisition path: "{dataset_path / "acq"}"' in output
+    assert 'Video type: mp4' in output
     assert f'{EXPECTED["test_mp4"]["n_frames"]} frames' in output
     assert 'other_dataset' not in output
 
@@ -440,7 +448,8 @@ def test_describe_acquisition_by_positional_path(tmp_path, other_root_path, caps
     with customlog.verbosity('info'):
         vr.describe_acquisition(acquisition_path)
     output = capsys.readouterr().out
-    assert f'"{acquisition_path}"' in output
+    assert f'Acquisition path: "{acquisition_path}"' in output
+    assert 'Video type: mp4' in output
     assert f'{EXPECTED["test_mp4"]["n_frames"]} frames' in output
     assert 'other_dataset' not in output
 
@@ -475,7 +484,9 @@ def test_describe_acquisition_by_dataset(tmp_path, other_root_path, capsys):
     with customlog.verbosity('info'):
         vr.describe_acquisition(dataset='dataset', acquisition='acq', root_path=str(tmp_path))
     output = capsys.readouterr().out
-    assert '"acq" (dataset)' in output
+    assert 'Acquisition: "acq" (dataset)' in output
+    assert 'Acquisition path' not in output
+    assert 'Video type: mp4' in output
     assert f'{EXPECTED["test_mp4"]["n_frames"]} frames' in output
 
 
@@ -492,6 +503,7 @@ def test_describe_acquisition_auto_selects(other_root_path, capsys):
 # (function, extra arguments): every reading function accepting the dataset=, acquisition=, root_path= keywords
 KEYWORD_FUNCTIONS = [
     (vr.is_this_a_video, {}),
+    (vr.get_video_type, {}),
     (vr.get_number_of_available_frames, {}),
     (vr.get_acquisition_frequency, {'unit': 'Hz'}),
     (vr.get_acquisition_duration, {'unit': 's'}),

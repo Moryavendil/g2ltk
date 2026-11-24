@@ -375,7 +375,7 @@ def describe_acquisition(acquisition_path: Optional[str] = None,
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition,
                                                 root_path=root_path)
     if dataset is None:
-        customlog.log_info(f'Acquisition: "{acquisition_path}"')
+        customlog.log_info(f'Acquisition path: "{acquisition_path}"')
     else:
         customlog.log_info(f'Acquisition: "{acquisition}" ({dataset})')
 
@@ -390,6 +390,7 @@ def describe_acquisition(acquisition_path: Optional[str] = None,
     # general
     frequency = get_acquisition_frequency(acquisition_path, unit="Hz")
 
+    customlog.log_info(f'  Video type: {get_video_type(acquisition_path)}')
     customlog.log_info(f'  Acquisition frequency: {round(frequency, 2)} Hz')
 
     # raw video file
@@ -434,6 +435,33 @@ def describe_acquisition(acquisition_path: Optional[str] = None,
 # The functions below designate the acquisition either by its path (acquisition_path, their first argument),
 # or with the keywords dataset=, acquisition= (and root_path=): see resolve_acquisition_path.
 #   get_frames('path/to/dataset/acq')  or  get_frames(dataset='dataset', acquisition='acq')
+
+# Video type
+def get_video_type(acquisition_path: Optional[str] = None,
+                   *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[str]:
+    """
+    Type of the video of an acquisition.
+
+    :param acquisition_path:
+    :return: one of VIDEOTYPES ('gcv', 't16', 't8', 'mkv', 'mp4', 'mov'), or None if there is no video
+    """
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition,
+                                                root_path=root_path, warn_if_no_video=False)
+    # same order as is_this_a_video and get_frames, if there are several videos for this acquisition
+    if is_this_a_gcv(acquisition_path):
+        return 'gcv'
+    if is_this_a_t16(acquisition_path):
+        return 't16'
+    if is_this_a_t8(acquisition_path):
+        return 't8'
+    if is_this_a_mkv(acquisition_path):
+        return 'mkv'
+    if is_this_a_mp4(acquisition_path):
+        return 'mp4'
+    if is_this_a_mov(acquisition_path):
+        return 'mov'
+    customlog.log_debug(f'There is no video at {acquisition_path}: no video type')
+    return None
 
 # Framenumbers
 def get_number_of_available_frames(acquisition_path: Optional[str] = None,
