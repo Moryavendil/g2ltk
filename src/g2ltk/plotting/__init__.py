@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 
 from g2ltk.customlog import log_debug
 
+# The verbosity of g2ltk can also be set from here (plotting.set_verbose('debug')): it applies to all of g2ltk
+from g2ltk.customlog import set_verbose, verbosity
+
 # conversion to in
 in_per_mm = 1 / 25.4
 in_per_pt = 0.01384

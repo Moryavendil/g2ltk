@@ -5,6 +5,9 @@ import math
 from g2ltk import customlog
 from g2ltk.arrtools import argval
 
+# The verbosity of g2ltk can also be set from here (fourier.set_verbose('debug')): it applies to all of g2ltk
+from g2ltk.customlog import set_verbose, verbosity
+
 ### ARRAYS QOL routines
 # These are the real deal, with the dimensions encoded.
 # floatarray1D = np.ndarray[tuple[int], np.dtype[np.floating]]
