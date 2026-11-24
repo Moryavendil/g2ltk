@@ -67,7 +67,7 @@ compute_before = False
 # <codecell>
 
 # Data fetching
-videoreading.describe_acquisition(dataset, acquisition, framenumbers = framenumbers, subregion=roi)
+videoreading.describe_acquisition(dataset=dataset, acquisition=acquisition, framenumbers = framenumbers, subregion=roi)
 
 length, height, width = videoreading.get_geometry(acquisition_path, framenumbers = framenumbers, subregion=roi)
 

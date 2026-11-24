@@ -59,7 +59,7 @@ for acquisition in []:
     
     #%%
 
-    videoreading.describe_acquisition(dataset, acquisition, subregion=roi)
+    videoreading.describe_acquisition(dataset=dataset, acquisition=acquisition, subregion=roi)
     
     z_raw = datasaving.fetch_or_generate_data('cos', dataset, acquisition, framenumbers=framenumbers, roi=roi, **rivfinding_params)
     

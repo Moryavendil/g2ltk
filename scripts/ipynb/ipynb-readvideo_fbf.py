@@ -45,7 +45,7 @@ videoreading.is_this_a_video(acquisition_path)
 framenumbers = videoreading.format_framenumbers(acquisition_path, None)
 roi = None, None, None, None  #start_x, start_y, end_x, end_y
 # Data fetching
-videoreading.describe_acquisition(dataset, acquisition, framenumbers=framenumbers, subregion=roi)
+videoreading.describe_acquisition(dataset=dataset, acquisition=acquisition, framenumbers=framenumbers, subregion=roi)
 length, height, width = videoreading.get_geometry(acquisition_path, framenumbers=framenumbers, subregion=roi)
 acquisition_frequency = videoreading.get_acquisition_frequency(acquisition_path, unit="Hz")
 t = videoreading.get_times(acquisition_path, framenumbers=framenumbers, unit='s')

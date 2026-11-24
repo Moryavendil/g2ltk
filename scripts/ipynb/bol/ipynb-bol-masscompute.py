@@ -61,7 +61,7 @@ for acquisition in []:
     
     #%%
     
-    videoreading.describe_acquisition(dataset, acquisition, subregion=roi)
+    videoreading.describe_acquisition(dataset=dataset, acquisition=acquisition, subregion=roi)
 
     #%%
     

@@ -94,7 +94,12 @@ def find_available_videos(dataset_path: Optional[str] = None, dataset: Optional[
     if dataset_path is not None:
         customlog.log_warning('find_available_videos: Passing a path directly is deprecated')
     else:
+        if dataset is None:  # no dataset given, and none to auto-select (find_default_dataset logged it)
+            return []
         dataset_path = generate_dataset_path(dataset, root_path=root_path)
+    if not os.path.isdir(dataset_path):
+        customlog.log_error(f'Cannot find videos in dataset {dataset}: {dataset_path} is not a directory')
+        return []
 
     customlog.log_subtrace(f'Finding available videos of type {videotype or VIDEOTYPES} at {dataset_path}')
 
@@ -313,34 +318,50 @@ def resolve_acquisition_path(acquisition_path: Optional[str] = None, dataset: Op
                          'or the keyword acquisition (with dataset and root_path if needed).')
     return generate_acquisition_path(acquisition, dataset=dataset, root_path=root_path)
 
-def describe_acquisition(dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None,
-                         framenumbers: Optional[np.ndarray] = None, subregion: Subregion = None) -> None:
+def describe_acquisition(acquisition_path: Optional[str] = None,
+                         framenumbers: Framenumbers = None, subregion: Subregion = None,
+                         *, dataset: Optional[str] = None, acquisition: Optional[str] = None,
+                         root_path: Optional[str] = None) -> None:
     """
-    Logs information about an acquisition, designated either by dataset and name, or by path (see generate_acquisition_path).
+    Logs information about an acquisition, designated like in the functions reading videos: either by its path
+    (acquisition_path, the first argument), or with the keywords dataset, acquisition and root_path
+    (see resolve_acquisition_path).
+      describe_acquisition('path/to/dataset/acq')  or  describe_acquisition(dataset='dataset', acquisition='acq')
 
     If no acquisition is given, one is auto-selected in the dataset (itself auto-selected in the root path if not given).
 
+    :param acquisition_path: path to the acquisition
+    :param framenumbers:
+    :param subregion:
     :param dataset: name of the dataset, or None if acquisition is a path
     :param acquisition: name of the acquisition in the dataset, or path to the acquisition if dataset is None
     :param root_path: folder containing the dataset (only used with dataset)
-    :param framenumbers:
-    :param subregion:
     :return:
     """
     customlog.log_subtrace('func:describe_acquisition')
 
-    if acquisition is None:
+    # describe_acquisition used to take (dataset, acquisition, root_path, ...) as positional arguments: with the current
+    # signature, such a call gives the acquisition name as framenumbers (and the root path as subregion)
+    if isinstance(framenumbers, str) or isinstance(subregion, str):
+        raise TypeError(f'describe_acquisition: framenumbers ({framenumbers}) and subregion ({subregion}) cannot be '
+                        f'strings. describe_acquisition(dataset, acquisition) is no longer supported: use '
+                        f'describe_acquisition(acquisition_path) or describe_acquisition(dataset=..., acquisition=...)')
+
+    if acquisition_path is None and acquisition is None:
         if dataset is None:
             dataset = find_default_dataset(root_path=root_path)
+            if dataset is None:
+                return
         acquisition = find_default_acquisition(dataset=dataset, root_path=root_path)
         if acquisition is None:
             return
+    acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition,
+                                                root_path=root_path)
     if dataset is None:
-        customlog.log_info(f'Acquisition: "{acquisition}"')
+        customlog.log_info(f'Acquisition: "{acquisition_path}"')
     else:
         customlog.log_info(f'Acquisition: "{acquisition}" ({dataset})')
 
-    acquisition_path = generate_acquisition_path(acquisition, dataset=dataset, root_path=root_path)
     if not (is_this_a_video(acquisition_path)):
         if dataset is None:
             customlog.log_error(f'No video at {acquisition_path}')

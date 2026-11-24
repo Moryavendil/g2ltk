@@ -229,6 +229,16 @@ def test_describe_dataset_lists_types(tmp_path, capsys):
     assert 'TODO' not in output
 
 
+def test_missing_dataset_has_no_videos(tmp_path, capsys):
+    # a dataset that is not a directory has no videos: logged as an error, without raising
+    with customlog.verbosity('error'):
+        assert vr.find_available_videos(dataset='missing', root_path=str(tmp_path)) == []
+        assert vr.find_available_videos(dataset='missing', root_path=str(tmp_path), videotype='gcv') == []
+        vr.describe_acquisition(dataset='missing', root_path=str(tmp_path))
+    output = capsys.readouterr().out
+    assert 'is not a directory' in output
+
+
 ### GCV-SPECIFIC
 
 def test_gcv_meta():
@@ -420,10 +430,50 @@ def test_describe_acquisition_by_path(tmp_path, other_root_path, capsys):
     assert 'other_dataset' not in output
 
 
+@pytest.mark.parametrize('relative', [False, True])
+def test_describe_acquisition_by_positional_path(tmp_path, other_root_path, capsys, relative):
+    # like the functions reading videos, describe_acquisition takes the path as its first argument
+    dataset_path = make_dataset(tmp_path, {'acq.mp4': 'test_mp4.mp4'})
+    acquisition_path = str(dataset_path / 'acq')
+    if relative:
+        acquisition_path = os.path.relpath(acquisition_path)
+    with customlog.verbosity('info'):
+        vr.describe_acquisition(acquisition_path)
+    output = capsys.readouterr().out
+    assert f'"{acquisition_path}"' in output
+    assert f'{EXPECTED["test_mp4"]["n_frames"]} frames' in output
+    assert 'other_dataset' not in output
+
+
+def test_describe_acquisition_old_positional_call_raises(tmp_path, other_root_path):
+    # describe_acquisition(dataset, acquisition) used to be valid: it now fails clearly instead of misreading them
+    make_dataset(tmp_path, {'acq.mp4': 'test_mp4.mp4'})
+    with pytest.raises(TypeError, match='no longer supported'):
+        vr.describe_acquisition('dataset', 'acq')
+    with pytest.raises(TypeError, match='no longer supported'):
+        vr.describe_acquisition('dataset', 'acq', str(tmp_path))
+
+
+def test_describe_acquisition_designated_twice_raises(tmp_path, other_root_path):
+    dataset_path = make_dataset(tmp_path, {'acq.mp4': 'test_mp4.mp4'})
+    with pytest.raises(ValueError, match='designated twice'):
+        vr.describe_acquisition(str(dataset_path / 'acq'), dataset='dataset', root_path=str(tmp_path))
+
+
+def test_describe_acquisition_auto_selects_in_dataset(tmp_path, other_root_path, capsys):
+    # dataset given without acquisition: the acquisition is auto-selected in this dataset
+    make_dataset(tmp_path, {'acq.mp4': 'test_mp4.mp4'})
+    with customlog.verbosity('info'):
+        vr.describe_acquisition(dataset='dataset', root_path=str(tmp_path))
+    output = capsys.readouterr().out
+    assert '"acq" (dataset)' in output
+    assert f'{EXPECTED["test_mp4"]["n_frames"]} frames' in output
+
+
 def test_describe_acquisition_by_dataset(tmp_path, other_root_path, capsys):
     make_dataset(tmp_path, {'acq.mp4': 'test_mp4.mp4'})
     with customlog.verbosity('info'):
-        vr.describe_acquisition('dataset', 'acq', root_path=str(tmp_path))
+        vr.describe_acquisition(dataset='dataset', acquisition='acq', root_path=str(tmp_path))
     output = capsys.readouterr().out
     assert '"acq" (dataset)' in output
     assert f'{EXPECTED["test_mp4"]["n_frames"]} frames' in output
