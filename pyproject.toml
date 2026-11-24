@@ -39,6 +39,7 @@ video = [
     "opencv-python-headless", # mp4, mov and mkv videos
     "pillow", # tiff metadata
     "pandas", # datasheets
+    "openpyxl", # datasheets (reading and writing xlsx workbooks with pandas)
     "imagecodecs", # reading tiff (t8 / t16) videos
 ]
 full = ["g2ltk[plot,video]"]
