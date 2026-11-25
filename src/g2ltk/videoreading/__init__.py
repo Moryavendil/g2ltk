@@ -560,9 +560,9 @@ def format_framenumbers(acquisition_path: str, framenumbers: Framenumbers = None
     if framenumbers.min() < 0:
         customlog.log_error('Asked for negative framenumber ??')
         return None
-    if framenumbers.max() >= get_number_of_available_frames(acquisition_path):
+    if framenumbers.max() >= number_of_available_frames:
         customlog.log_error(
-            f'Requested framenumber {framenumbers.max()} while there are only {get_number_of_available_frames(acquisition_path)} frames for this dataset.')
+            f'Requested framenumber {framenumbers.max()} while there are only {number_of_available_frames} frames for this dataset.')
         return None
     return framenumbers
 
