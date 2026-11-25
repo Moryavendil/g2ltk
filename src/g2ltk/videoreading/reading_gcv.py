@@ -1,4 +1,5 @@
 from typing import Optional, Any, Tuple, Dict, List, Union
+from functools import lru_cache
 import numpy as np
 import os # to navigate in the directories
 
@@ -113,6 +114,24 @@ def get_times_gcv(acquisition_path:str, framenumbers:np.ndarray, unit=None) -> O
 def get_frames_gcv(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
     return get_frames_rawvideo(acquisition_path, framenumbers=framenumbers)
 
+### CACHE
+
+# The meta and stamps files are read once and kept in a cache: reading a frame needs them (number of frames, frame
+# geometry), and parsing the stamps file of a long video takes time (~10 ms for 20 000 frames).
+# The cache is keyed on the path, modification time and size of the file, so that a file that changed (a video
+# recorded again, or still being recorded) is read again.
+# 16 files of each kind are kept (the stamps of a video of 100 000 frames take ~2.4 MB).
+
+def _file_version(path: str) -> Tuple[int, int]:
+    """Modification time (ns) and size (bytes) of a file: the cached content of a file is read again when they change."""
+    stat = os.stat(path)
+    return stat.st_mtime_ns, stat.st_size
+
+def clear_gcv_cache() -> None:
+    """Forgets the meta and stamps files read until now: they will be read again."""
+    _parse_meta_file.cache_clear()
+    _parse_stamps_file.cache_clear()
+
 ### META READING
 
 def retrieve_meta(acquisition_path: str) -> Meta:
@@ -120,22 +139,28 @@ def retrieve_meta(acquisition_path: str) -> Meta:
     meta_filename = [f for f in os.listdir(gcv_path) if f.endswith('.meta')][0]
     meta_path = os.path.join(gcv_path, meta_filename)
     if not(os.path.isfile(meta_path)): raise(Exception(f'ERROR: Problem with the {acquisition_path} meta file (it does not exist).'))
+    # a copy, so that changing the meta returned does not change the cached one
+    return dict(_parse_meta_file(meta_path, *_file_version(meta_path)))
+
+@lru_cache(maxsize=16)
+def _parse_meta_file(meta_path: str, mtime_ns: int, size: int) -> Meta:
+    """Content of a meta file. Cached: mtime_ns and size (see _file_version) are not used, but are part of the cache key."""
     meta:Meta = {}
     try:
         with open(meta_path, 'r') as meta_file:
             for line in meta_file.readlines():
                 if '=' in line:
                     if line.count('=') > 1:
-                        customlog.throw_G2L_warning(f'Ambiguity when parsing the {acquisition_path} meta file: is there a rogue "=" somewhere in it?.')
+                        customlog.throw_G2L_warning(f'Ambiguity when parsing the {meta_path} meta file: is there a rogue "=" somewhere in it?.')
                     variable = line[:-1].split('=')[0]
                     value = '='.join( line[:-1].split('=')[1:] )
                     meta[variable] = value
                 else:
-                    customlog.throw_G2L_warning(f'Could not parse correctly the {acquisition_path} meta file.')
+                    customlog.throw_G2L_warning(f'Could not parse correctly the {meta_path} meta file.')
     except:
-        raise(Exception(f'ERROR: Problem with the {acquisition_path} meta file (probably it could not be opened).'))
+        raise(Exception(f'ERROR: Problem with the {meta_path} meta file (probably it could not be opened).'))
 
-    customlog.log_subtrace(f'Video {acquisition_path}: Metafile content: meta={meta}')
+    customlog.log_subtrace(f'Meta file {meta_path} read: meta={meta}')
 
     return meta
 
@@ -178,7 +203,12 @@ def retrieve_stamps(acquisition_path:str) -> Stamps:
     stamps_filename = [f for f in os.listdir(gcv_path) if f.endswith('.stamps')][0]
     stamps_path = os.path.join(gcv_path, stamps_filename)
     if not(os.path.isfile(stamps_path)): raise(Exception(f'ERROR: Problem with the {acquisition_path} stamps file (it does not exist).'))
+    # copies, so that changing the stamps returned does not change the cached ones
+    return {key: values.copy() for key, values in _parse_stamps_file(stamps_path, *_file_version(stamps_path)).items()}
 
+@lru_cache(maxsize=16)
+def _parse_stamps_file(stamps_path: str, mtime_ns: int, size: int) -> Stamps:
+    """Content of a stamps file. Cached: mtime_ns and size (see _file_version) are not used, but are part of the cache key."""
     framenumber, camera_time, computer_time = [], [], []
     try:
         with open(stamps_path, 'r') as stamps_file:
@@ -188,9 +218,9 @@ def retrieve_stamps(acquisition_path:str) -> Stamps:
                     camera_time.append(line[:-1].split('\t')[1])     # The time given by the camera, in ns (int)
                     computer_time.append(line[:-1].split('\t')[2])   # The time given by the computer, in ms (int)
                 else:
-                    customlog.throw_G2L_warning(f'Could not parse correctly the {acquisition_path} stamps file.')
+                    customlog.throw_G2L_warning(f'Could not parse correctly the {stamps_path} stamps file.')
     except:
-        raise(Exception(f'ERROR: Problem with the {acquisition_path} stamps file (probably it could not be opened).'))
+        raise(Exception(f'ERROR: Problem with the {stamps_path} stamps file (probably it could not be opened).'))
     #Todo: check if a typecasting error can happen here ?
     stamps:Stamps = {'framenumber': np.array(framenumber, dtype=int),
                      'camera_time': np.array(camera_time, dtype=np.int64),

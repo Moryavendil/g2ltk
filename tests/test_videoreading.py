@@ -7,6 +7,7 @@ The mp4 and mkv videos were recorded with Limrendir: captured at 25 fps and play
 settings (capture frame rate...) in their comment tag.
 """
 import os
+import shutil
 from functools import lru_cache
 
 import numpy as np
@@ -14,6 +15,7 @@ import pytest
 
 from g2ltk import customlog
 from g2ltk import videoreading as vr
+from g2ltk.videoreading import reading_gcv
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'test_data')
 
@@ -283,6 +285,69 @@ def test_gcv_frames_are_the_raw_bytes():
     exp = EXPECTED['test_gcv']
     raw = np.fromfile(raw_path, dtype=np.uint8).reshape((exp['n_frames'], exp['height'], exp['width']))
     np.testing.assert_array_equal(all_frames('test_gcv'), raw)
+
+
+### GCV CACHE (the meta and stamps files are read once, see reading_gcv)
+
+def copy_of_test_gcv(tmp_path) -> str:
+    """Acquisition path of a copy of the gcv reference video, that a test can modify."""
+    shutil.copytree(os.path.join(DATA_DIR, 'test_gcv.gcv'), tmp_path / 'acq.gcv')
+    return str(tmp_path / 'acq')
+
+
+def test_gcv_files_are_read_once():
+    vr.clear_gcv_cache()
+    for framenumber in [0, 5, 20]:
+        vr.get_frame(path_of('test_gcv'), framenumber)
+    assert reading_gcv._parse_stamps_file.cache_info().misses == 1
+    assert reading_gcv._parse_meta_file.cache_info().misses == 1
+
+
+def test_gcv_cached_stamps_cannot_be_changed_by_the_caller():
+    stamps = vr.retrieve_stamps(path_of('test_gcv'))
+    expected = {key: values.copy() for key, values in stamps.items()}
+    stamps['camera_time'][:] = 0
+    stamps['framenumber'] = None
+    stamps = vr.retrieve_stamps(path_of('test_gcv'))
+    assert stamps.keys() == expected.keys()
+    for key in expected:
+        np.testing.assert_array_equal(stamps[key], expected[key])
+
+
+def test_gcv_cached_meta_cannot_be_changed_by_the_caller():
+    meta = vr.retrieve_meta(path_of('test_gcv'))
+    meta['captureFrequency'] = '1'
+    del meta['usingROI']
+    meta = vr.retrieve_meta(path_of('test_gcv'))
+    assert float(meta['captureFrequency']) == 25.
+    assert meta['usingROI'] == 'false'
+
+
+def test_gcv_stamps_file_read_again_when_it_changes(tmp_path):
+    acquisition_path = copy_of_test_gcv(tmp_path)
+    n_frames = EXPECTED['test_gcv']['n_frames']
+    assert len(vr.retrieve_stamps(acquisition_path)['framenumber']) == n_frames
+    stamps_path = os.path.join(acquisition_path + '.gcv', 'stamps.stamps')
+    with open(stamps_path) as stamps_file:
+        lines = stamps_file.readlines()
+    with open(stamps_path, 'w') as stamps_file:
+        stamps_file.writelines(lines[:-1])
+    assert len(vr.retrieve_stamps(acquisition_path)['framenumber']) == n_frames - 1
+
+
+def test_gcv_meta_file_read_again_when_it_changes(tmp_path):
+    acquisition_path = copy_of_test_gcv(tmp_path)
+    assert float(vr.retrieve_meta(acquisition_path)['captureFrequency']) == 25.
+    meta_path = os.path.join(acquisition_path + '.gcv', 'metainfo.meta')
+    mtime_ns = os.stat(meta_path).st_mtime_ns
+    with open(meta_path) as meta_file:
+        meta = meta_file.read()
+    # same size: the change is seen through the modification time only
+    with open(meta_path, 'w') as meta_file:
+        meta_file.write(meta.replace('captureFrequency=25.000000', 'captureFrequency=50.000000'))
+    # the modification time is only updated every few ms: make sure that it changed
+    os.utime(meta_path, ns=(mtime_ns + 10 ** 9, mtime_ns + 10 ** 9))
+    assert float(vr.retrieve_meta(acquisition_path)['captureFrequency']) == 50.
 
 
 ### ACQUISITION PATHS WITH AN EXTENSION
