@@ -91,8 +91,9 @@ def get_frames_mov(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np
 
     frames = np.empty([length, height, width], np.uint8)
 
-    current_framenumber:int = framenumbers[0]
-    video.set(cv2.CAP_PROP_POS_FRAMES, current_framenumber)
+    # A video that was just opened reads frame 0 next. Seeking is slow (it decodes from an earlier keyframe), and is
+    # done in the loop only when needed, so that the first frame is not seeked twice
+    current_framenumber:int = -1
     for i_frame, framenumber in enumerate(framenumbers):
         # Since the mp4video is compressed, the reading without moving is optimized and faster
         # so for speed purposes we avoid moving if we don't have to
