@@ -81,7 +81,7 @@ from .FFT2D import *
 def dual(x: floatarray1D, y: floatarray1D = None, zpf: int = None):
     """
     The dual field in the Fourier sense (e.g. frequency <-> time).
-    
+
     Parameters
     ----------
     x
