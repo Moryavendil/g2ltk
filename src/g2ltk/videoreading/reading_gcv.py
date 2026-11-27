@@ -36,10 +36,15 @@ def gcv_path_of(acquisition_path: str) -> str:
 
 def is_this_a_gcv(acquisition_path:str) -> bool:
     """
-    Checks if there is a GevCapture Video (GCV) for the given dataset.
+    Checks if there is a GevCapture Video (GCV) for the given acquisition path.
 
-    :param acquisition_path:
-    :return:
+    Parameters
+    ----------
+    acquisition_path : str
+
+    Returns
+    -------
+    bool
     """
     customlog.log_subtrace(f'func: is_this_a_gcv ({acquisition_path})')
     gcv_path = video_path_for_type(acquisition_path, 'gcv')
@@ -250,8 +255,14 @@ def missing_framenumbers_gcv(acquisition_path: str) -> List:
     """
     Identifies missing frame in a GCV video using the timestamps.
 
-    :param acquisition_path:
-    :return:
+    Parameters
+    ----------
+    acquisition_path : str
+
+    Returns
+    -------
+    list of list of int
+        the missing frames, by chunks of consecutive frames, numbered from the first frame of the video
     """
     full_stamps = retrieve_stamps(acquisition_path)
     framenumbers = full_stamps['framenumber']
@@ -272,16 +283,26 @@ def identify_missing_framenumbers(framenumbers:np.ndarray) -> np.ndarray:
     """
     Identifies missing frame using the timestamps.
 
-    For example, if framenumbers is [1, 2, 3, 7, 8, 9, 11]
-    Then it logs (trace level):
-        'Missing frames numbered from 4 to 6 (3 missing frames)'
-        'Missing frame number 10'
-    and (debug level):
-        'Total: 4 missing frames'
+    For example, if framenumbers is [1, 2, 3, 7, 8, 9, 11], then it logs (trace level)::
+
+        Missing frames numbered from 4 to 6 (3 missing frames)
+        Missing frame number 10
+
+    and (debug level)::
+
+        Total: 4 missing frames
+
     and the function returns [4 5 6 10]
 
-    :param framenumbers:
-    :return:
+    Parameters
+    ----------
+    framenumbers : np.ndarray
+        the frame numbers, in increasing order
+
+    Returns
+    -------
+    np.ndarray
+        the missing frame numbers
     """
     # Here MF means missing frame (abbreviated for better code lisibility)
     arg_MF = np.where((framenumbers[1:] - framenumbers[:-1]) != 1)[0]
@@ -361,12 +382,22 @@ def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, e
     """
     This functions gives a selection of stamps that the user wants, from all the stamps available according to the stamps file.
 
+    Parameters
+    ----------
+    full_stamps : dict
+        All the stamps available (see retrieve_stamps)
+    start_framenumber : int, optional
+        Default is 0
+    end_framenumber : int, optional
+        Default is -1, for the last frame
+    interval : int, optional
+        Default is 1
 
-    :param full_stamps: All the stamps available
-    :param start_framenumber:
-    :param end_framenumber:
-    :param interval:
-    :return:
+    Returns
+    -------
+    dict or None
+        the stamps of the frames from start_framenumber to end_framenumber, every interval frames, or None if
+        these frame numbers are not valid
     """
     all_framenumbers = full_stamps['framenumber']
     last_framenumber = all_framenumbers[-1]

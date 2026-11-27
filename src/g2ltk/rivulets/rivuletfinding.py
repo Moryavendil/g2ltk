@@ -66,10 +66,19 @@ def bos_linewise(x:np.ndarray, y:np.ndarray, **kwargs)-> float:
     """
     This function locates the rivulet by computing the center of mass of the shadow of the rivulet.
 
-    :param x:
-    :param y:
-    :param kwargs: white_tolerance (whiteness of the rivulet, 0-256) ; rivulet_size_factor (width of the rivulet, 1.-5.)
-    :return:
+    Parameters
+    ----------
+    x : np.ndarray
+        the coordinates along the line
+    y : np.ndarray
+        the luminosity along the line
+    **kwargs
+        white_tolerance (whiteness of the rivulet, 0-256) ; rivulet_size_factor (width of the rivulet, 1.-5.)
+
+    Returns
+    -------
+    float
+        the position of the rivulet
     """
     for key in default_kwargs.keys():
         if not key in kwargs.keys():
@@ -172,10 +181,21 @@ def bol_linewise(z_line:np.ndarray, l_line:np.ndarray, borders_for_this_line=Non
     """
     This function locates the rivulet by computing the center of mass of the light part of the rivulet.
 
-    :param z_line:
-    :param l_line:
-    :param kwargs: white_tolerance (whiteness of the rivulet, 0-256) ; rivulet_size_factor (width of the rivulet, 1.-5.)
-    :return:
+    Parameters
+    ----------
+    z_line : np.ndarray
+        the z coordinates along the line
+    l_line : np.ndarray
+        the luminosity along the line
+    borders_for_this_line : (float, float), optional
+        the (lower, upper) borders of the rivulet on this line. If not given, they are found with borders_linewise.
+    **kwargs
+        white_tolerance (whiteness of the rivulet, 0-256) ; rivulet_size_factor (width of the rivulet, 1.-5.)
+
+    Returns
+    -------
+    float
+        the position of the rivulet (its lower border if there is no point between its borders)
     """
     for key in default_kwargs.keys():
         if not key in kwargs.keys():
@@ -820,12 +840,20 @@ def bimax_fit_by_peakfinder(z, y, distance:Optional[float]=None, width:Optional[
 
 def borders(frame:np.ndarray, do_fit:bool = False, w0:float = 1., **kwargs) -> np.ndarray:
     """
+    Parameters
+    ----------
+    frame : np.ndarray
+    do_fit : bool, optional
+        find the borders by fitting the shadow, instead of taking its two highest maximums. Default is False.
+    w0 : float, optional
+        the initial width of the fit (only used with do_fit). Default is 1.
+    **kwargs
+        resize_factor (resizing of the frame, 1-4) ; max_rivulet_width (maximum authorized rivulet with, in pixels, 1-100)  ; max_borders_luminosity_difference (maximum authorized luminosity difference between the rivulet borders, 0-255)
 
-    :param frame:
-    :param do_fit:
-    :param w0:
-    :param kwargs: resize_factor (resizing of the frame, 1-4) ; max_rivulet_width (maximum authorized rivulet with, in pixels, 1-100)  ; max_borders_luminosity_difference (maximum authorized luminosity difference between the rivulet borders, 0-255)
-    :return:
+    Returns
+    -------
+    np.ndarray
+        the lower and upper borders of the rivulet in each column of the frame, shaped (2, number of columns)
     """
     for key in default_kwargs.keys():
         if not key in kwargs.keys():

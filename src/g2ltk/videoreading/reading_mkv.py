@@ -22,8 +22,13 @@ def is_this_a_mkv(acquisition_path: str) -> bool:
     """
     Checks if there is a losslessly compressed video (mkv, codec FFV1) for the given acquisition path.
 
-    :param acquisition_path:
-    :return:
+    Parameters
+    ----------
+    acquisition_path : str
+
+    Returns
+    -------
+    bool
     """
     video:Optional[Any] = capture_mkv(acquisition_path)
     if video is None:
@@ -75,8 +80,13 @@ def get_recording_settings_mkv(acquisition_path: str) -> Optional[Dict[str, str]
     """
     Recording settings written by Limrendir in the tags of the mkv video (see reading_videotags), or None.
 
-    :param acquisition_path:
-    :return:
+    Parameters
+    ----------
+    acquisition_path : str
+
+    Returns
+    -------
+    dict or None
     """
     video_path = video_path_for_type(acquisition_path, 'mkv')
     if video_path is None:

@@ -150,10 +150,14 @@ def fetch_saved_data(parameters: dict) -> Any:
 ### ERASE ALL RECORDINGS OF SAID CATEGORY CORRESPONDING TO SAID CONDITION
 def erase_items(parameters: dict, total_match:bool = False) -> None:
     """
+    Delete all saved files (and their index entries) matching `parameters`.
 
-    :param parameters:
-    :param total_match:
-    :return:
+    Parameters
+    ----------
+    parameters : dict
+        Query parameters forwarded to `get_items`. If ``None``, the function returns immediately.
+    total_match : bool, optional
+        Forwarded to `get_items` (default ``False``).
     """
     if parameters is None: return None
     customlog.log_trace(f'Removing items')

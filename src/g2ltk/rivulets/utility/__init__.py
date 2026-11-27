@@ -175,9 +175,15 @@ def find_global_max(x: np.ndarray, y: np.ndarray) -> Optional[float]:
     Finds the global maximum of a function y(x).
     It first takes the maximum and then gets a subpixel resolution by taking the point when the derivative vanishes.
 
-    :param x:
-    :param y:
-    :return:
+    Parameters
+    ----------
+    x : np.ndarray
+    y : np.ndarray
+
+    Returns
+    -------
+    float
+        the x position of the maximum
     """
     return find_global_peak(x, y, 'max')
 
@@ -188,12 +194,21 @@ def find_inflexion_point(x: np.ndarray, y: np.ndarray):
 # smooting
 def smooth_1D(x: np.ndarray, y: np.ndarray, sigma:float=1.0) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Applies gaussian
+    Applies a gaussian smoothing to y(x).
 
-    :param x:
-    :param y:
-    :param sigma:
-    :return:
+    Parameters
+    ----------
+    x : np.ndarray
+    y : np.ndarray
+    sigma : float, optional
+        the width of the gaussian, in the unit of x. Default is 1.
+
+    Returns
+    -------
+    x : np.ndarray
+        a copy of x
+    y : np.ndarray
+        the smoothed y
     """
     #Todo: THIS FOR LOOP IN PYTHON IS AWFULY SLOW !!!!!!
     x_, y_ = x.copy(), np.empty_like(y)

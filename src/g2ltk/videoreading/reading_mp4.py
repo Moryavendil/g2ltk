@@ -24,8 +24,13 @@ def is_this_a_mp4(acquisition_path: str) -> bool:
     """
     Checks if there is a lossy compressed video (mp4, codec H.264) for the given acquisition path.
 
-    :param acquisition_path:
-    :return:
+    Parameters
+    ----------
+    acquisition_path : str
+
+    Returns
+    -------
+    bool
     """
     video:Optional[Any] = capture_mp4(acquisition_path)
     if video is None:
@@ -76,8 +81,13 @@ def get_recording_settings_mp4(acquisition_path: str) -> Optional[Dict[str, str]
     """
     Recording settings written by Limrendir in the tags of the mp4 video (see reading_videotags), or None.
 
-    :param acquisition_path:
-    :return:
+    Parameters
+    ----------
+    acquisition_path : str
+
+    Returns
+    -------
+    dict or None
     """
     video_path = video_path_for_type(acquisition_path, 'mp4')
     if video_path is None:

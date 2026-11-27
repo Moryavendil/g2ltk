@@ -27,14 +27,24 @@ def is_this_a_video(acquisition_path: Optional[str] = None,
     """
     Checks if there is a video of any kind for the given acquisition, designated like in the functions reading videos:
     either by its path (acquisition_path, the first argument), or with the keywords dataset, acquisition and root_path
-    (see resolve_acquisition_path).
-      is_this_a_video('path/to/dataset/acq')  or  is_this_a_video(dataset='dataset', acquisition='acq')
+    (see resolve_acquisition_path)::
 
-    :param acquisition_path: path to the acquisition
-    :param dataset: name of the dataset, or None if acquisition is a path
-    :param acquisition: name of the acquisition in the dataset, or path to the acquisition if dataset is None
-    :param root_path: folder containing the dataset (only used with dataset)
-    :return:
+        is_this_a_video('path/to/dataset/acq')  or  is_this_a_video(dataset='dataset', acquisition='acq')
+
+    Parameters
+    ----------
+    acquisition_path : str, optional
+        path to the acquisition
+    dataset : str, optional
+        name of the dataset, or None if acquisition is a path
+    acquisition : str, optional
+        name of the acquisition in the dataset, or path to the acquisition if dataset is None
+    root_path : str, optional
+        folder containing the dataset (only used with dataset)
+
+    Returns
+    -------
+    bool
     """
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition,
                                                 root_path=root_path, warn_if_no_video=False)
@@ -68,8 +78,16 @@ def split_acquisition_path(acquisition_path: str) -> Tuple[str, Optional[str]]:
     Only known video extensions are recognized (case-insensitively), so that acquisition names containing dots
     ('flow_1.5mlmin') are kept whole. A trailing separator ('dataset/acq.gcv/', from tab completion) is ignored.
 
-    :param acquisition_path:
-    :return: (acquisition path without extension, video type named by the extension or None)
+    Parameters
+    ----------
+    acquisition_path : str
+
+    Returns
+    -------
+    path : str
+        The acquisition path without extension
+    videotype : str or None
+        The video type named by the extension, or None
     """
     acquisition_path = acquisition_path.rstrip('/\\') or acquisition_path
     base, extension = os.path.splitext(acquisition_path)
@@ -86,9 +104,15 @@ def video_path_for_type(acquisition_path: str, videotype: str) -> Optional[str]:
     If it has the extension of this video type, it is used as is.
     If it has the extension of another video type, there is no video of this type: returns None.
 
-    :param acquisition_path:
-    :param videotype: one of the keys of VIDEO_EXTENSIONS
-    :return:
+    Parameters
+    ----------
+    acquisition_path : str
+    videotype : str
+        one of the keys of VIDEO_EXTENSIONS
+
+    Returns
+    -------
+    str or None
     """
     base, explicit_videotype = split_acquisition_path(acquisition_path)
     if explicit_videotype is None:
@@ -284,16 +308,27 @@ def generate_acquisition_path(acquisition: str, dataset: Optional[str] = None, r
     Path of an acquisition, to give to the functions reading videos (get_frames, get_geometry...).
 
     There are two ways of designating an acquisition:
+
     - by dataset: acquisition is the name of a video in the dataset, and the path is
       root_path/dataset/acquisition (root_path defaults to the one set with set_default_root_path);
     - by path: dataset is None, and acquisition is the path to the video itself (absolute, or relative to the
       current directory). The root path does not apply, and is ignored if given.
 
-    :param acquisition: name of the acquisition in the dataset, or path to the acquisition if dataset is None
-    :param dataset: name of the dataset, or None if acquisition is a path
-    :param root_path: folder containing the dataset (only used with dataset)
-    :param warn_if_no_video: log a warning if there is no video at the path (False for is_this_a_video)
-    :return:
+    Parameters
+    ----------
+    acquisition : str
+        name of the acquisition in the dataset, or path to the acquisition if dataset is None
+    dataset : str, optional
+        name of the dataset, or None if acquisition is a path
+    root_path : str, optional
+        folder containing the dataset (only used with dataset)
+    warn_if_no_video : bool, optional
+        log a warning if there is no video at the path (False for is_this_a_video). Default is True.
+
+    Returns
+    -------
+    str
+        The path of the acquisition
     """
     if dataset is None:
         if root_path is not None:
@@ -318,12 +353,23 @@ def resolve_acquisition_path(acquisition_path: Optional[str] = None, dataset: Op
     These functions designate the acquisition either by its path (acquisition_path, their first argument),
     or with the keywords dataset, acquisition and root_path (see generate_acquisition_path), but not both.
 
-    :param acquisition_path: path to the acquisition
-    :param dataset: name of the dataset, or None if acquisition is a path
-    :param acquisition: name of the acquisition in the dataset, or path to the acquisition if dataset is None
-    :param root_path: folder containing the dataset (only used with dataset)
-    :param warn_if_no_video: log a warning if there is no video at the path (False for is_this_a_video)
-    :return:
+    Parameters
+    ----------
+    acquisition_path : str, optional
+        path to the acquisition
+    dataset : str, optional
+        name of the dataset, or None if acquisition is a path
+    acquisition : str, optional
+        name of the acquisition in the dataset, or path to the acquisition if dataset is None
+    root_path : str, optional
+        folder containing the dataset (only used with dataset)
+    warn_if_no_video : bool, optional
+        log a warning if there is no video at the path (False for is_this_a_video). Default is True.
+
+    Returns
+    -------
+    str
+        The path of the acquisition
     """
     if acquisition_path is not None:
         if dataset is not None or acquisition is not None or root_path is not None:
@@ -344,18 +390,26 @@ def describe_acquisition(acquisition_path: Optional[str] = None,
     """
     Logs information about an acquisition, designated like in the functions reading videos: either by its path
     (acquisition_path, the first argument), or with the keywords dataset, acquisition and root_path
-    (see resolve_acquisition_path).
-      describe_acquisition('path/to/dataset/acq')  or  describe_acquisition(dataset='dataset', acquisition='acq')
+    (see resolve_acquisition_path)::
+
+        describe_acquisition('path/to/dataset/acq')  or  describe_acquisition(dataset='dataset', acquisition='acq')
 
     If no acquisition is given, one is auto-selected in the dataset (itself auto-selected in the root path if not given).
 
-    :param acquisition_path: path to the acquisition
-    :param framenumbers:
-    :param subregion:
-    :param dataset: name of the dataset, or None if acquisition is a path
-    :param acquisition: name of the acquisition in the dataset, or path to the acquisition if dataset is None
-    :param root_path: folder containing the dataset (only used with dataset)
-    :return:
+    Parameters
+    ----------
+    acquisition_path : str, optional
+        path to the acquisition
+    framenumbers : array-like of int, optional
+        the frames to describe, besides the whole video (all of them by default)
+    subregion : (start_x, start_y, end_x, end_y), optional
+        the part of the frames to describe (all of it by default)
+    dataset : str, optional
+        name of the dataset, or None if acquisition is a path
+    acquisition : str, optional
+        name of the acquisition in the dataset, or path to the acquisition if dataset is None
+    root_path : str, optional
+        folder containing the dataset (only used with dataset)
     """
     customlog.log_subtrace('func:describe_acquisition')
 
@@ -444,8 +498,21 @@ def get_video_type(acquisition_path: Optional[str] = None,
     """
     Type of the video of an acquisition.
 
-    :param acquisition_path:
-    :return: one of VIDEOTYPES ('gcv', 't16', 't8', 'mkv', 'mp4', 'mov'), or None if there is no video
+    Parameters
+    ----------
+    acquisition_path : str, optional
+        path to the acquisition
+    dataset : str, optional
+        name of the dataset, or None if acquisition is a path
+    acquisition : str, optional
+        name of the acquisition in the dataset, or path to the acquisition if dataset is None
+    root_path : str, optional
+        folder containing the dataset (only used with dataset)
+
+    Returns
+    -------
+    str or None
+        one of VIDEOTYPES ('gcv', 't16', 't8', 'mkv', 'mp4', 'mov'), or None if there is no video
     """
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition,
                                                 root_path=root_path, warn_if_no_video=False)
@@ -617,8 +684,21 @@ def get_recording_settings(acquisition_path: Optional[str] = None,
     Limrendir plays these videos at a fixed frame rate: the capture frame rate is in these settings, and is used
     instead of the frame rate of the video file (see get_acquisition_frequency).
 
-    :param acquisition_path:
-    :return: the settings ("key": "value"), or None for other videos
+    Parameters
+    ----------
+    acquisition_path : str, optional
+        path to the acquisition
+    dataset : str, optional
+        name of the dataset, or None if acquisition is a path
+    acquisition : str, optional
+        name of the acquisition in the dataset, or path to the acquisition if dataset is None
+    root_path : str, optional
+        folder containing the dataset (only used with dataset)
+
+    Returns
+    -------
+    dict or None
+        the settings ("key": "value"), or None for other videos
     """
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     if is_this_a_gcv(acquisition_path) or is_this_a_t16(acquisition_path) or is_this_a_t8(acquisition_path):
@@ -635,8 +715,22 @@ def missing_frames(acquisition_path: Optional[str] = None,
     """
     Identifies missing frame in a video.
 
-    :param acquisition_path:
-    :return:
+    Parameters
+    ----------
+    acquisition_path : str, optional
+        path to the acquisition
+    dataset : str, optional
+        name of the dataset, or None if acquisition is a path
+    acquisition : str, optional
+        name of the acquisition in the dataset, or path to the acquisition if dataset is None
+    root_path : str, optional
+        folder containing the dataset (only used with dataset)
+
+    Returns
+    -------
+    list of list of int
+        the missing frames, by chunks of consecutive frames, numbered from the first frame of the video. Always empty
+        for the videos other than gcv, which have no frame numbers.
     """
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     if is_this_a_gcv(acquisition_path):
@@ -876,9 +970,19 @@ def resize_frames(frames: np.ndarray, resize_factor:int = 1, bicubic:bool=False)
     Resizes an array with the given resize factor, using opencv resize function (the fastest).
     IT WILL CONVERT THE FRAMES TO UINT8 SINCE OPENCV ONLY SUPPORTS THAT.
 
-    :param frames:
-    :param resize_factor:
-    :return:
+    Parameters
+    ----------
+    frames : np.ndarray
+        shaped (length, height, width)
+    resize_factor : int, optional
+        Default is 1 (no resizing)
+    bicubic : bool, optional
+        use a bicubic interpolation instead of a bilinear one. Default is False.
+
+    Returns
+    -------
+    np.ndarray
+        the resized frames, as uint8, shaped (length, height * resize_factor, width * resize_factor)
     """
     frames = frames.astype(np.uint8, copy=False)
     if resize_factor == 1:

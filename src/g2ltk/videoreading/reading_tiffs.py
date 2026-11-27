@@ -35,10 +35,15 @@ def find_available_t8(dataset_path: str) ->List[str]:
 
 def is_this_a_tiff(acquisition_path: str) -> bool:
     """
-    Checks if there is a Tiff 16-bits video (t16) for the given dataset.
+    Checks if there is a folder of tiff images (a t16 or t8 video) for the given acquisition path.
 
-    :param acquisition_path:
-    :return:
+    Parameters
+    ----------
+    acquisition_path : str
+
+    Returns
+    -------
+    bool
     """
     if split_acquisition_path(acquisition_path)[1] is not None:
         # The acquisition path has the extension of another video type (e.g. a gcv folder)
@@ -59,10 +64,15 @@ def is_this_a_tiff(acquisition_path: str) -> bool:
 
 def is_this_a_t16(acquisition_path: str) -> bool:
     """
-    Checks if there is a Tiff 16-bits video (t16) for the given dataset.
+    Checks if there is a Tiff 16-bits video (t16) for the given acquisition path.
 
-    :param acquisition_path:
-    :return:
+    Parameters
+    ----------
+    acquisition_path : str
+
+    Returns
+    -------
+    bool
     """
     if not is_this_a_tiff(acquisition_path):
         # Not a tiif
@@ -75,10 +85,15 @@ def is_this_a_t16(acquisition_path: str) -> bool:
 
 def is_this_a_t8(acquisition_path: str) -> bool:
     """
-    Checks if there is a Tiff 8-bits video (t8) for the given dataset.
+    Checks if there is a Tiff 8-bits video (t8) for the given acquisition path.
 
-    :param acquisition_path:
-    :return:
+    Parameters
+    ----------
+    acquisition_path : str
+
+    Returns
+    -------
+    bool
     """
     if not is_this_a_tiff(acquisition_path):
         # Not a tiif

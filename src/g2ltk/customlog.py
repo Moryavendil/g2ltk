@@ -106,10 +106,14 @@ def _to_level(verbose: Union[int, str]) -> int:
 
 
 def set_verbose(verbose: Union[int, str] = default_verbose) -> None:
-    """Set the g2ltk verbosity and display the logs in the g2ltk style.
+    """
+    Set the g2ltk verbosity and display the logs in the g2ltk style.
 
-    :param verbose: a level name (``'info'``, ``'debug'``, ``'trace'``...) or a standard
-        ``logging`` level number.
+    Parameters
+    ----------
+    verbose : str or int, optional
+        a level name (``'info'``, ``'debug'``, ``'trace'``...) or a standard
+        ``logging`` level number. Default is ``'info'``.
     """
     logger.setLevel(_to_level(verbose))
     if not any(isinstance(handler, _StdoutHandler) for handler in logger.handlers):

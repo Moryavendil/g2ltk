@@ -33,8 +33,15 @@ def parse_recording_settings(tag_strings: List[str]) -> Optional[Dict[str, str]]
     When several tags have settings (e.g. the ones written when the recording started and when it ended), the later
     ones take precedence.
 
-    :param tag_strings: the text of the tags, in the order of the file
-    :return: the settings, or None if no tag has any
+    Parameters
+    ----------
+    tag_strings : list of str
+        the text of the tags, in the order of the file
+
+    Returns
+    -------
+    dict or None
+        the settings, or None if no tag has any
     """
     settings = None
     for text in tag_strings:
@@ -56,8 +63,15 @@ def recorded_capture_frequency(settings: Optional[Dict[str, str]]) -> Optional[f
     The frame rate measured from the camera timestamps is preferred (like the frame rate of gcv videos, which is
     computed from their timestamps), else the frame rate of the camera when the recording started.
 
-    :param settings: recording settings (see parse_recording_settings)
-    :return: the frame rate in Hz, or None if the settings do not give it
+    Parameters
+    ----------
+    settings : dict or None
+        recording settings (see parse_recording_settings)
+
+    Returns
+    -------
+    float or None
+        the frame rate in Hz, or None if the settings do not give it
     """
     if settings is None:
         return None
@@ -74,8 +88,15 @@ def recorded_lost_frames(settings: Optional[Dict[str, str]]) -> Optional[int]:
     """
     Number of frames lost during the recording, according to its recording settings.
 
-    :param settings: recording settings (see parse_recording_settings)
-    :return: the number of lost frames, or None if the settings do not give it
+    Parameters
+    ----------
+    settings : dict or None
+        recording settings (see parse_recording_settings)
+
+    Returns
+    -------
+    int or None
+        the number of lost frames, or None if the settings do not give it
     """
     if settings is None:
         return None
@@ -91,8 +112,15 @@ def get_recording_settings_of_file(video_path: str) -> Optional[Dict[str, str]]:
     """
     Recording settings written by Limrendir in the tags of a mkv or mp4 file.
 
-    :param video_path: path of the mkv or mp4 file
-    :return: the settings, or None if there are none (or if the file cannot be read)
+    Parameters
+    ----------
+    video_path : str
+        path of the mkv or mp4 file
+
+    Returns
+    -------
+    dict or None
+        the settings, or None if there are none (or if the file cannot be read)
     """
     try:
         stat = os.stat(video_path)
@@ -220,8 +248,13 @@ def read_mkv_tag_strings(video_path: str) -> List[str]:
     The top-level elements of the segment are skipped through without reading them (the frames are not read).
     If one has an unknown size (file not finalized), the Tags elements listed in the SeekHead are read instead.
 
-    :param video_path:
-    :return:
+    Parameters
+    ----------
+    video_path : str
+
+    Returns
+    -------
+    list of str
     """
     strings: List[str] = []
     with open(video_path, 'rb') as f:
@@ -317,8 +350,13 @@ def read_mp4_tag_strings(video_path: str) -> List[str]:
 
     Only the atoms holding tags (moov/udta...) are read, not the frames nor the index tables.
 
-    :param video_path:
-    :return:
+    Parameters
+    ----------
+    video_path : str
+
+    Returns
+    -------
+    list of str
     """
     with open(video_path, 'rb') as f:
         file_size = os.fstat(f.fileno()).st_size
