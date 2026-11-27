@@ -10,6 +10,14 @@ from . import floatarray1D, floatarray2D, complexarray2D, attenuate_power, alias
 from .FFTHelp import sanitize_nfft_2d, sanitize_zpf_2d, dtype_nfft_2d, dtype_zpf_2d, dtype_shift_2d, split_2d_argument
 from .FFT1D import dual1d, rdual1d
 
+# The names g2ltk.fourier gets from `from .FFT2D import *`: add new public functions here
+__all__ = ['dual2d', 'rdual2d', 'prepare_signal_for_ft2d', 'ft2d', 'rft2d', 'ift2d', 'riesz2d',
+           'monogenic2d', 'local_frequency2d', 'window_factor2d', 'psd2d', 'rpsd2d',
+           'find_shapely_contours', 'contour_containspoint', 'contour_containspoints',
+           'contours_containsanyofthepoints', 'contours_areas', 'contours_perimeters',
+           'draw_multipolygon_edge', 'peak_max_area_default', 'peak_min_circularity_default',
+           'peak_contour2d', 'grid_points_in_contour', 'peak_vicinity2d', 'power_near_peak2d']
+
 # todo fix directions, (axis0, axis 1) must correspond to x, y...
 # todo because for now x and y are interverted?!
 # todo or keep it idc but make it generlizable

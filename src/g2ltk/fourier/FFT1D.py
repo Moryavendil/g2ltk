@@ -9,6 +9,13 @@ from g2ltk.arrtools import step, span, interp_roots, find_global_max
 from . import floatarray1D, complexarray1D, attenuate_power, alias_argument, default_window
 from .FFTHelp import sanitize_nfft_1d, dtype_nfft, sanitize_zpf_1d, recommanded_welch_overlap
 
+# The names g2ltk.fourier gets from `from .FFT1D import *`: add new public functions here
+__all__ = ['detrend_dtype', 'dual1d', 'rdual1d', 'prepare_signal_for_ft1d', 'rft1d', 'ft1d',
+           'ift1d', 'window_factor1d', 'psd1d', 'rpsd1d', 'welch1d', 'rwelch1d',
+           'estimatesignalfrequency', 'peak_contour1d', 'peak_vicinity1d', 'power_near_peak1d',
+           'estimate_phase', 'hilbert', 'monogenic1d', 'local_frequency1d',
+           'synchronous_enveloppe_detection']
+
 detrend_dtype = Literal['constant', False]
 
 
