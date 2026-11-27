@@ -4,6 +4,8 @@ from typing import Optional, Tuple, List, Union, Dict
 import cv2
 import numpy as np
 
+from g2ltk import customlog
+
 # The verbosity of g2ltk can also be set from here (videoreading.set_verbose('debug')): it applies to all of g2ltk
 from g2ltk.customlog import set_verbose, verbosity
 
