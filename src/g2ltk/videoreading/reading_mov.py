@@ -7,6 +7,11 @@ from . import video_path_for_type
 
 from .. import customlog
 
+# The names g2ltk.videoreading gets from `from .reading_mov import *`: add new public functions here
+__all__ = ['find_available_mov', 'is_this_a_mov', 'capture_mov',
+           'get_number_of_available_frames_mov', 'get_acquisition_frequency_mov',
+           'get_frame_geometry_mov', 'get_frames_mov']
+
 ###### LOSSY COMPRESSED VIDEO (mp4) READING
 
 def find_available_mov(dataset_path: str) ->List[str]:

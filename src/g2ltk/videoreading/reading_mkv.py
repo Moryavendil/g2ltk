@@ -6,6 +6,11 @@ import os # to navigate in the directories
 from . import video_path_for_type
 from .reading_videotags import get_recording_settings_of_file, recorded_capture_frequency
 
+# The names g2ltk.videoreading gets from `from .reading_mkv import *`: add new public functions here
+__all__ = ['find_available_mkv', 'is_this_a_mkv', 'capture_mkv',
+           'get_number_of_available_frames_mkv', 'get_recording_settings_mkv',
+           'get_acquisition_frequency_mkv', 'get_frames_mkv']
+
 ###### LOSSLESSLY COMPRESSED VIDEO (mkv, codec FFV1) READING
 
 def find_available_mkv(dataset_path: str) ->List[str]:

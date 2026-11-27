@@ -6,6 +6,13 @@ import os # to navigate in the directories
 from .. import customlog
 from . import split_acquisition_path, seconds_to
 
+# The names g2ltk.videoreading gets from `from .reading_tiffs import *`: add new public functions here
+__all__ = ['find_available_tiffs', 'find_available_t16', 'find_available_t8', 'is_this_a_tiff',
+           'is_this_a_t16', 'is_this_a_t8', 'get_number_of_available_frames_t16',
+           'get_number_of_available_frames_t8', 'get_frames_t16', 'get_frames_t16_conservequality',
+           'get_frames_t8', 'get_acquisition_frequency_t16', 'get_acquisition_frequency_t8',
+           'get_acquisition_duration_t16']
+
 ###### TIFF 16-BITS VIDEO (t16) READING
 from PIL import Image
 from PIL.TiffTags import TAGS

@@ -19,6 +19,10 @@ from typing import Optional, Dict, List, Tuple, Iterator, BinaryIO
 
 from .. import customlog
 
+# The names g2ltk.videoreading gets from `from .reading_videotags import *`: add new public functions here
+__all__ = ['parse_recording_settings', 'recorded_capture_frequency', 'recorded_lost_frames',
+           'get_recording_settings_of_file', 'read_mkv_tag_strings', 'read_mp4_tag_strings']
+
 ### SETTINGS WRITTEN BY LIMRENDIR
 
 def parse_recording_settings(tag_strings: List[str]) -> Optional[Dict[str, str]]:

@@ -7,6 +7,10 @@ from .. import customlog
 
 from . import generate_dataset_path, find_available_videos
 
+# The names g2ltk.videoreading gets from `from .reading_datasheets import *`: add new public functions here
+__all__ = ['possible_acquisition_column_name', 'generate_dataworkbook_path', 'obtain_metainfo',
+           'obtain_acquisition_titles', 'load_or_create_worksheet', 'overwrite_datasheet']
+
 # a worksheet is part of an excel workbook
 __dataworkbook_name_default__ = 'dataworkbook'
 __dataworkbook_metasheet_name_default__ = 'metainfo'

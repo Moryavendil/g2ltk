@@ -7,6 +7,16 @@ from .. import customlog
 
 from . import are_there_missing_frames, format_framenumbers, video_path_for_type
 
+# The names g2ltk.videoreading gets from `from .reading_gcv import *`: add new public functions here
+__all__ = ['Meta', 'Stamps', 'find_available_gcv', 'gcv_path_of', 'is_this_a_gcv',
+           'get_number_of_available_frames_gcv', 'get_acquisition_frequency_gcv',
+           'get_acquisition_duration_gcv', 'get_times_gcv', 'get_frames_gcv', 'clear_gcv_cache',
+           'retrieve_meta', 'get_frame_geometry_gcv', 'retrieve_stamps',
+           'get_number_of_available_frames_stamps', 'missing_framenumbers_gcv',
+           'identify_missing_framenumbers', 'get_camera_timestamps', 'get_computer_timestamps',
+           'get_monotonic_timebound', 'get_regularly_spaced_stamps',
+           'get_number_of_available_frames_rawvideo', 'get_frames_rawvideo']
+
 Meta = Dict[str, str]
 Stamps = Dict[str, np.ndarray]
 

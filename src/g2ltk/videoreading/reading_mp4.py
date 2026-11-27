@@ -8,6 +8,11 @@ from .reading_videotags import get_recording_settings_of_file, recorded_capture_
 
 from .. import customlog
 
+# The names g2ltk.videoreading gets from `from .reading_mp4 import *`: add new public functions here
+__all__ = ['find_available_mp4', 'is_this_a_mp4', 'capture_mp4',
+           'get_number_of_available_frames_mp4', 'get_recording_settings_mp4',
+           'get_acquisition_frequency_mp4', 'get_frame_geometry_mp4', 'get_frames_mp4']
+
 ###### LOSSY COMPRESSED VIDEO (mp4) READING
 
 def find_available_mp4(dataset_path: str) ->List[str]:

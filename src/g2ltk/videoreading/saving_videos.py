@@ -10,6 +10,10 @@ from . import are_there_missing_frames, resize_frames, find_available_videos, ge
 from . import generate_acquisition_path, split_acquisition_path
 from . import is_this_a_gcv, is_this_a_t16
 
+# The names g2ltk.videoreading gets from `from .saving_videos import *`: add new public functions here
+__all__ = ['save_frames_to_video', 'save_acquisition_to_video', 'save_all_gcv_videos',
+           'convert_tiff_to_gcv']
+
 # save videos for easyvisualisation
 
 def save_frames_to_video(video_rawpath:str, frames:np.ndarray, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
