@@ -67,7 +67,7 @@ if len(toolsversion_compo) > 3 and 'dev' in toolsversion_compo[3]:
     try:
         devnbr = int(toolsversion_compo[3].split('dev')[1])
         toolsversion_compo[3] = 'dev' + str(devnbr + 1)
-    except:
+    except ValueError:
         print(bcolors.OKCYAN + f'Version number is {toolsversion} = {toolsversion_compo}' + bcolors.ENDC)
         print(bcolors.OKCYAN + f"And {toolsversion_compo[3]} = {toolsversion_compo[3].split('dev')}" + bcolors.ENDC)
         print(bcolors.OKCYAN + f"But {toolsversion_compo[3].split('dev')[1]} does not seem to be a number ?" + bcolors.ENDC)
@@ -75,7 +75,7 @@ elif len(toolsversion_compo) > 2:
     try:
         subvnbr = int(toolsversion_compo[2])
         toolsversion_compo[2] = str(subvnbr + 1)
-    except:
+    except ValueError:
         print(bcolors.OKCYAN + f'Version number is {toolsversion} = {toolsversion_compo}' + bcolors.ENDC)
         print(bcolors.OKCYAN + f'But {toolsversion_compo[2]} does not seem to be a number ?' + bcolors.ENDC)
 

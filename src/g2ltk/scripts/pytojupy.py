@@ -49,8 +49,8 @@ for target in targets:
     try:
         with open(infilename) as fin:
             text = fin.read()
-    except:
-        print(f'ERROR - CANNOT OPEN?: {infilename}')
+    except (OSError, UnicodeDecodeError) as e:
+        print(f'ERROR - CANNOT READ {infilename}: {e}')
         sys.exit(-201)
 
     # restore the magic matplotlib command
@@ -93,6 +93,6 @@ for target in targets:
     try:
         with open(outfilename, "w") as fout:
             fout.write(jsonform)
-    except:
-        print(f'ERROR - CANNOT OPEN?: {outfilename}')
+    except (OSError, UnicodeEncodeError) as e:
+        print(f'ERROR - CANNOT WRITE {outfilename}: {e}')
         sys.exit(-202)
