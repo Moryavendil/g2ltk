@@ -102,6 +102,27 @@ def test_erase_items_with_extension(ds):
     assert ds.get_index() == {}
 
 
+class Unsaveable:
+    """Data that np.savez cannot save: converting it to an array fails."""
+    def __array__(self, *args, **kwargs):
+        raise ValueError('cannot be converted to an array')
+
+
+def test_failed_save_keeps_the_previous_data(ds):
+    parameters = {'datatype': 'bos', 'dataset': 'ds', 'acquisition': 'acq'}
+    ds.save_data(np.arange(5), parameters)
+    files_before = sorted(os.listdir(ds.save_directory))
+
+    with pytest.raises(ValueError):
+        ds.save_data(Unsaveable(), parameters)
+
+    # the index does not refer to the file that could not be written, the previous data is still
+    # there, and no partially written file is left
+    assert len(ds.get_index()) == 1
+    np.testing.assert_array_equal(ds.fetch_saved_data(parameters), np.arange(5))
+    assert sorted(os.listdir(ds.save_directory)) == files_before
+
+
 def test_fetch_or_generate_with_extension(tmp_path, monkeypatch):
     # Generic mode (no framenumbers) of g2ltk.datasaving: 'acq.mp4' reuses what was generated for 'acq'
     save_directory = str(tmp_path / 'cache')

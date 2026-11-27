@@ -206,10 +206,20 @@ def save_data(data: Any, parameters: dict) -> None:
     customlog.log_trace(f'Saving an item')
     # generate the filename / item name
     filename = generate_appropriate_filename(parameters)
+    file_path = os.path.join(save_directory, filename)
+    # save the file, before adding it to the index (which also removes the older data saved under these
+    # parameters), so that a failed writing neither leaves the index referring to a broken file nor
+    # loses the older data
+    ensure_save_directory_exists()
+    try:
+        np.savez(file_path, data=data)
+    except Exception:
+        # np.savez may have created the file before failing: it is not in the index, so remove it
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+        raise
     # save the new index
     add_item_to_index(filename, parameters, remove_similar_older_entries=True)
-    # save the file
-    np.savez(os.path.join(save_directory, filename), data=data)
     # end
     customlog.log_trace(f'Saved an item named {filename}')
 
