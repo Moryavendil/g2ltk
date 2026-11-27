@@ -549,6 +549,10 @@ def auto_data_generating_fn(parameters: Dict[str, Any]) -> Any:
     """
     Dispatch data generation to the appropriate rivulet-finding routine.
 
+    .. deprecated:: 1.3.0
+        The rivulet-finding routines are no longer available from this module:
+        pass your own ``data_generating_fn`` instead. Logs an error and returns ``None``.
+
     Parameters
     ----------
     parameters : dict
@@ -559,13 +563,8 @@ def auto_data_generating_fn(parameters: Dict[str, Any]) -> Any:
 
     Returns
     -------
-    Any
-        The generated data, or ``None`` if ``datatype`` is ``None`` or
-        unrecognised.
-
-    .. deprecated::
-        The rivulet-finding routines are no longer available from this module:
-        pass your own ``data_generating_fn`` instead. Logs an error and returns ``None``.
+    None
+        Always, since this function is deprecated.
     """
     customlog.log_error('auto_data_generating_fn is deprecated: pass a data_generating_fn to generate the data.')
     return None
@@ -609,11 +608,11 @@ def fetch_or_generate(datatype: Optional[str] = None, dataset: Optional[str] = N
 
     Parameters
     ----------
-    datatype : str
+    datatype : str, optional
         Type of data to fetch or generate (e.g. ``'bos'``, ``'borders'``).
-    dataset : str
+    dataset : str, optional
         Dataset identifier.
-    acquisition : str
+    acquisition : str, optional
         Acquisition identifier.
     parameters : dict, optional
         Additional parameters merged into the call (default ``None``, treated

@@ -18,23 +18,22 @@ def activate_saveplot(activate=True, font_size=None, style=None):
     Activates LaTeX use with specified font size and style
 
     Available styles:
+
     * aps
     * jfm
     * presentation / prez / ppt /pptx
 
     Special:
+
     * thesis
     * thezprez
 
     Parameters
     ----------
-    activate
-    font_size
-    style
-
-    Returns
-    -------
-
+    activate : bool, optional
+        Whether to render the text with LaTeX. Default is True.
+    font_size : float, optional
+    style : str, optional
     """
     plt.rcParams['text.usetex'] = activate
     if activate:

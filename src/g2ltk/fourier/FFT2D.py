@@ -49,7 +49,10 @@ def dual2d(x: floatarray1D, y: floatarray1D,
 
     Returns
     -------
-    (x_dual, y_dual)
+    x_dual : np.ndarray
+        The frequencies along axis 1 (x)
+    y_dual : np.ndarray
+        The frequencies along axis 0 (y)
     """
     fname = 'dual2d'
     customlog.log_trace(f'{fname}: Called with {x.shape}x{y.shape} arrays, nfft = {nfft}, zpf = {zpf}')
@@ -80,7 +83,10 @@ def rdual2d(x: floatarray1D, y: floatarray1D,
 
     Returns
     -------
-    (x_dual, y_dual)
+    x_dual : np.ndarray
+        The non-negative frequencies along axis 1 (x)
+    y_dual : np.ndarray
+        The frequencies along axis 0 (y)
     """
     fname = 'rdual2d'
     customlog.log_trace(f'{fname}: Called with {x.shape}x{y.shape} arrays, nfft = {nfft}, zpf = {zpf}')
@@ -104,7 +110,7 @@ def prepare_signal_for_ft2d(arr: complexarray2D,
 
     Parameters
     ----------
-    arr
+    arr : np.ndarray
     window : str, optional
     winstyle : str, optional
         Can be 'outer' (default) or 'circular'
@@ -116,7 +122,9 @@ def prepare_signal_for_ft2d(arr: complexarray2D,
 
     Returns
     -------
-
+    np.ndarray
+        The array without its mean and windowed, padded (or truncated) to nfft * zpf points along each axis,
+        and rolled.
     """
     fname = 'prepare_signal_for_ft2d'
     customlog.log_trace(f'{fname}: Called with {arr.shape} array, nfft = {nfft}, zpf = {zpf}')
@@ -187,10 +195,10 @@ def ft2d(arr: complexarray2D, x: Optional[floatarray1D] = None, y: Optional[floa
 
     Parameters
     ----------
-    arr
-    x
+    arr : np.ndarray
+    x : np.ndarray, optional
         Coordinates along axis 1
-    y
+    y : np.ndarray, optional
         Coordinates along axis 0
     window : str, optional
     winstyle : str, optional
@@ -205,7 +213,8 @@ def ft2d(arr: complexarray2D, x: Optional[floatarray1D] = None, y: Optional[floa
 
     Returns
     -------
-
+    np.ndarray
+        The Fourier transform (complex), for the frequencies given by dual2d.
     """
     fname = 'ft2d'
     customlog.log_trace(f'{fname}: Computing 2-D FFT of array of shape {arr.shape}')
@@ -233,10 +242,11 @@ def rft2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Optional[float
 
     Parameters
     ----------
-    arr
-    x
+    arr : np.ndarray
+        Real array.
+    x : np.ndarray, optional
         Coordinates along axis 1
-    y
+    y : np.ndarray, optional
         Coordinates along axis 0
     window : str, optional
     winstyle : str, optional
@@ -251,7 +261,8 @@ def rft2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Optional[float
 
     Returns
     -------
-
+    np.ndarray
+        The Fourier transform (complex), for the frequencies given by rdual2d.
     """
     fname = 'rft2d'
     customlog.log_trace(f'{fname}: Computing 2-D RFFT of array of shape {arr.shape}')
@@ -296,11 +307,11 @@ def riesz2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Optional[flo
 
     Parameters
     ----------
-    arr
+    arr : np.ndarray
         Real array, shaped (len(y), len(x))
-    x
+    x : np.ndarray, optional
         Coordinates along axis 1. Only its step is used (1 if not given).
-    y
+    y : np.ndarray, optional
         Coordinates along axis 0. Only its step is used (1 if not given).
     symmetrize : bool, optional
         If True, the array is mirrored along both axes (giving a 4 times bigger array) before the transform,
@@ -311,8 +322,10 @@ def riesz2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Optional[flo
 
     Returns
     -------
-    (R_x, R_y)
-        Two real arrays shaped like arr
+    R_x : np.ndarray
+        Real array shaped like arr
+    R_y : np.ndarray
+        Real array shaped like arr
     """
     fname = 'riesz2d'
     arr = np.asarray(arr)
@@ -411,11 +424,11 @@ def monogenic2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Optional
 
     Parameters
     ----------
-    arr
+    arr : np.ndarray
         Real array, shaped (len(y), len(x))
-    x
+    x : np.ndarray, optional
         Coordinates along axis 1. Only its step is used (1 if not given).
-    y
+    y : np.ndarray, optional
         Coordinates along axis 0. Only its step is used (1 if not given).
     symmetrize : bool, optional
         See riesz2d. Default is False.
@@ -426,8 +439,12 @@ def monogenic2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Optional
 
     Returns
     -------
-    (amplitude, phase, orientation)
-        Three real arrays shaped like arr
+    amplitude : np.ndarray
+        Real array shaped like arr
+    phase : np.ndarray
+        Real array shaped like arr
+    orientation : np.ndarray
+        Real array shaped like arr
     """
     f, riesz_x, riesz_y, orientation = _monogenic2d_components(arr, x, y, symmetrize, remove_mean,
                                                                orientation_reference)
@@ -496,11 +513,11 @@ def local_frequency2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Op
 
     Parameters
     ----------
-    arr
+    arr : np.ndarray
         Real array, shaped (len(y), len(x))
-    x
+    x : np.ndarray, optional
         Coordinates along axis 1. Only its step is used (1 if not given).
-    y
+    y : np.ndarray, optional
         Coordinates along axis 0. Only its step is used (1 if not given).
     symmetrize : bool, optional
         See riesz2d. Default is False.
@@ -511,8 +528,10 @@ def local_frequency2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Op
 
     Returns
     -------
-    (f_x, f_y)
-        Two real arrays shaped like arr
+    f_x : np.ndarray
+        Real array shaped like arr
+    f_y : np.ndarray
+        Real array shaped like arr
     """
     f, riesz_x, riesz_y, _ = _monogenic2d_components(arr, x, y, symmetrize, remove_mean, orientation_reference)
     jxx, jxy = _phase_vector_derivative(f, riesz_x, riesz_y, axis=1)
@@ -543,7 +562,7 @@ def window_factor2d(window: str, winstyle: Optional[str] = None, NxNy: Tuple[int
 
     Parameters
     ----------
-    window
+    window : str
     winstyle : str, optional
         Can be 'outer' (default) or 'circular'
     NxNy : (int, int), optional
@@ -551,7 +570,7 @@ def window_factor2d(window: str, winstyle: Optional[str] = None, NxNy: Tuple[int
 
     Returns
     -------
-
+    float
     """
     if winstyle is None:
         winstyle = 'outer'
@@ -578,10 +597,10 @@ def psd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray]
 
     Parameters
     ----------
-    z
-    x
+    z : np.ndarray
+    x : np.ndarray, optional
         Coordinates along axis 1
-    y
+    y : np.ndarray, optional
         Coordinates along axis 0
     window : str, optional
     winstyle : str, optional
@@ -593,7 +612,8 @@ def psd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray]
 
     Returns
     -------
-
+    np.ndarray
+        The power spectral density, for the frequencies given by dual2d.
     """
     customlog.log_trace('psd2d: Computing a 2-D PSD')
     ### Step 1 : do the dimensional Fourier transform
@@ -625,10 +645,11 @@ def rpsd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray
 
     Parameters
     ----------
-    z
-    x
+    z : np.ndarray
+        Real array.
+    x : np.ndarray, optional
         Coordinates along axis 1
-    y
+    y : np.ndarray, optional
         Coordinates along axis 0
     window : str, optional
     winstyle : str, optional
@@ -640,7 +661,8 @@ def rpsd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray
 
     Returns
     -------
-
+    np.ndarray
+        The power spectral density, for the frequencies given by rdual2d.
     """
     customlog.log_trace('rpsd2d: Computing a 2-D PSD')
     ### Step 1 : do the dimensional Fourier transform
@@ -771,23 +793,33 @@ def peak_contour2d(peak_x: float, peak_y: float, z: np.ndarray, peak_depth_dB: f
                    fastmode: bool = True, peak_max_area: Optional[float] = None,
                    peak_min_circularity: Optional[float] = None,
                    truncated_spectrum: bool = False, real_signal: bool = True):
-    """Finds a contour around a peak at a certain threshold level
+    """
+    Finds a contour around a peak at a certain threshold level
 
     Parameters
     ----------
-    peak_x
-    peak_y
-    z
-    peak_depth_dB
-    x
-    y
-    fastmode : do not compute aeras and perimeters of contour that do not contain the peak
-    peak_max_area : dmaximum area, in px²
-    peak_min_circularity : minimum circularity ([0-1]), for reasonable contours
+    peak_x : float
+    peak_y : float
+    z : np.ndarray
+    peak_depth_dB : float
+    x : np.ndarray, optional
+    y : np.ndarray, optional
+    fastmode : bool, optional
+        Do not compute the areas and perimeters of the contours that do not contain the peak. Default is True.
+    peak_max_area : float, optional
+        Maximum area, in px²
+    peak_min_circularity : float, optional
+        Minimum circularity ([0-1]), for reasonable contours
+    truncated_spectrum : bool, optional
+        Whether z is truncated along axis 1 (x), as the spectra given by rft2d and rpsd2d. Default is False.
+    real_signal : bool, optional
+        Whether z is the spectrum of a real signal, so that a contour around the symmetric peak (-peak_x, -peak_y)
+        is also accepted. Default is True.
 
     Returns
     -------
-
+    list of shapely.MultiPolygon
+        The valid contours around the peak (possibly none).
     """
     if len(z.shape) != 2:
         customlog.log_warning(f'peak_contour2d: z should be a 2D array. Its shape is {z.shape}')

@@ -35,14 +35,16 @@ def dual1d(arr: floatarray1D,
     ----------
     arr : np.ndarray
         An ordered, regularly spaced array of real values
-    nfft : int, optional
-        The size of the nfft
+    nfft : int or 'auto', optional
+        The size of the nfft. The default (None) is the length of the signal, and 'auto' the next length for which
+        the FFT is fast.
     zpf : int, optional
         The zero padding factor. An alias is ``zero_pad_factor``
 
     Returns
     -------
-
+    np.ndarray
+        The frequencies of the Fourier transform given by ft1d, in increasing order.
     """
     fname = 'dual1d'
     customlog.log_trace(f'{fname}: Called with {arr.shape} array, nfft = {nfft}, zpf = {zpf}')
@@ -59,7 +61,8 @@ def dual1d(arr: floatarray1D,
 @alias_argument('zpf', 'zero_pad_factor')
 def rdual1d(arr: floatarray1D,
             nfft: dtype_nfft = None, zpf: Optional[int] = None) -> floatarray1D:
-    """Returns the dual, i.e. the frequencies, in a numpy.fft.rfft-compatible style.
+    """
+    Returns the dual, i.e. the frequencies, in a numpy.fft.rfft-compatible style.
 
     The unit is the inverse, e.g. time (s)-> frequency (Hz).
 
@@ -67,14 +70,16 @@ def rdual1d(arr: floatarray1D,
     ----------
     arr : np.ndarray
         An ordered, regularly spaced array of real values
-    nfft : int, optional
-        The size of the nfft
+    nfft : int or 'auto', optional
+        The size of the nfft. The default (None) is the length of the signal, and 'auto' the next length for which
+        the FFT is fast.
     zpf : int, optional
         The zero padding factor. An alias is ``zero_pad_factor``
 
     Returns
     -------
-
+    np.ndarray
+        The non-negative frequencies of the Fourier transform given by rft1d.
     """
     fname = 'rdual1d'
     customlog.log_trace(f'{fname}: Called with {arr.shape} array, nfft = {nfft}, zpf = {zpf}')
@@ -100,18 +105,21 @@ def prepare_signal_for_ft1d(sig: complexarray1D,
 
     Parameters
     ----------
-    sig
+    sig : np.ndarray
     window : str, optional
     remove_mean : bool, optional
         Default is True
-    nfft : int, optional
+    nfft : int or 'auto', optional
+        The size of the nfft. The default (None) is the length of the signal, and 'auto' the next length for which
+        the FFT is fast.
     zpf : int, optional
-    shift
+    shift : int, optional
     axis : int, optional
 
     Returns
     -------
-
+    np.ndarray
+        The signal without its mean and windowed, padded (or truncated) to nfft * zpf points along axis, and rolled.
     """
     fname = 'prepare_signal_for_ft1d'
     customlog.log_trace(f'{fname}: Called with {sig.shape} array, nfft = {nfft}, zpf = {zpf}')
@@ -168,25 +176,30 @@ def rft1d(sig: floatarray1D, x: Optional[floatarray1D] = None,
           window: str = default_window, remove_mean: bool = True,
           nfft: dtype_nfft = None, zpf: Optional[int] = None,
           shift: Optional[int] = None, axis: int=-1) -> complexarray1D:
-    """ Returns the 1-D Fourier transform of the input array using the given windowing.
+    """
+    Returns the 1-D Fourier transform of the input array using the given windowing.
 
     The unit is in amplitude/(inverse period), e.g. V -> V/Hz
 
     Parameters
     ----------
-    sig
-    x
+    sig : np.ndarray
+        Real signal.
+    x : np.ndarray, optional
     window : str, optional
     remove_mean : bool, optional
         Default is True
-    nfft : int, optional
+    nfft : int or 'auto', optional
+        The size of the nfft. The default (None) is the length of the signal, and 'auto' the next length for which
+        the FFT is fast.
     zpf : int, optional
-    shift
+    shift : int, optional
     axis : int, optional
 
     Returns
     -------
-
+    np.ndarray
+        The Fourier transform (complex), for the frequencies given by rdual1d.
     """
     if x is None:
         customlog.log_warning('rft1d: No x given?!')
@@ -207,25 +220,29 @@ def ft1d(sig: complexarray1D, x: Optional[floatarray1D] = None,
          window: str = default_window, remove_mean: bool = True,
          nfft: dtype_nfft = None, zpf: Optional[int] = None,
          shift: Optional[int] = None, axis: int = -1) -> complexarray1D:
-    """ Returns the 1-D Fourier transform of the input array using the given windowing.
+    """
+    Returns the 1-D Fourier transform of the input array using the given windowing.
 
     The unit is in amplitude/(inverse period), e.g. V -> V/Hz
 
     Parameters
     ----------
-    sig
-    x
+    sig : np.ndarray
+    x : np.ndarray, optional
     window : str, optional
     remove_mean : bool, optional
         Default is True
-    nfft : int, optional
+    nfft : int or 'auto', optional
+        The size of the nfft. The default (None) is the length of the signal, and 'auto' the next length for which
+        the FFT is fast.
     zpf : int, optional
-    shift
+    shift : int, optional
     axis : int, optional
 
     Returns
     -------
-
+    np.ndarray
+        The Fourier transform (complex), for the frequencies given by dual1d.
     """
     if x is None:
         customlog.log_warning('ft1d: No x given?!')
@@ -255,13 +272,13 @@ def window_factor1d(window: str, nwin: int = 16384):
 
     Parameters
     ----------
-    window
+    window : str
     nwin : int, optional
         The size over which to evaluate the window corrected factor.
 
     Returns
     -------
-
+    float
     """
     if window is None:
         return 1.
@@ -276,24 +293,26 @@ def window_factor1d(window: str, nwin: int = 16384):
 @alias_argument('zpf', 'zero_pad_factor')
 def psd1d(sig: np.ndarray, x: Optional[np.ndarray] = None,
           window: str = default_window, remove_mean: bool = True,
-          nfft: dtype_nfft = None, zpf: Optional[float] = None,
+          nfft: dtype_nfft = None, zpf: Optional[int] = None,
           axis: int = -1) -> floatarray1D:
     """
-
     Parameters
     ----------
-    sig
-    x
+    sig : np.ndarray
+    x : np.ndarray, optional
     window : str, optional
     remove_mean : bool, optional
         Default is True
-    nfft : int, optional
+    nfft : int or 'auto', optional
+        The size of the nfft. The default (None) is the length of the signal, and 'auto' the next length for which
+        the FFT is fast.
     zpf : int, optional
     axis : int, optional
 
     Returns
     -------
-
+    np.ndarray
+        The power spectral density, for the frequencies given by dual1d.
     """
     ### Step 1: do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
@@ -314,24 +333,27 @@ def psd1d(sig: np.ndarray, x: Optional[np.ndarray] = None,
 @alias_argument('zpf', 'zero_pad_factor')
 def rpsd1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
            window: str = default_window, remove_mean: bool = True,
-           nfft: dtype_nfft = None, zpf: Optional[float] = None,
+           nfft: dtype_nfft = None, zpf: Optional[int] = None,
            axis: int = -1) -> floatarray1D:
     """
-
     Parameters
     ----------
-    sig
-    x
+    sig : np.ndarray
+        Real signal.
+    x : np.ndarray, optional
     window : str, optional
     remove_mean : bool, optional
         Default is True
-    nfft : int, optional
+    nfft : int or 'auto', optional
+        The size of the nfft. The default (None) is the length of the signal, and 'auto' the next length for which
+        the FFT is fast.
     zpf : int, optional
     axis : int, optional
 
     Returns
     -------
-
+    np.ndarray
+        The power spectral density, for the frequencies given by rdual1d.
     """
     ### Step 1: do the dimensional Fourier transform
     # if the unit of z(t) is [V(s)], then the unit of $\hat{z}$ is [V/Hz(Hz)]
@@ -358,7 +380,7 @@ def rpsd1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
 def welch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
             welch_factor: Union[float, int] = 1,
             window: str = default_window, remove_mean: bool = True,
-            nfft: dtype_nfft = None, zpf: Optional[float] = None,
+            nfft: dtype_nfft = None, zpf: Optional[int] = None,
             axis: int = -1):
     """
     Computes the PSD spectrum using Welch's technique.
@@ -367,19 +389,22 @@ def welch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
 
     Parameters
     ----------
-    sig
-    x
-    welch_factor
+    sig : np.ndarray
+    x : np.ndarray, optional
+    welch_factor : float, optional
     window : str, optional
     remove_mean : bool, optional
         Default is True
-    nfft : int, optional
+    nfft : int or 'auto', optional
+        The size of the nfft. The default (None) is the length of the signal, and 'auto' the next length for which
+        the FFT is fast.
     zpf : int, optional
     axis : int, optional
 
     Returns
     -------
-
+    np.ndarray
+        The power spectral density, averaged over overlapping segments of the signal.
     """
     nfft = sanitize_nfft_1d(nfft, sig.shape[axis], aligned=welch_factor if isinstance(welch_factor, int) else None)
     zpf = sanitize_zpf_1d(zpf)
@@ -406,7 +431,7 @@ def welch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
 def rwelch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
              welch_factor: float = 1.,
              window: str = 'hann', remove_mean: bool = True,
-             nfft: dtype_nfft = None, zpf: Optional[float] = None,
+             nfft: dtype_nfft = None, zpf: Optional[int] = None,
              axis: int = -1):
     """
     Computes the PSD spectrum using Welch's technique.
@@ -415,21 +440,25 @@ def rwelch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
 
     Parameters
     ----------
-    sig
-    x
-    welch_factor : float
+    sig : np.ndarray
+        Real signal.
+    x : np.ndarray, optional
+    welch_factor : float, optional
         The factor by which the resolution is improved by using Welch's method.
     window : str, optional
-        The window to use, for example 'hann'. The default is no window (boxcar).
+        The window to use. The default is 'hann'.
     remove_mean : bool, optional
         Default is True
-    nfft : int, optional
+    nfft : int or 'auto', optional
+        The size of the nfft. The default (None) is the length of the signal, and 'auto' the next length for which
+        the FFT is fast.
     zpf : int, optional
     axis : int, optional
 
     Returns
     -------
-
+    np.ndarray
+        The power spectral density, averaged over overlapping segments of the signal.
     """
     nfft = sanitize_nfft_1d(nfft, sig.shape[axis])
     zpf = sanitize_zpf_1d(zpf)
@@ -455,21 +484,24 @@ def rwelch1d(sig: floatarray1D, x: Optional[np.ndarray] = None,
 def estimatesignalfrequency(sig: floatarray1D, x: Optional[floatarray1D] = None,
                             window: str = 'boxcar', zero_pad_factor: Optional[int] = 4,
                             bounds=None) -> float:
-    """Estimates the frequency of a signal
+    """
+    Estimates the frequency of a signal
 
     Parameters
     ----------
-    sig
-    x
-    window
+    sig : np.ndarray
+    x : np.ndarray, optional
+    window : str, optional
         By default we use a rectangular ('boxcar') window since it is the most precise for single-frequency finding. But it is very sensitive to noise.
-    zero_pad_factor
-        By default we use zero-padding to have a 'more precise' frequency measurement.
-    bounds
+    zero_pad_factor : int, optional
+        By default we use zero-padding (a factor of 4) to have a 'more precise' frequency measurement.
+    bounds : (float, float), optional
+        If given, only the frequencies strictly between bounds[0] and bounds[1] are considered.
 
     Returns
     -------
-
+    float
+        The frequency of the highest peak of the power spectral density, in the inverse unit of x.
     """
     if x is None:
         x = np.arange(len(sig))
@@ -558,22 +590,24 @@ def power_near_peak1d(peak_x, sig_psd: floatarray1D, peak_depth_dB: Optional[int
                       x: Optional[floatarray1D] = None,
                       peak_vicinity: Optional[np.ndarray] = None,
                       peak_contour: Optional[list] = None):
-    """Integrates the PSD around a given peak.
+    """
+    Integrates the PSD around a given peak.
 
     Choose your window with care
 
     Parameters
     ----------
-    peak_x
-    sig_psd
-    peak_depth_dB
-    x
-    peak_vicinity
-    peak_contour
+    peak_x : float
+    sig_psd : np.ndarray
+    peak_depth_dB : int, optional
+    x : np.ndarray, optional
+    peak_vicinity : np.ndarray of bool, optional
+    peak_contour : (float, float), optional
 
     Returns
     -------
-
+    float
+        The power of the peak: the integral of sig_psd over the vicinity of the peak.
     """
     customlog.log_debug(f'Measuring the power around     ({round(peak_x, 3)})')
     if peak_vicinity is None:
@@ -599,20 +633,22 @@ def estimate_phase(sig, x: Optional[floatarray1D] = None, frequency: Optional[fl
 
     Parameters
     ----------
-    sig
-    x
-    frequency
+    sig : np.ndarray
+    x : np.ndarray, optional
+    frequency : float, optional
+        If not given, it is estimated with estimatesignalfrequency.
 
     Returns
     -------
-
+    float
+        The phase of the signal at this frequency, in radians, in (-pi, pi].
     """
     if x is None: x = np.arange(sig.shape[0])
     if frequency is None: frequency = estimatesignalfrequency(sig, x=x)
     return np.angle(np.sum(sig * np.exp(-1j * 2 * np.pi * frequency * x)))
 
 
-def hilbert(sig: floatarray1D, symmetrize=False, remove_mean=True) -> floatarray1D:
+def hilbert(sig: floatarray1D, symmetrize=False, remove_mean=True) -> complexarray1D:
     """
     Performs a Hilbert transform of the signal.
 
@@ -620,7 +656,7 @@ def hilbert(sig: floatarray1D, symmetrize=False, remove_mean=True) -> floatarray
 
     Parameters
     ----------
-    sig
+    sig : np.ndarray
     symmetrize : bool, optional
         If True, the signal is mirrored (giving a 2 times longer signal) before the transform,
         to remove the discontinuity at the boundaries. This forces the phase to 0 or pi near the edges.
@@ -630,7 +666,8 @@ def hilbert(sig: floatarray1D, symmetrize=False, remove_mean=True) -> floatarray
 
     Returns
     -------
-    The analytic signal sig + i H(sig), complex
+    np.ndarray
+        The analytic signal sig + i H(sig), complex.
     """
     sig_prepared = np.concatenate((sig, sig[::-1])) if symmetrize else sig.copy()
     if remove_mean: sig_prepared -= sig_prepared.mean()
@@ -648,7 +685,7 @@ def monogenic1d(sig: floatarray1D, symmetrize: bool = False,
 
     Parameters
     ----------
-    sig
+    sig : np.ndarray
     symmetrize : bool, optional
         See hilbert. Default is False.
     remove_mean : bool, optional
@@ -656,8 +693,10 @@ def monogenic1d(sig: floatarray1D, symmetrize: bool = False,
 
     Returns
     -------
-    (amplitude, phase)
-        ``amplitude = |sig + i H(sig)| >= 0`` and ``phase = arg(sig + i H(sig))``, in (-pi, pi]
+    amplitude : np.ndarray
+        ``|sig + i H(sig)|``, >= 0
+    phase : np.ndarray
+        ``arg(sig + i H(sig))``, in (-pi, pi]
     """
     analytic = hilbert(sig, symmetrize=symmetrize, remove_mean=remove_mean)
     return np.abs(analytic), np.angle(analytic)
@@ -679,8 +718,8 @@ def local_frequency1d(sig: floatarray1D, x: Optional[floatarray1D] = None, symme
 
     Parameters
     ----------
-    sig
-    x
+    sig : np.ndarray
+    x : np.ndarray, optional
         Coordinates of the signal (can be irregularly spaced). If not given, the spacing is 1.
     symmetrize : bool, optional
         See hilbert. Default is False.
@@ -689,7 +728,8 @@ def local_frequency1d(sig: floatarray1D, x: Optional[floatarray1D] = None, symme
 
     Returns
     -------
-    The local frequency, shaped like sig
+    np.ndarray
+        The local frequency, shaped like sig
     """
     _, phase = monogenic1d(sig, symmetrize=symmetrize, remove_mean=remove_mean)
     dphase = np.gradient(np.unwrap(phase)) if x is None else np.gradient(np.unwrap(phase), x)
@@ -703,14 +743,17 @@ def synchronous_enveloppe_detection(sig, x: Optional[floatarray1D] = None, frequ
 
     Parameters
     ----------
-    sig
-    x
-    frequency
-    phase
+    sig : np.ndarray
+    x : np.ndarray, optional
+    frequency : float, optional
+        If not given, it is estimated with estimatesignalfrequency.
+    phase : float, optional
+        If not given, it is estimated with estimate_phase.
 
     Returns
     -------
-
+    np.ndarray
+        The enveloppe of the signal: the signal demodulated at this frequency and phase, then low-pass filtered.
     """
     if x is None: x = np.arange(sig.shape[0])
     if frequency is None: frequency = estimatesignalfrequency(sig, x=x)

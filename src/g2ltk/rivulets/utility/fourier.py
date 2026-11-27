@@ -57,6 +57,7 @@ def dual(arr: np.ndarray, zero_pad: Optional[int] = None, zero_pad_factor: Optio
     ----------
     arr
     zero_pad
+    zero_pad_factor : int, optional
 
     Returns
     -------
@@ -102,6 +103,7 @@ def rdual(arr: np.ndarray, zero_pad: Optional[int] = None, zero_pad_factor: Opti
     ----------
     arr
     zero_pad
+    zero_pad_factor : int, optional
 
     Returns
     -------
@@ -256,6 +258,7 @@ def rft1d(arr: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann',
     window
     norm
     zero_pad
+    zero_pad_factor : int, optional
 
     Returns
     -------
@@ -283,6 +286,7 @@ def ft1d(arr: np.ndarray, x: Optional[np.ndarray] = None, window: str = 'hann', 
     window
     norm
     zero_pad
+    zero_pad_factor : int, optional
 
     Returns
     -------
@@ -311,15 +315,13 @@ def prepare_signal_for_ft2d(arr: np.ndarray,
     Parameters
     ----------
     arr
-    x
-    y
     window
     winstyle
         Can be 'outer' (default) or 'circular'
-    norm
     zero_pad
     zero_pad_factor
         Use powers of 2
+    shift : (int, int), optional
 
     Returns
     -------
@@ -414,10 +416,13 @@ def ft2d(arr: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray
     x
     y
     window
+    winstyle : str, optional
+        Can be 'outer' (default) or 'circular'
     norm
     zero_pad
     zero_pad_factor
         Use powers of 2
+    shift : (int, int), optional
 
     Returns
     -------
@@ -451,16 +456,17 @@ def rft2d(arr: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarra
 
     Parameters
     ----------
-    winstyle
-    shift
     arr
     x
     y
     window
+    winstyle : str, optional
+        Can be 'outer' (default) or 'circular'
     norm
     zero_pad
     zero_pad_factor
         Use powers of 2
+    shift : (int, int), optional
 
     Returns
     -------
@@ -512,12 +518,13 @@ def window_factor2d(window: str, winstyle: Optional[str] = None):
 
     Parameters
     ----------
-    window
+    window : str
+    winstyle : str, optional
+        Can be 'outer' (default) or 'circular'
 
     Returns
     -------
-    :param winstyle:
-
+    float
     """
     if winstyle is None:
         winstyle = 'outer'
@@ -576,13 +583,18 @@ def rpsd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray
 
     Parameters
     ----------
-    arr
+    z
     x
     y
     window
+    winstyle : str, optional
+        Can be 'outer' (default) or 'circular'
     zero_pad
     zero_pad_factor
         Use powers of 2
+    shift : (int, int), optional
+    quantitative : bool, optional
+        See above. Default is True.
 
     Returns
     -------
@@ -624,13 +636,18 @@ def psd2d(z: np.ndarray, x: Optional[np.ndarray] = None, y: Optional[np.ndarray]
 
     Parameters
     ----------
-    arr
+    z
     x
     y
     window
+    winstyle : str, optional
+        Can be 'outer' (default) or 'circular'
     zero_pad
     zero_pad_factor
         Use powers of 2
+    shift : (int, int), optional
+    quantitative : bool, optional
+        See above. Default is True.
 
     Returns
     -------
@@ -897,9 +914,17 @@ def peak_contour2d(peak_x: float, peak_y: float, z: np.ndarray, peak_depth_dB: f
     peak_depth_dB
     x
     y
-    fastmode : do not compute aeras and perimeters of contour that do not contain the peak
-    peak_max_area : dmaximum area, in px²
-    peak_min_circularity : minimum circularity ([0-1]), for reasonable contours
+    fastmode : bool, optional
+        Do not compute the areas and perimeters of the contours that do not contain the peak. Default is True.
+    peak_max_area : float, optional
+        Maximum area, in px²
+    peak_min_circularity : float, optional
+        Minimum circularity ([0-1]), for reasonable contours
+    truncated_spectrum : bool, optional
+        Whether z is truncated along axis 1 (x), as the spectra given by rft2d and rpsd2d. Default is False.
+    real_signal : bool, optional
+        Whether z is the spectrum of a real signal, so that a contour around the symmetric peak (-peak_x, -peak_y)
+        is also accepted. Default is True.
 
     Returns
     -------

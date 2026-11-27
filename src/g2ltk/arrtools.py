@@ -16,7 +16,7 @@ def is_regularly_spaced(arr: np.ndarray, rtol=1e-5) -> bool:
 
     Parameters
     ----------
-    arr
+    arr : np.ndarray
     rtol : float, optional
         The relative tolerance. The default is 1e-5.
 
@@ -38,7 +38,7 @@ def step(arr: Optional[np.ndarray]) -> float:
 
     Parameters
     ----------
-    arr
+    arr : np.ndarray or None
 
     Returns
     -------
@@ -78,7 +78,7 @@ def span(arr: Optional[np.ndarray]) -> float:
 
     Parameters
     ----------
-    arr
+    arr : np.ndarray or None
         If None, returns 1. for convenience and fast prototyping, with a warning since the result is then meaningless.
 
     Returns
@@ -112,9 +112,9 @@ def interp_roots(y: np.ndarray, x: Optional[np.ndarray] = None) -> np.ndarray:
 
     Parameters
     ----------
-    y
+    y : np.ndarray
         y(x)
-    x : optional
+    x : np.ndarray, optional
         x array. The default is the indices of y.
 
     Returns
@@ -140,21 +140,22 @@ def der(y: np.ndarray, x: Optional[Union[np.ndarray, float]] = None, order: int 
 
     Parameters
     ----------
-    y
-    x : optional
+    y : np.ndarray
+    x : np.ndarray or float, optional
         Can be dx (grid spacing) or the grid directly. The default is a grid spacing of 1.
     order : int, optional
         The order of the derivative. The default is 1 (simple derivative).
     acc : int, optional
         The required accuracy, in powers of dx. Must be a positive even integer. The default is 2 (second order accurate schemes).
-    axis
+    axis : int, optional
         The axis over which to compute the derivative. The default is 0.
     periodic : bool, optional
          Whether the axis is to be treated as periodic. The default is False.
 
     Returns
     -------
-
+    np.ndarray
+        The derivative, shaped like y.
     """
     if x is None:
         x = 1.
@@ -177,20 +178,23 @@ def find_extrema(y: np.ndarray, x: Optional[np.ndarray] = None, peak_category: s
 
     Parameters
     ----------
-    y
+    y : np.ndarray
         y(x)
-    x : optional
+    x : np.ndarray, optional
         x array. The default is the indices of y.
     peak_category : str, optional
         Which extrema to return (see Returns). The default is 'all'.
 
     Returns
     -------
-    If peak_category=='raw' : all the peaks x position, without any sign consideration
-    If peak_category=='min' : all the minimums x position
-    If peak_category=='max' : all the maximums x position
-    If peak_category=='minmax' : minimums, maximums
-    else : all, minimums, maximums
+    np.ndarray or tuple of np.ndarray
+        The x positions of the extrema, depending on peak_category:
+
+        - 'raw': all the extrema, without telling minimums from maximums;
+        - 'min': the minimums;
+        - 'max': the maximums;
+        - 'minmax': (minimums, maximums);
+        - any other value ('all', the default): (all the extrema, minimums, maximums).
     """
     if x is None:
         x = np.arange(len(y))
@@ -229,9 +233,9 @@ def find_global_peak(y: np.ndarray, x: Optional[np.ndarray] = None, peak_categor
 
     Parameters
     ----------
-    y
+    y : np.ndarray
         y(x)
-    x : optional
+    x : np.ndarray, optional
         x array. The default is the indices of y.
     peak_category : str, optional
         'max' : the global maximum of y.
@@ -274,9 +278,9 @@ def find_global_max(y: np.ndarray, x: Optional[np.ndarray] = None) -> Optional[f
 
     Parameters
     ----------
-    y
+    y : np.ndarray
         y(x)
-    x : optional
+    x : np.ndarray, optional
         x array. The default is the indices of y.
 
     Returns

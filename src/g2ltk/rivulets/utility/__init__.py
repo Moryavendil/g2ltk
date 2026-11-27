@@ -82,16 +82,15 @@ def find_roots(x: np.ndarray, y: np.ndarray) -> np.ndarray:
 
     Parameters
     ----------
-    x
+    x : np.ndarray
         x array
-    y
+    y : np.ndarray
         y(x)
 
     Returns
     -------
     np.ndarray
         The list of x for which y(x) should be zeros
-
     """
 
     return np.unique(np.concatenate( (x[y == 0],
@@ -103,17 +102,23 @@ def find_extrema(x: np.ndarray, y: np.ndarray, peak_category: str = 'all', smoot
 
     Parameters
     ----------
-    x
-    y
-    peak_category
+    x : np.ndarray
+    y : np.ndarray
+    peak_category : str, optional
+        Which extrema to return (see Returns). The default is 'all'.
+    smooth_derivative : bool, optional
+        If True, the derivative is smoothed (Savitzky-Golay filter) before its roots are searched. Default is False.
 
     Returns
     -------
-    If peak_category=='raw' : all the peaks x position, without any sign consideration
-    If peak_category=='min' : all the minimums x position
-    If peak_category=='max' : all the maximums x position
-    If peak_category=='minmax' : minimums, maximums
-    else : all, minimums, maximums
+    np.ndarray or tuple of np.ndarray
+        The x positions of the extrema, depending on peak_category:
+
+        - 'raw': all the extrema, without telling minimums from maximums;
+        - 'min': the minimums;
+        - 'max': the maximums;
+        - 'minmax': (minimums, maximums);
+        - any other value ('all', the default): (all the extrema, minimums, maximums).
     """
 
     ### FIRST DERIVATIVE

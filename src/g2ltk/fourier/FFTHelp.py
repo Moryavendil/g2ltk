@@ -14,13 +14,14 @@ def split_2d_argument(value: Any, fname: str = 'split_2d_argument') -> Tuple[Any
 
     Parameters
     ----------
-    value
+    value : None, int, str or (value_axis0, value_axis1)
     fname : str, optional
         The name of the calling function, for logging.
 
     Returns
     -------
-    (value_axis0, value_axis1)
+    value_axis0
+    value_axis1
     """
     if value is None or isinstance(value, str):
         return value, value
@@ -67,7 +68,7 @@ def sanitize_nfft_1d(nfft: dtype_nfft, N: int, aligned: Optional[int]=None):
 
     Parameters
     ----------
-    nfft
+    nfft : int or 'auto', optional
     N : int
         The array length
     aligned : int, optional
@@ -75,7 +76,8 @@ def sanitize_nfft_1d(nfft: dtype_nfft, N: int, aligned: Optional[int]=None):
 
     Returns
     -------
-
+    int
+        The nfft to use.
     """
     if nfft is None:
         return N
@@ -98,13 +100,14 @@ def sanitize_nfft_2d(nfft: dtype_nfft_2d, shape: Tuple[int, int]) -> Tuple[int, 
 
     Parameters
     ----------
-    nfft
+    nfft : int, 'auto' or (axis0, axis1), optional
     shape : (int, int)
         The array shape
 
     Returns
     -------
-    (nfft_axis0, nfft_axis1)
+    nfft_axis0 : int
+    nfft_axis1 : int
     """
     nfft0, nfft1 = split_2d_argument(nfft, 'sanitize_nfft_2d')
     return sanitize_nfft_1d(nfft0, shape[0]), sanitize_nfft_1d(nfft1, shape[1])
@@ -120,11 +123,12 @@ def sanitize_zpf_1d(zpf):
 
     Parameters
     ----------
-    zpf
+    zpf : int, optional
 
     Returns
     -------
-
+    int
+        The zero padding factor to use.
     """
     default_zpf = 1
     if zpf is None:
@@ -140,11 +144,12 @@ def sanitize_zpf_2d(zpf: dtype_zpf_2d) -> Tuple[int, int]:
 
     Parameters
     ----------
-    zpf
+    zpf : int or (int, int), optional
 
     Returns
     -------
-    (zpf_axis0, zpf_axis1)
+    zpf_axis0 : int
+    zpf_axis1 : int
     """
     zpf0, zpf1 = split_2d_argument(zpf, 'sanitize_zpf_2d')
     return sanitize_zpf_1d(zpf0), sanitize_zpf_1d(zpf1)

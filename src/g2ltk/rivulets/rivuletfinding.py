@@ -238,12 +238,14 @@ def bos_framewise(frame:np.ndarray, **kwargs)->np.ndarray:
 
     Parameters
     ----------
-    frame
-    kwargs
+    frame : np.ndarray
+    **kwargs
+        The parameters of the rivulet finding (see above, and default_kwargs).
 
     Returns
     -------
-
+    np.ndarray
+        The position (z) of the rivulet in each column of the frame.
     """
     for key in default_kwargs.keys():
         if not key in kwargs.keys():
@@ -335,14 +337,16 @@ def borders_framewise(frame:np.ndarray, prominence:float = 1, do_fit:bool=False,
 
     Parameters
     ----------
-    frame
-    prominence
-    do_fit
-    kwargs
+    frame : np.ndarray
+    prominence : float, optional
+    do_fit : bool, optional
+    **kwargs
+        The parameters of the rivulet finding (see above, and default_kwargs).
 
     Returns
     -------
-
+    np.ndarray
+        The lower and upper borders (z) of the rivulet in each column of the frame, shaped (2, number of columns).
     """
     for key in default_kwargs.keys():
         if not key in kwargs.keys():
