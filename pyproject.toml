@@ -43,6 +43,7 @@ video = [
     "openpyxl", # datasheets (reading and writing xlsx workbooks with pandas)
     "imagecodecs", # reading tiff (t8 / t16) videos
 ]
+# g2ltk.rivulets, which uses both g2ltk.plotting and g2ltk.videoreading
 full = ["g2ltk[plot,video]"]
 
 [tool.hatch.version]
