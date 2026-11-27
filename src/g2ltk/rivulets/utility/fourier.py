@@ -1,10 +1,12 @@
 """
 Deprecated: replaced by g2ltk.fourier. Kept so that existing code keeps working.
 
-g2ltk.rivulets.utility gets these functions with `from .fourier import *`, so that importing
-g2ltk.rivulets.utility also logs the deprecation warning.
+g2ltk.rivulets.utility gets these functions with `from .fourier import *`. Each of them logs a
+deprecation warning the first time it is called, instead of the module when it is imported, so
+that importing g2ltk.rivulets.utility for its other functions does not log it.
 """
 from typing import Optional, Any, Tuple, Dict, List, Union
+from functools import wraps
 import numpy as np
 import math
 
@@ -22,7 +24,27 @@ __all__ = ['dual', 'rdual', 'dual2d', 'rdual2d', 'prepare_signal_for_ft1d', 'rft
            'peak_max_area_default', 'peak_min_circularity_default', 'peak_contour2d',
            'grid_points_in_contour', 'peak_vicinity2d', 'power_near_peak2d']
 
-log_warning('g2ltk.rivulets.utility.fourier is deprecated. Please use g2ltk.fourier')
+### Deprecation (applied to every function of __all__ at the end of the module)
+_warned_functions = set()
+_running = False  # True while a function of this module runs: the functions it calls do not warn
+
+
+def _deprecated(function):
+    """Makes function log a deprecation warning the first time it is called (not from this module)."""
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        global _running
+        if _running:
+            return function(*args, **kwargs)
+        if function.__name__ not in _warned_functions:
+            _warned_functions.add(function.__name__)
+            log_warning(f'g2ltk.rivulets.utility.{function.__name__} is deprecated. Please use g2ltk.fourier')
+        _running = True
+        try:
+            return function(*args, **kwargs)
+        finally:
+            _running = False
+    return wrapper
 
 ### FFT AND PSD COMPUTATIONS
 def dual(arr: np.ndarray, zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> np.ndarray:
@@ -1015,3 +1037,9 @@ def power_near_peak2d(peak_x, peak_y, z, peak_depth_dB, x=None, y=None,
     pw = np.sum(z[peak_vicinity]) * step(x) * step(y)
     log_debug(f'Power: {pw} (amplitude: {np.sqrt(2*pw)})')
     return pw
+
+
+# Every function warns that it is deprecated the first time it is called
+for _name in __all__:
+    if callable(globals()[_name]):
+        globals()[_name] = _deprecated(globals()[_name])
