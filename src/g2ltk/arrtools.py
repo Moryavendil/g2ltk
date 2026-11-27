@@ -262,7 +262,8 @@ def find_global_peak(y: np.ndarray, x: Optional[np.ndarray] = None, peak_categor
         peaks_positions = find_extrema(y, x=x, peak_category=peak_category)
         precise_peak_position = peaks_positions[argval(peaks_positions, gross_peak_position)]
         return precise_peak_position
-    except:
+    except (ValueError, IndexError):
+        # no extremum found (ValueError), or too few points to find one (IndexError)
         return gross_peak_position
 
 
