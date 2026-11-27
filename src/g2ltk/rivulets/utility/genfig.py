@@ -92,8 +92,9 @@ def figsize(w:Optional[Union[float, int, str]], h:Optional[Union[float, int, str
         if ratio is not None:
             try:
                 ratio = float(ratio)
-            except:
+            except (TypeError, ValueError):
                 log_error('This is not a ratio: {ratio}. Taking None instead.'.format(ratio=ratio))
+                ratio = None
         if ratio is None:
             ratio = 1.618
         height_in = width_in / ratio # by default
