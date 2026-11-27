@@ -4,6 +4,11 @@ from findiff import Diff
 
 from g2ltk import customlog
 
+# The names `from g2ltk.arrtools import *` gives (used by g2ltk.peakfinder): add new public functions here
+__all__ = ['is_regularly_spaced', 'step', 'span', 'argval', 'interp_unexplicit_roots',
+           'interp_roots', 'der', 'find_extrema', 'find_global_peak', 'find_global_max',
+           'correct_limits', 'correct_extent', 'gaussian', 'gaussian_unnormalized']
+
 # QOL for manipulating arrays
 
 def is_regularly_spaced(arr: np.ndarray, rtol=1e-5) -> bool:
