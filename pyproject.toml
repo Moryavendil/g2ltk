@@ -26,6 +26,7 @@ dependencies = [
     "shapely >= 2.0", # from_ragged_array, for 2D fft contours
     "numpy >= 1.23.3", # np.ndarray[...] in type aliases and annotations, evaluated when g2ltk.fourier is imported
     "findiff >= 0.12", # Diff with periodic boundaries, for finite differences
+    "nbformat", # the pytojupy command
 ]
 
 [project.optional-dependencies]
