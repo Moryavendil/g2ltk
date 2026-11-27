@@ -156,19 +156,21 @@ def retrieve_meta(acquisition_path: str) -> Meta:
 def _parse_meta_file(meta_path: str, mtime_ns: int, size: int) -> Meta:
     """Content of a meta file. Cached: mtime_ns and size (see _file_version) are not used, but are part of the cache key."""
     meta:Meta = {}
+    # the file exists (checked by retrieve_meta), and an OSError when reading it names it
     try:
         with open(meta_path, 'r') as meta_file:
-            for line in meta_file.readlines():
-                if '=' in line:
-                    if line.count('=') > 1:
-                        customlog.throw_G2L_warning(f'Ambiguity when parsing the {meta_path} meta file: is there a rogue "=" somewhere in it?.')
-                    variable = line[:-1].split('=')[0]
-                    value = '='.join( line[:-1].split('=')[1:] )
-                    meta[variable] = value
-                else:
-                    customlog.throw_G2L_warning(f'Could not parse correctly the {meta_path} meta file.')
-    except:
-        raise(Exception(f'ERROR: Problem with the {meta_path} meta file (probably it could not be opened).'))
+            lines = meta_file.readlines()
+    except UnicodeDecodeError as e:
+        raise ValueError(f'The {meta_path} meta file is not a text file.') from e
+    for line in lines:
+        if '=' in line:
+            if line.count('=') > 1:
+                customlog.throw_G2L_warning(f'Ambiguity when parsing the {meta_path} meta file: is there a rogue "=" somewhere in it?.')
+            variable = line[:-1].split('=')[0]
+            value = '='.join( line[:-1].split('=')[1:] )
+            meta[variable] = value
+        else:
+            customlog.throw_G2L_warning(f'Could not parse correctly the {meta_path} meta file.')
 
     customlog.log_subtrace(f'Meta file {meta_path} read: meta={meta}')
 
@@ -220,17 +222,19 @@ def retrieve_stamps(acquisition_path:str) -> Stamps:
 def _parse_stamps_file(stamps_path: str, mtime_ns: int, size: int) -> Stamps:
     """Content of a stamps file. Cached: mtime_ns and size (see _file_version) are not used, but are part of the cache key."""
     framenumber, camera_time, computer_time = [], [], []
+    # the file exists (checked by retrieve_stamps), and an OSError when reading it names it
     try:
         with open(stamps_path, 'r') as stamps_file:
-            for line in stamps_file.readlines():
-                if line.count('\t') == 2:
-                    framenumber.append(line[:-1].split('\t')[0])     # The frame number, an integer from 0 to N-1 (N number of frames) (int)
-                    camera_time.append(line[:-1].split('\t')[1])     # The time given by the camera, in ns (int)
-                    computer_time.append(line[:-1].split('\t')[2])   # The time given by the computer, in ms (int)
-                else:
-                    customlog.throw_G2L_warning(f'Could not parse correctly the {stamps_path} stamps file.')
-    except:
-        raise(Exception(f'ERROR: Problem with the {stamps_path} stamps file (probably it could not be opened).'))
+            lines = stamps_file.readlines()
+    except UnicodeDecodeError as e:
+        raise ValueError(f'The {stamps_path} stamps file is not a text file.') from e
+    for line in lines:
+        if line.count('\t') == 2:
+            framenumber.append(line[:-1].split('\t')[0])     # The frame number, an integer from 0 to N-1 (N number of frames) (int)
+            camera_time.append(line[:-1].split('\t')[1])     # The time given by the camera, in ns (int)
+            computer_time.append(line[:-1].split('\t')[2])   # The time given by the computer, in ms (int)
+        else:
+            customlog.throw_G2L_warning(f'Could not parse correctly the {stamps_path} stamps file.')
     #Todo: check if a typecasting error can happen here ?
     stamps:Stamps = {'framenumber': np.array(framenumber, dtype=int),
                      'camera_time': np.array(camera_time, dtype=np.int64),
