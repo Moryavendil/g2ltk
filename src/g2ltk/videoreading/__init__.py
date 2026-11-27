@@ -539,13 +539,12 @@ def get_acquisition_duration(acquisition_path: Optional[str] = None, framenumber
         # Duration is the time elapsed between the first and the last frame, consistent with gcv:
         # for the whole video (or any contiguous selection) this is (number of frames - 1) / fps
         freq_hz = get_acquisition_frequency(acquisition_path, unit='Hz')
-        try:
-            duration_s = (framenumbers.max() - framenumbers.min()) / freq_hz
-            return duration_s * seconds_to(unit)
-        except:
-            pass
-        customlog.log_error('Could not get acquisition duration')
-        return None
+        if not freq_hz:
+            # None when the frequency could not be read, 0 when the video does not give it
+            customlog.log_error(f'Could not get acquisition duration: unknown acquisition frequency ({freq_hz})')
+            return None
+        duration_s = (framenumbers.max() - framenumbers.min()) / freq_hz
+        return duration_s * seconds_to(unit)
 
 def format_framenumbers(acquisition_path: str, framenumbers: Framenumbers = None) -> Optional[np.ndarray]:
     if not is_this_a_video(acquisition_path):
@@ -590,13 +589,11 @@ def get_times(acquisition_path: Optional[str] = None, framenumbers: Optional[np.
         times = times * seconds_to(unit)
     else:
         freq_hz = get_acquisition_frequency(acquisition_path, unit='Hz')
-        try:
-            times = framenumbers / freq_hz * seconds_to(unit)
-            return times
-        except:
-            pass
-        customlog.log_error('Could not get times')
-        return None
+        if not freq_hz:
+            # None when the frequency could not be read, 0 when the video does not give it
+            customlog.log_error(f'Could not get times: unknown acquisition frequency ({freq_hz})')
+            return None
+        times = framenumbers / freq_hz * seconds_to(unit)
 
     return times
 
