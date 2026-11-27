@@ -1,6 +1,9 @@
 import os
 from typing import Optional, Tuple, List, Union, Dict
 
+from g2ltk._optional import require_extra
+require_extra('g2ltk.videoreading', 'video', {'cv2': 'opencv-python-headless', 'PIL': 'pillow', 'pandas': 'pandas'})
+
 import cv2
 import numpy as np
 

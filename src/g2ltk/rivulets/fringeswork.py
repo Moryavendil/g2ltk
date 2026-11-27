@@ -51,7 +51,7 @@ def find_symmetric_bridge_centre(z_, l_, local_only=False):
             if (np.abs(l1 - l2) < 20) and (np.abs(l1 - l2) < 2*peak_spacing_0):
                 pairsofvalidpeaks.append([z1, z2])
 
-        bestpairofvalidpeaks = pairsofvalidpeaks[np.argmin([(l_[pairofvalidpeaks[0]]+l_[pairofvalidpeaks[1]])/2for pairofvalidpeaks in pairsofvalidpeaks])]
+        bestpairofvalidpeaks = pairsofvalidpeaks[np.argmin([(l_[pairofvalidpeaks[0]]+l_[pairofvalidpeaks[1]])/2 for pairofvalidpeaks in pairsofvalidpeaks])]
         peak1, peak2 = bestpairofvalidpeaks
 
     bridge_centre_0 = (peak1 + peak2)/2

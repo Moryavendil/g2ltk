@@ -112,14 +112,8 @@ def remove_ticklabels_trailing_zeros(ax):
 def set_bottom_xlabels(axs: list[list[plt.Axes]], label: str):
     for i in range(len(axs[-1])):
         axs[-1][i].set_xlabel(label)
-        axs[0][i].xaxis.set_ticks_position('bottom')
-        axs[0][i].xaxis.set_label_position('bottom')
-
-def set_top_xlabels(axs: list[list[plt.Axes]], label: str):
-    for j in range(len(axs[0])):
-        axs[0][j].set_xlabel(label)
-        axs[0][j].xaxis.set_ticks_position('top')
-        axs[0][j].xaxis.set_label_position('top')
+        axs[-1][i].xaxis.set_ticks_position('bottom')
+        axs[-1][i].xaxis.set_label_position('bottom')
 
 def set_top_xlabels(axs: list[list[plt.Axes]], label: str):
     for j in range(len(axs[0])):

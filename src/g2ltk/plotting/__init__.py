@@ -1,4 +1,8 @@
 import os
+
+from g2ltk._optional import require_extra
+require_extra('g2ltk.plotting', 'plot', {'matplotlib': 'matplotlib', 'IPython': 'ipython'})
+
 import matplotlib.pyplot as plt
 
 from g2ltk.customlog import log_debug
