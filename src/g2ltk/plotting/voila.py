@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 from IPython.display import HTML, display
 from . import activate_saveplot
 
+# The names g2ltk.plotting gets from `from .voila import *`: add new public functions here
+__all__ = ['is_voila_active', 'apply_css', 'end_slide']
+
 def is_voila_active():
     are_we_in_voila = os.environ.get('SERVER_SOFTWARE', '').startswith('voila')
     # are_we_in_voila = ('SERVER_SOFTWARE' in os.environ and 'voila' in os.environ['SERVER_SOFTWARE']) or 'QUERY_STRING' in os.environ # also works

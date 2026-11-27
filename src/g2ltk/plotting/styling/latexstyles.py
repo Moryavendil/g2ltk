@@ -2,6 +2,10 @@
 
 from . import styled
 
+# The names g2ltk.plotting.styling gets from `from .latexstyles import *`: add new public functions here
+__all__ = ['latex_preamble', 'get_latex_preamble', 'general_latex_preamble', 'jfm_latex_preamble',
+           'paper_specific_latex_preamble', 'thesis_latex_preamble', 'LATEX_STYLE_THESIS']
+
 
 def latex_preamble(style=None):
     if style=='thesis' or style=='thezpresz':

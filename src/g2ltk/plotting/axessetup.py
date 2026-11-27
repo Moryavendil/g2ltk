@@ -6,6 +6,11 @@ import math
 from g2ltk.arrtools import step
 from g2ltk.fourier import attenuate_power
 
+# The names g2ltk.plotting gets from `from .axessetup import *`: add new public functions here
+__all__ = ['cb_magic_args', 'correct_limits', 'correct_extent', 'set_yaxis_rad', 'set_yaxis_log',
+           'remove_ticklabels_trailing_zeros', 'set_bottom_xlabels', 'set_top_xlabels',
+           'set_left_ylabels', 'set_right_ylabels', 'set_ylabel_right', 'grids']
+
 
 # This is from https://stackoverflow.com/questions/18195758/set-matplotlib-colorbar-size-to-match-graph
 cb_magic_args = {'fraction':0.046, 'pad':0.04}

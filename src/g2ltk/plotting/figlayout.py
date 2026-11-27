@@ -5,6 +5,9 @@ from . import in_per_mm
 from g2ltk.plotting import in_per_mm
 from g2ltk import log_error, log_warning, log_info, log_debug, log_trace, log_subtrace
 
+# The names g2ltk.plotting gets from `from .figlayout import *`: add new public functions here
+__all__ = ['force_aspect_ratio', 'subplots_adjust']
+
 
 
 def force_aspect_ratio(ax: plt.Axes, aspect=1):
