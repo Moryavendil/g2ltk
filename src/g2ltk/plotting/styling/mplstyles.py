@@ -82,10 +82,8 @@ def configure_mpl(font_size=None, style=None):
     # Specific plots
     plt.rcParams["image.interpolation"] = "nearest" # for science, to not be misleading (default antialiased)
 
-    try:
-        if font_size == 'inset':
-            font_size = styled('fontsize_inset', style=style)
-    except:pass
+    if font_size == 'inset':
+        font_size = styled('fontsize_inset', style=style)
     if font_size is None:
         font_size = styled('fontsize', style=style)
     log_debug(f'Setting font size to {font_size} pt')

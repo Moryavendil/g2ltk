@@ -52,12 +52,8 @@ def is_this_a_tiff(acquisition_path: str) -> bool:
         # Empty directory
         return False
 
-    try:
-        all_files_in_folder_are_tiff = np.prod([tifffile.endswith('.tiff') for tifffile in os.listdir(acquisition_path)])
-        if not(all_files_in_folder_are_tiff):
-            # There are non-tiff files in the folder
-            return False
-    except:
+    if not all(tifffile.endswith('.tiff') for tifffile in os.listdir(acquisition_path)):
+        # There are non-tiff files in the folder
         return False
     return True
 
