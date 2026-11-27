@@ -48,8 +48,8 @@ full = ["g2ltk[plot,video]"]
 path = "src/g2ltk/__init__.py"
 
 [project.scripts]
-pytojupy = "g2ltk.scripts:pytojupy"
-jupytopy = "g2ltk.scripts:jupytopy"
+pytojupy = "g2ltk.scripts.pytojupy:main"
+jupytopy = "g2ltk.scripts.jupytopy:main"
 
 [project.urls]
 Homepage = "https://github.com/Moryavendil/g2ltk"

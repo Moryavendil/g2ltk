@@ -26,72 +26,78 @@ def generate_parser():
     # parser.add_argument('-v', help='Verbosity (-v: info, -vv: debug, -vvv: trace)', action="count", default=0)
     return parser
 
-parser = generate_parser()
 
-args = parser.parse_args()
-notebook_paths = args.n
-targetdirname = args.d
+def main():
+    parser = generate_parser()
 
-print(f'JupyToPy: Converting .ipynb -> .py')
-if len(notebook_paths) == 0:
-    print(f'No notebook specified. Aborting.')
-    sys.exit(-10)
+    args = parser.parse_args()
+    notebook_paths = args.n
+    targetdirname = args.d
 
-### SELECTING WHICH NOTEBOOKS WE WILL CONVERT TO SCRIPTS
-ipynbs = []
-if notebook_paths is not None: # case : a particular or several notebooks was specified
-    for notebook_path in notebook_paths:
-        if os.path.isfile(notebook_path) and notebook_path.name.endswith('.ipynb') and str(notebook_path.parent)== '.':
-            ipynbs.append(str(notebook_path.name)[:-6])
-        else:
-            pass
-            #print(f'ERROR - NOTEBOOK IS NOT CORRECT ? {notebook_path}')
-else:
-    ipynbs = [f[:-6] for f in os.listdir(maindir) if os.path.isfile(os.path.join(maindir, f)) and f.endswith('.ipynb')]
-ipynbs.sort()
-print(f'Notebook converted: {ipynbs}')
+    print(f'JupyToPy: Converting .ipynb -> .py')
+    if len(notebook_paths) == 0:
+        print(f'No notebook specified. Aborting.')
+        sys.exit(-10)
 
-### SELECTING WHERE WE WILL SAVE THE SCRIPTS
-if not os.path.isdir(rootscriptsdir):
-    os.mkdir(rootscriptsdir)
-
-scriptsdir = rootscriptsdir
-if targetdirname is not None:
-    scriptsdir = os.path.join(rootscriptsdir, targetdirname)
-
-    if not os.path.isdir(scriptsdir):
-        os.mkdir(scriptsdir)
-print(f'Writing directory: {scriptsdir}')
-
-for ipynb in ipynbs:
-    infilename = os.path.join(maindir, ipynb + '.ipynb')
-    outfilename = os.path.join(scriptsdir, prefix + ipynb + '.py')
-
-    fin = open(infilename, 'r') #input.ipynb
-    j = json.load(fin)
-    fout = open(outfilename, 'w') #output.py
-    fout.write("# -*- coding: utf-8 -*-\n")
-    fout.write("# <nbformat>3.0</nbformat>")
-    if j["nbformat"] >= 4:
-        for i,cell in enumerate(j["cells"]):
-            if cell["cell_type"] == "markdown":
-                fout.write("\n# <markdowncell>\n\n")
-            elif cell["cell_type"] == "code":
-                fout.write("\n# <codecell>\n\n")
-            # of.write("#cell "+str(i)+"\n")
-            for line in cell["source"]:
-                if cell["cell_type"] == "markdown":
-                    fout.write("# ")
-                # hide the %matplotlib magic command so that the script can be runnable by itself
-                line = line.replace('%matplotlib ', '# %matplotlib ')
-                fout.write(line)
-            fout.write('\n\n')
+    ### SELECTING WHICH NOTEBOOKS WE WILL CONVERT TO SCRIPTS
+    ipynbs = []
+    if notebook_paths is not None: # case : a particular or several notebooks was specified
+        for notebook_path in notebook_paths:
+            if os.path.isfile(notebook_path) and notebook_path.name.endswith('.ipynb') and str(notebook_path.parent)== '.':
+                ipynbs.append(str(notebook_path.name)[:-6])
+            else:
+                pass
+                #print(f'ERROR - NOTEBOOK IS NOT CORRECT ? {notebook_path}')
     else:
-        for i,cell in enumerate(j["worksheets"][0]["cells"]):
-            fout.write("#cell "+str(i)+"\n")
-            for line in cell["input"]:
-                fout.write(line)
-            fout.write('\n\n')
+        ipynbs = [f[:-6] for f in os.listdir(maindir) if os.path.isfile(os.path.join(maindir, f)) and f.endswith('.ipynb')]
+    ipynbs.sort()
+    print(f'Notebook converted: {ipynbs}')
 
-    fin.close()
-    fout.close()
+    ### SELECTING WHERE WE WILL SAVE THE SCRIPTS
+    if not os.path.isdir(rootscriptsdir):
+        os.mkdir(rootscriptsdir)
+
+    scriptsdir = rootscriptsdir
+    if targetdirname is not None:
+        scriptsdir = os.path.join(rootscriptsdir, targetdirname)
+
+        if not os.path.isdir(scriptsdir):
+            os.mkdir(scriptsdir)
+    print(f'Writing directory: {scriptsdir}')
+
+    for ipynb in ipynbs:
+        infilename = os.path.join(maindir, ipynb + '.ipynb')
+        outfilename = os.path.join(scriptsdir, prefix + ipynb + '.py')
+
+        fin = open(infilename, 'r') #input.ipynb
+        j = json.load(fin)
+        fout = open(outfilename, 'w') #output.py
+        fout.write("# -*- coding: utf-8 -*-\n")
+        fout.write("# <nbformat>3.0</nbformat>")
+        if j["nbformat"] >= 4:
+            for i,cell in enumerate(j["cells"]):
+                if cell["cell_type"] == "markdown":
+                    fout.write("\n# <markdowncell>\n\n")
+                elif cell["cell_type"] == "code":
+                    fout.write("\n# <codecell>\n\n")
+                # of.write("#cell "+str(i)+"\n")
+                for line in cell["source"]:
+                    if cell["cell_type"] == "markdown":
+                        fout.write("# ")
+                    # hide the %matplotlib magic command so that the script can be runnable by itself
+                    line = line.replace('%matplotlib ', '# %matplotlib ')
+                    fout.write(line)
+                fout.write('\n\n')
+        else:
+            for i,cell in enumerate(j["worksheets"][0]["cells"]):
+                fout.write("#cell "+str(i)+"\n")
+                for line in cell["input"]:
+                    fout.write(line)
+                fout.write('\n\n')
+
+        fin.close()
+        fout.close()
+
+
+if __name__ == '__main__':
+    main()

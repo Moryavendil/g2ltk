@@ -20,79 +20,84 @@ def generate_parser():
     return parser
 
 
-parser = generate_parser()
+def main():
+    parser = generate_parser()
 
-args = parser.parse_args()
-scripts_paths = args.n
+    args = parser.parse_args()
+    scripts_paths = args.n
 
-print(f'PyToJupy: Converting .py -> .ipynb')
-if len(scripts_paths) == 0:
-    print(f'No script specified. Aborting.')
-    sys.exit(-11)
+    print(f'PyToJupy: Converting .py -> .ipynb')
+    if len(scripts_paths) == 0:
+        print(f'No script specified. Aborting.')
+        sys.exit(-11)
 
-targets = {}
-for script_path in scripts_paths:
-    if os.path.isfile(script_path) and script_path.name.endswith('.py'):
-        targets[str(script_path.name)[len(prefix):-3]] = script_path
-    else:
-        pass
-        #print(f'ERROR - NOTEBOOK IS NOT CORRECT ? {notebook_path}')
+    targets = {}
+    for script_path in scripts_paths:
+        if os.path.isfile(script_path) and script_path.name.endswith('.py'):
+            targets[str(script_path.name)[len(prefix):-3]] = script_path
+        else:
+            pass
+            #print(f'ERROR - NOTEBOOK IS NOT CORRECT ? {notebook_path}')
 
-# print(f'Scripts directory is: {scriptsdir}')
-print(f'Scripts to convert are: {[target for target in targets]}')
+    # print(f'Scripts directory is: {scriptsdir}')
+    print(f'Scripts to convert are: {[target for target in targets]}')
 
-for target in targets:
-    infilename = targets[target]
+    for target in targets:
+        infilename = targets[target]
 
-    outfilename = os.path.join(maindir, target + '.ipynb')
+        outfilename = os.path.join(maindir, target + '.ipynb')
 
-    try:
-        with open(infilename) as fin:
-            text = fin.read()
-    except (OSError, UnicodeDecodeError) as e:
-        print(f'ERROR - CANNOT READ {infilename}: {e}')
-        sys.exit(-201)
+        try:
+            with open(infilename) as fin:
+                text = fin.read()
+        except (OSError, UnicodeDecodeError) as e:
+            print(f'ERROR - CANNOT READ {infilename}: {e}')
+            sys.exit(-201)
 
-    # restore the magic matplotlib command
-    text = text.replace('# %matplotlib', '%matplotlib')
+        # restore the magic matplotlib command
+        text = text.replace('# %matplotlib', '%matplotlib')
 
-    # text += """
-    # # <markdowncell>
-    #
-    # # If you can read this, reads_py() is no longer broken!
-    # """
+        # text += """
+        # # <markdowncell>
+        #
+        # # If you can read this, reads_py() is no longer broken!
+        # """
 
-    nbook = v3.reads_py(text) # we read in v3 because the formatting is more sympathic
-    nbook = v4.upgrade(nbook)  # Upgrade v3 to v4
+        nbook = v3.reads_py(text) # we read in v3 because the formatting is more sympathic
+        nbook = v4.upgrade(nbook)  # Upgrade v3 to v4
 
-    # nbook.metadata.authors = [
-    #     {
-    #         "name": "G2L",
-    #     },
-    # ]
+        # nbook.metadata.authors = [
+        #     {
+        #         "name": "G2L",
+        #     },
+        # ]
 
-    nbook.metadata.kernelspec = {
-            "display_name": "Python 3",
-            "language": "python",
-            "name": "python3"
-        }
+        nbook.metadata.kernelspec = {
+                "display_name": "Python 3",
+                "language": "python",
+                "name": "python3"
+            }
 
-    nbook.metadata.language_info = {
-            "display_name": "Python 3",
-            "language": "python",
-            "name": "python3"
-        }
+        nbook.metadata.language_info = {
+                "display_name": "Python 3",
+                "language": "python",
+                "name": "python3"
+            }
 
-    nbook.metadata.file_extension = ".py"
-    nbook.metadata.mimetype = "text/x-python"
-    nbook.metadata.name = "python"
-    nbook.metadata.nbconvert_exporter = "python"
+        nbook.metadata.file_extension = ".py"
+        nbook.metadata.mimetype = "text/x-python"
+        nbook.metadata.name = "python"
+        nbook.metadata.nbconvert_exporter = "python"
 
-    jsonform = v4.writes(nbook) + "\n"
+        jsonform = v4.writes(nbook) + "\n"
 
-    try:
-        with open(outfilename, "w") as fout:
-            fout.write(jsonform)
-    except (OSError, UnicodeEncodeError) as e:
-        print(f'ERROR - CANNOT WRITE {outfilename}: {e}')
-        sys.exit(-202)
+        try:
+            with open(outfilename, "w") as fout:
+                fout.write(jsonform)
+        except (OSError, UnicodeEncodeError) as e:
+            print(f'ERROR - CANNOT WRITE {outfilename}: {e}')
+            sys.exit(-202)
+
+
+if __name__ == '__main__':
+    main()
