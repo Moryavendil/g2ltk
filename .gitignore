@@ -6,6 +6,7 @@
 figures/
 movies/
 analysis_files/
+.datacache/
 out/
 
 # libraries
