@@ -1,3 +1,9 @@
+"""
+Deprecated: replaced by g2ltk.fourier. Kept so that existing code keeps working.
+
+g2ltk.rivulets.utility gets these functions with `from .fourier import *`, so that importing
+g2ltk.rivulets.utility also logs the deprecation warning.
+"""
 from typing import Optional, Any, Tuple, Dict, List, Union
 import numpy as np
 import math
@@ -16,7 +22,7 @@ __all__ = ['dual', 'rdual', 'dual2d', 'rdual2d', 'prepare_signal_for_ft1d', 'rft
            'peak_max_area_default', 'peak_min_circularity_default', 'peak_contour2d',
            'grid_points_in_contour', 'peak_vicinity2d', 'power_near_peak2d']
 
-log_warning('g2ltk.utility.fourier is deprecated. Please use g2ltk.fourier')
+log_warning('g2ltk.rivulets.utility.fourier is deprecated. Please use g2ltk.fourier')
 
 ### FFT AND PSD COMPUTATIONS
 def dual(arr: np.ndarray, zero_pad: Optional[int] = None, zero_pad_factor: Optional[int] = None) -> np.ndarray:
