@@ -79,6 +79,19 @@ from .FFT2D import *
 
 @alias_argument('zpf', 'zero_pad_factor')
 def dual(x: floatarray1D, y: floatarray1D = None, zpf: int = None):
+    """
+    The dual field in the Fourier sense (e.g. frequency <-> time).
+    
+    Parameters
+    ----------
+    x
+    y
+    zpf
+
+    Returns
+    -------
+
+    """
     if y is None:
         return dual1d(x, zpf=zpf)
     return dual2d(x, y=y, zero_pad_factor=zpf)
@@ -91,6 +104,25 @@ def dual(x: floatarray1D, y: floatarray1D = None, zpf: int = None):
 def ft(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
        windows: str = default_window, winstyle: Optional[str] = None, remove_mean: bool = True,
        nffts: Optional[Union[dtype_nfft, tuple[dtype_nfft]]] = None, zpfs: Optional[Union[int, tuple[int]]] = None, axes: Optional[Union[int, tuple[int]]] = None):
+    """
+    Complex-valued Fourier transform.
+
+    Parameters
+    ----------
+    sig
+    x
+    y
+    windows
+    winstyle
+    remove_mean
+    nffts
+    zpfs
+    axes
+
+    Returns
+    -------
+
+    """
     if axes is None:
         axes = tuple(range(sig.ndim))
     if isinstance(axes, int):
@@ -138,6 +170,20 @@ def ft(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None,
 
 def ift(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None, ydual: Optional[np.ndarray] = None,
         axes: Optional[Union[int, tuple[int]]] = None):
+    """
+    Inverse Fourier transform.
+
+    Parameters
+    ----------
+    sig_hat
+    xdual
+    ydual
+    axes
+
+    Returns
+    -------
+
+    """
     if axes is None:
         axes = tuple(range(sig_hat.ndim))
     if isinstance(axes, int):
@@ -160,6 +206,26 @@ def ift(sig_hat: complexarray1D, xdual: Optional[np.ndarray] = None, ydual: Opti
 def psd(sig, x: Optional[np.ndarray] = None, y: Optional[np.ndarray] = None, welch_factor: Optional[int] = None,
         windows: str = default_window, winstyle: Optional[str] = None, remove_mean: bool = True,
         nffts: Optional[Union[dtype_nfft, tuple[dtype_nfft]]] = None, zpfs: Optional[Union[int, tuple[int]]] = None, axes: Optional[Union[int, tuple[int]]] = None):
+    """
+    Power Spectral density (roughly, the square of the FOurier transform).
+
+    Parameters
+    ----------
+    sig
+    x
+    y
+    welch_factor
+    windows
+    winstyle
+    remove_mean
+    nffts
+    zpfs
+    axes
+
+    Returns
+    -------
+
+    """
     if axes is None:
         axes = tuple(range(sig.ndim))
     if isinstance(axes, int):

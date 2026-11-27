@@ -18,16 +18,25 @@ Subregion = Optional[
 #### GENERAL VIDEO READING
 
 def alert_me_if_there_is_no_video(acquisition_path: str) -> None:
+    """
+    Prints an error message if the acquisition path is missing a video.
+
+    Parameters
+    ----------
+    acquisition_path
+
+    Returns
+    -------
+
+    """
     if not (is_this_a_video(acquisition_path)):
-        for i in range(10):
-            customlog.log_warning(f'No video named {acquisition_path} exists !')
+        customlog.log_warning(f'No video named {acquisition_path} exists !')
 
 def is_this_a_video(acquisition_path: Optional[str] = None,
                     *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> bool:
     """
     Checks if there is a video of any kind for the given acquisition, designated like in the functions reading videos:
-    either by its path (acquisition_path, the first argument), or with the keywords dataset, acquisition and root_path
-    (see resolve_acquisition_path)::
+    either by its path (acquisition_path, as first argument), or with the keywords dataset, acquisition and root_path
 
         is_this_a_video('path/to/dataset/acq')  or  is_this_a_video(dataset='dataset', acquisition='acq')
 
@@ -124,6 +133,20 @@ def video_path_for_type(acquisition_path: str, videotype: str) -> Optional[str]:
 def find_available_videos(dataset_path: Optional[str] = None, dataset: Optional[str] = None,
                           root_path: Optional[str] = None,
                           videotype: Optional[str] = None) -> List[str]:
+    """
+    Lists available videos in a dataset.
+
+    Parameters
+    ----------
+    dataset_path
+    dataset
+    root_path
+    videotype
+
+    Returns
+    -------
+
+    """
     if root_path is None:
         global __ROOT_PATH__
         root_path = __ROOT_PATH__
@@ -172,6 +195,17 @@ def find_available_videos(dataset_path: Optional[str] = None, dataset: Optional[
 __ROOT_PATH__ = '.'
 
 def set_default_root_path(root_path: Optional[str] = None) -> None:
+    """
+    Sets the root path that is used by default to find datasets.
+
+    Parameters
+    ----------
+    root_path
+
+    Returns
+    -------
+
+    """
     global __ROOT_PATH__
     if root_path is None:
         return
@@ -181,6 +215,17 @@ def set_default_root_path(root_path: Optional[str] = None) -> None:
     __ROOT_PATH__ = root_path
 
 def describe_root_path(root_path: Optional[str] = None) -> None:
+    """
+    Lists the available datasets at a root_path.
+
+    Parameters
+    ----------
+    root_path
+
+    Returns
+    -------
+
+    """
     if root_path is None:
         global __ROOT_PATH__
         root_path = __ROOT_PATH__
@@ -191,6 +236,18 @@ def describe_root_path(root_path: Optional[str] = None) -> None:
 
 ### DATASET MANAGEMENT
 def is_this_a_dataset(dataset=None, root_path: Optional[str] = None) -> bool:
+    """
+    Checks if there is a video in the dataset
+
+    Parameters
+    ----------
+    dataset
+    root_path
+
+    Returns
+    -------
+
+    """
     if root_path is None:
         global __ROOT_PATH__
         root_path = __ROOT_PATH__
@@ -207,6 +264,17 @@ def is_this_a_dataset(dataset=None, root_path: Optional[str] = None) -> bool:
     return True
 
 def find_available_datasets(root_path: Optional[str] = None) -> List[str]:
+    """
+    Find datasets from the root path.
+
+    Parameters
+    ----------
+    root_path
+
+    Returns
+    -------
+
+    """
     if root_path is None:
         global __ROOT_PATH__
         root_path = __ROOT_PATH__
@@ -217,6 +285,17 @@ def find_available_datasets(root_path: Optional[str] = None) -> List[str]:
     return available_datasets
 
 def find_default_dataset(root_path: Optional[str]):
+    """
+    Finds a default dataset from the root path.
+
+    Parameters
+    ----------
+    root_path
+
+    Returns
+    -------
+
+    """
     if root_path is None:
         global __ROOT_PATH__
         root_path = __ROOT_PATH__
@@ -234,6 +313,18 @@ def find_default_dataset(root_path: Optional[str]):
     return dataset
 
 def find_dataset(dataset: Optional[str] = None, root_path: Optional[str] = None):
+    """
+    Returns the current dataset, or the default one if None is provided.
+
+    Parameters
+    ----------
+    dataset
+    root_path
+
+    Returns
+    -------
+
+    """
     if dataset is None:
         dataset = find_default_dataset(root_path)
     if not is_this_a_dataset(dataset, root_path=root_path):
@@ -251,6 +342,21 @@ def generate_dataset_path(dataset: Optional[str] = None, root_path: Optional[str
 
 def describe_dataset(dataset_path: Optional[str] = None, dataset: Optional[str] = None, root_path: Optional[str] = None,
                      videotype: Optional[str] = None, makeitshort=False) -> None:
+    """
+    Lists the available acquisitions of the dataset.
+    
+    Parameters
+    ----------
+    dataset_path
+    dataset
+    root_path
+    videotype
+    makeitshort
+
+    Returns
+    -------
+
+    """
     if root_path is None:
         global __ROOT_PATH__
         root_path = __ROOT_PATH__
@@ -535,6 +641,20 @@ def get_video_type(acquisition_path: Optional[str] = None,
 # Framenumbers
 def get_number_of_available_frames(acquisition_path: Optional[str] = None,
                                    *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[int]:
+    """
+    Returns the number of frames available for this video.
+
+    Parameters
+    ----------
+    acquisition_path
+    dataset
+    acquisition
+    root_path
+
+    Returns
+    -------
+
+    """
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     if not is_this_a_video(acquisition_path):
         customlog.log_error(f"There is no video at {acquisition_path}. Could not get number of available frames.")
@@ -557,6 +677,21 @@ def get_number_of_available_frames(acquisition_path: Optional[str] = None,
 
 def get_acquisition_frequency(acquisition_path: Optional[str] = None, unit=None,
                               *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> float:
+    """
+    Returns the acquisition frequency (frame rate) of the given video.
+
+    Parameters
+    ----------
+    acquisition_path
+    unit
+    dataset
+    acquisition
+    root_path
+
+    Returns
+    -------
+
+    """
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     if not is_this_a_video(acquisition_path):
         customlog.log_error(f"There is no video at {acquisition_path}. Could not get acquisition frequency.")
@@ -591,6 +726,22 @@ def seconds_to(unit: Optional[str]) -> float:
 
 def get_acquisition_duration(acquisition_path: Optional[str] = None, framenumbers: Optional[np.ndarray] = None, unit=None,
                              *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[float]:
+    """
+    Returns the total duration of the given video.
+
+    Parameters
+    ----------
+    acquisition_path
+    framenumbers
+    unit
+    dataset
+    acquisition
+    root_path
+
+    Returns
+    -------
+
+    """
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     customlog.log_subtrace('func:get_acquisition_duration')
     framenumbers = format_framenumbers(acquisition_path, framenumbers)
@@ -614,6 +765,18 @@ def get_acquisition_duration(acquisition_path: Optional[str] = None, framenumber
         return duration_s * seconds_to(unit)
 
 def format_framenumbers(acquisition_path: str, framenumbers: Framenumbers = None) -> Optional[np.ndarray]:
+    """
+    Helper function to ensure a specified `framenumbers` is valid. In particular, transforms `None` into a list of all available framenumbers.
+
+    Parameters
+    ----------
+    acquisition_path
+    framenumbers
+
+    Returns
+    -------
+
+    """
     if not is_this_a_video(acquisition_path):
         customlog.log_debug(f"There is no video at {acquisition_path}. Could not format the framenumbers {framenumbers}.")
         return None
@@ -666,11 +829,41 @@ def get_times(acquisition_path: Optional[str] = None, framenumbers: Optional[np.
 
 def get_t_s(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None,
             *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    """
+    Returns the time at which `framenumbers` were taken, in seconds.
+
+    Parameters
+    ----------
+    acquisition_path
+    framenumbers
+    dataset
+    acquisition
+    root_path
+
+    Returns
+    -------
+
+    """
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     return get_times(acquisition_path, framenumbers=framenumbers, unit='s')
 
 def get_t_ms(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None,
              *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    """
+    Returns the time at which `framenumbers` were taken, in milliseconds.
+
+    Parameters
+    ----------
+    acquisition_path
+    framenumbers
+    dataset
+    acquisition
+    root_path
+
+    Returns
+    -------
+
+    """
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     return get_times(acquisition_path, framenumbers=framenumbers, unit='ms')
 
@@ -793,6 +986,22 @@ def are_there_missing_frames(acquisition_path: Optional[str] = None, framenumber
 # ROI | subRegion
 def get_geometry(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None, subregion: Subregion = None,
                  *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[Tuple]:
+    """
+    Returs the triplet (length, height, width) of a video, i.e. its number of frames, and frame geometry in pixels.
+
+    Parameters
+    ----------
+    acquisition_path
+    framenumbers
+    subregion
+    dataset
+    acquisition
+    root_path
+
+    Returns
+    -------
+
+    """
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     customlog.log_subtrace('func:get_geometry')
     if not is_this_a_video(acquisition_path):
@@ -824,6 +1033,23 @@ def get_geometry(acquisition_path: Optional[str] = None, framenumbers: Framenumb
 def get_z_px(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None, subregion: Subregion = None,
              resize_factor: int = 1,
              *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    """
+    Returns the vertical coordinates of the pixels of the frames cropped to `subregion`, in pixels.
+
+    Parameters
+    ----------
+    acquisition_path
+    framenumbers
+    subregion
+    resize_factor
+    dataset
+    acquisition
+    root_path
+
+    Returns
+    -------
+
+    """
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     length, height, width = get_geometry(acquisition_path, framenumbers=framenumbers, subregion=subregion)
     return np.arange(height * resize_factor) / resize_factor
@@ -831,6 +1057,23 @@ def get_z_px(acquisition_path: Optional[str] = None, framenumbers: Framenumbers 
 def get_x_px(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None, subregion: Subregion = None,
              resize_factor: int = 1,
              *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    """
+    Returns the horizontal coordinates of the pixels of the frames cropped to `subregion`, in pixels.
+
+    Parameters
+    ----------
+    acquisition_path
+    framenumbers
+    subregion
+    resize_factor
+    dataset
+    acquisition
+    root_path
+
+    Returns
+    -------
+
+    """
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     length, height, width = get_geometry(acquisition_path, framenumbers=framenumbers, subregion=subregion)
     return np.arange(width * resize_factor) / resize_factor
@@ -838,6 +1081,24 @@ def get_x_px(acquisition_path: Optional[str] = None, framenumbers: Framenumbers 
 def get_x_mm(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None, subregion: Subregion = None,
              resize_factor: int = 1, px_per_mm: float = 1.,
              *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    """
+    Returns the horizontal coordinates of the pixels of the frames cropped to `subregion`, in millimeters.
+
+    Parameters
+    ----------
+    acquisition_path
+    framenumbers
+    subregion
+    resize_factor
+    px_per_mm
+    dataset
+    acquisition
+    root_path
+
+    Returns
+    -------
+
+    """
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     return get_x_px(acquisition_path, framenumbers, subregion, resize_factor) / px_per_mm
 
@@ -858,6 +1119,22 @@ def get_x_um(acquisition_path: Optional[str] = None, framenumbers: Framenumbers 
 # Frames getting
 def get_frames(acquisition_path: Optional[str] = None, framenumbers: Framenumbers = None, subregion: Subregion = None,
                *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    """
+    Extracts several frames from a video. Using framenumbers=None returns all available frames (can be very heavy).
+
+    Parameters
+    ----------
+    acquisition_path
+    framenumbers
+    subregion
+    dataset
+    acquisition
+    root_path
+
+    Returns
+    -------
+
+    """
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     if not is_this_a_video(acquisition_path):
         customlog.log_error(f"There is no video at {acquisition_path}. Could not get frames")
@@ -897,6 +1174,22 @@ def get_frames(acquisition_path: Optional[str] = None, framenumbers: Framenumber
 
 def get_frame(acquisition_path: Optional[str] = None, framenumber: Optional[int] = None, subregion: Subregion = None,
               *, dataset: Optional[str] = None, acquisition: Optional[str] = None, root_path: Optional[str] = None) -> Optional[np.ndarray]:
+    """
+    Extracts a single frame of a video.
+
+    Parameters
+    ----------
+    acquisition_path
+    framenumber
+    subregion
+    dataset
+    acquisition
+    root_path
+
+    Returns
+    -------
+
+    """
     acquisition_path = resolve_acquisition_path(acquisition_path, dataset=dataset, acquisition=acquisition, root_path=root_path)
     if not is_this_a_video(acquisition_path):
         customlog.log_error(f"There is no video at {acquisition_path}. Could not get frame {framenumber}.")
