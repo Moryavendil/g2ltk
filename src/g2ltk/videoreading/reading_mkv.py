@@ -1,4 +1,4 @@
-from typing import Optional, Any, Tuple, Dict, List, Union
+from typing import Optional, Any, Dict, List
 import numpy as np
 import cv2 # to manipulate images and videos
 import os # to navigate in the directories

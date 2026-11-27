@@ -1,4 +1,4 @@
-from typing import Optional, Any, Tuple, Dict, List, Union
+from typing import Optional, Tuple, Dict, List
 from functools import lru_cache
 import numpy as np
 import os # to navigate in the directories
@@ -433,7 +433,7 @@ def get_regularly_spaced_stamps(full_stamps:Stamps, start_framenumber:int = 0, e
     MFs_in_requested_interval = MFs_after_start * MFs_before_end
     there_are_MFs_in_the_request_interval:bool = 1 in MFs_in_requested_interval
     if there_are_MFs_in_the_request_interval:
-        customlog.log_warning(f'There are missing frames in the requested interval. The returned frames will not be evenly spaced.')
+        customlog.log_warning('There are missing frames in the requested interval. The returned frames will not be evenly spaced.')
 
     frames_correctly_spaced = (all_framenumbers - start_framenumber) % interval == 0
     frames_after_start = all_framenumbers >= start_framenumber

@@ -1,4 +1,4 @@
-from typing import Optional, Any, Tuple, Dict, List, Union
+from typing import Optional, List
 import numpy as np
 import cv2 # to manipulate images and videos
 import os # to navigate in the directories
@@ -133,9 +133,7 @@ def get_frames_t16(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np
     for i_frame, framenumber in enumerate(framenumbers):
         frames[i_frame] = cv2.imread(os.path.join(acquisition_path, all_images[framenumber]), cv2.IMREAD_UNCHANGED)
 
-    import time
     from imagecodecs import imread
-    import matplotlib.pyplot as plt
 
     frames = np.empty([length, height, width], np.uint16)
 
@@ -167,9 +165,7 @@ def get_frames_t16_conservequality(acquisition_path:str, framenumbers:np.ndarray
     for i_frame, framenumber in enumerate(framenumbers):
         frames[i_frame] = cv2.imread(os.path.join(acquisition_path, all_images[framenumber]), cv2.IMREAD_UNCHANGED)
 
-    import time
     from imagecodecs import imread
-    import matplotlib.pyplot as plt
 
     frames = np.empty([length, height, width], np.uint16)
 
@@ -199,9 +195,7 @@ def get_frames_t8(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.
     for i_frame, framenumber in enumerate(framenumbers):
         frames[i_frame] = cv2.imread(os.path.join(acquisition_path, all_images[framenumber]), cv2.IMREAD_UNCHANGED)
 
-    import time
     from imagecodecs import imread
-    import matplotlib.pyplot as plt
 
     frames = np.empty([length, height, width], np.uint8)
 

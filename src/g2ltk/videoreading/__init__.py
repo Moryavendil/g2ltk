@@ -371,7 +371,7 @@ def describe_dataset(dataset_path: Optional[str] = None, dataset: Optional[str] 
     customlog.log_info(f'Dataset: {dataset}')
     customlog.log_trace(f'Dataset: {dataset} (root path: {root_path})')
     if not is_this_a_dataset(dataset, root_path=root_path):
-        customlog.log_warning(f'Does not seem to be a valid dataset!')
+        customlog.log_warning('Does not seem to be a valid dataset!')
     available_acquisitions = find_available_videos(dataset_path=dataset_path, dataset=dataset, root_path=root_path,
                                                    videotype=videotype)
     if len(available_acquisitions) == 0:
@@ -566,7 +566,7 @@ def describe_acquisition(acquisition_path: Optional[str] = None,
     nbr_of_missing_chunks = len(maxmissing_chunks)
     nbr_of_missing_frames = np.sum([len(chunk) for chunk in maxmissing_chunks])
 
-    customlog.log_debug(f'  Acquisition information:')
+    customlog.log_debug('  Acquisition information:')
     customlog.log_debug(f'  Frames dimension: {maxheight}x{maxwidth}')
     customlog.log_debug(f'  Length: {maxlength} frames ({round(maxduration, 2)} s - {round(maxsize / 10 ** 6, 0)} MB)')
     if nbr_of_missing_chunks > 0:

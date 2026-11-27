@@ -1,7 +1,6 @@
-from typing import Optional, Any, Tuple, Dict, List, Union
-import numpy as np
+from typing import Optional, Tuple, Dict, Union
 
-from g2ltk import log_error, log_warning, log_info, log_debug, log_trace, log_subtrace
+from g2ltk import log_error, log_debug, log_trace, log_subtrace
 
 # The names g2ltk.rivulets.utility gets from `from .genfig import *`: add new public functions here
 __all__ = ['in_per_mm', 'in_per_pt', 'in_per_pc', 'screen_dpi', 'figw_aps', 'figw_jfm',

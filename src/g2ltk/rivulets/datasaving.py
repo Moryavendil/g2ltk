@@ -144,7 +144,7 @@ def fetch_saved_data(parameters: dict) -> Any:
             customlog.log_trace(f'Fetching data from file "{item}"')
             return np.load(file_path, allow_pickle=True)['data'][()] # return the first one
 
-    customlog.log_warning(f'Did not find the right stuff ?')
+    customlog.log_warning('Did not find the right stuff ?')
     return None
 
 ### ERASE ALL RECORDINGS OF SAID CATEGORY CORRESPONDING TO SAID CONDITION
@@ -160,7 +160,7 @@ def erase_items(parameters: dict, total_match:bool = False) -> None:
         Forwarded to `get_items` (default ``False``).
     """
     if parameters is None: return None
-    customlog.log_trace(f'Removing items')
+    customlog.log_trace('Removing items')
     # open the index
     index = get_index()
     # get the items to remove
@@ -181,7 +181,7 @@ def erase_all() -> None:
 
 ### ERASE ALL RECORDINGS OF SAID CATEGORY CORRESPONDING TO SAID CONDITION
 def nuke_all() -> None:
-    customlog.log_info(f'Nuking EVERYTHING')
+    customlog.log_info('Nuking EVERYTHING')
     for file in os.listdir(save_directory):
         if os.path.isfile(os.path.join(save_directory, file)): os.remove(os.path.join(save_directory, file))
     os.rmdir(save_directory)
@@ -207,7 +207,7 @@ def save_data(data: Any, parameters: dict) -> None:
     if data is None:
         customlog.log_warning('(save_data) data is None')
         return None
-    customlog.log_trace(f'Saving an item')
+    customlog.log_trace('Saving an item')
     # generate the filename / item name
     filename = generate_appropriate_filename(parameters)
     file_path = os.path.join(save_directory, filename)
@@ -235,7 +235,7 @@ def data_generating_fn(parameters:Dict[str, Any]):
         customlog.log_error('datatype is None ?!')
         return None
     elif datatype == 'cos': # COS is the old name of BOS
-        customlog.log_warning(f"[DEPRECATED] 'cos' data is now called 'bos'")
+        customlog.log_warning("[DEPRECATED] 'cos' data is now called 'bos'")
         return rivuletfinding.find_bos(**parameters)
     elif datatype == 'bos':
         return rivuletfinding.find_bos(**parameters)
@@ -273,7 +273,7 @@ def fetch_or_generate_data_from_parameters(datatype:str, parameters:dict):
     # TODO solve bad behaviour here : if we have all the fns but we ask for none, the available_fns is None check fails and we have to compute again
 
     if available_fns is None: # si tout est dispo
-        customlog.log_debug(f'All framenumbers available')
+        customlog.log_debug('All framenumbers available')
         data = fetch_saved_data(parameters) # prendre tout
         if wanted_fns is None: # si on demande tout
             return data # donner tout

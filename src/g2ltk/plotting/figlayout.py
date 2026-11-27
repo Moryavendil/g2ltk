@@ -1,8 +1,7 @@
-from typing import Union, Optional, Tuple
 import matplotlib.pyplot as plt
 
 from g2ltk.plotting import in_per_mm
-from g2ltk import log_error, log_warning, log_info, log_debug, log_trace, log_subtrace
+from g2ltk import log_error, log_trace, log_subtrace
 
 # The names g2ltk.plotting gets from `from .figlayout import *`: add new public functions here
 __all__ = ['force_aspect_ratio', 'subplots_adjust']

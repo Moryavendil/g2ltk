@@ -5,14 +5,13 @@ g2ltk.rivulets.utility gets these functions with `from .fourier import *`. Each 
 deprecation warning the first time it is called, instead of the module when it is imported, so
 that importing g2ltk.rivulets.utility for its other functions does not log it.
 """
-from typing import Optional, Any, Tuple, Dict, List, Union
+from typing import Optional, Tuple, List, Union
 from functools import wraps
 import numpy as np
-import math
 
-from g2ltk import log_error, log_warning, log_info, log_debug, log_trace, log_subtrace
+from g2ltk import log_warning, log_info, log_debug, log_trace, log_subtrace
 
-from . import step, span, find_roots, find_global_max, correct_limits, attenuate_power
+from . import step, span, find_roots, find_global_max, attenuate_power
 
 # The names g2ltk.rivulets.utility gets from `from .fourier import *`: add new public functions here
 __all__ = ['dual', 'rdual', 'dual2d', 'rdual2d', 'prepare_signal_for_ft1d', 'rft1d', 'ft1d',

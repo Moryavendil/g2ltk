@@ -13,11 +13,11 @@ def generate_parser():
         prog='jupytopy',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=f'{program_name} - Translate jupyter notebooks to python scripts for easy versioning',
-        epilog=f'Examples:' '\n'
-               f' * To save the script a.ipynb to the directory `scripts`, call' '\n'
-               f'    jupytopy.py a.ipynb' '\n'
-               f' * To save the all scripts of type foo in a dedicated folder, call' '\n'
-               f'    jupytopy.py foo-* -d foo' '\n'
+        epilog='Examples:' '\n'
+               ' * To save the script a.ipynb to the directory `scripts`, call' '\n'
+               '    jupytopy.py a.ipynb' '\n'
+               ' * To save the all scripts of type foo in a dedicated folder, call' '\n'
+               '    jupytopy.py foo-* -d foo' '\n'
         ,
         add_help=True)
     parser.add_argument('n', metavar='IPYNBNAMES', help='Notebooks (.ipynb) to convert (ex: `foo.ipynb`)', nargs='*', type=pathlib.Path, action='extend')
@@ -34,9 +34,9 @@ def main():
     notebook_paths = args.n
     targetdirname = args.d
 
-    print(f'JupyToPy: Converting .ipynb -> .py')
+    print('JupyToPy: Converting .ipynb -> .py')
     if len(notebook_paths) == 0:
-        print(f'No notebook specified. Aborting.')
+        print('No notebook specified. Aborting.')
         sys.exit(-10)
 
     ### SELECTING WHICH NOTEBOOKS WE WILL CONVERT TO SCRIPTS

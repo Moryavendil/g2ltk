@@ -446,7 +446,7 @@ def borders_framewise(frame:np.ndarray, prominence:float = 1, do_fit:bool=False,
     ydiff:np.ndarray = np.abs(y1 - y2)
     ydiff_ok = ydiff < kwargs['max_borders_luminosity_difference']
     if (1 - ydiff_ok).sum() > 0:
-        customlog.log_warning(f'Border framewise collapse: max_borders_luminosity_difference not respected')
+        customlog.log_warning('Border framewise collapse: max_borders_luminosity_difference not respected')
         customlog.log_subinfo(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): {(1 - ydiff_ok).sum()} pts')
         customlog.log_debug(f'Too different (> {kwargs["max_borders_luminosity_difference"]} lum): min = {ydiff.min()} | median = {np.median(ydiff)} |  max = {ydiff.max()} ')
         customlog.log_subtrace(f'Bad values: {ydiff[~ydiff_ok]}')
@@ -998,8 +998,8 @@ def find_borders(**parameters):
                 customlog.log_error(f'Error finding the borders of frame {framenumber}: {e!r}')
             if (framenumber+1)%5 == 0:
                 force_print(f'Borders finding ({round(100*(framenumber+1)/length, 2)} %)', end = '\r')
-    force_print(f'', end = '\r')
-    customlog.log_debug(f'Borders found')
+    force_print('', end = '\r')
+    customlog.log_debug('Borders found')
 
     return brds
 
@@ -1027,8 +1027,8 @@ def find_bol(**parameters):
                 customlog.log_error(f'Error computing the BOL of frame {framenumber}: {e!r}')
             if (framenumber+1)%5 == 0:
                 force_print(f'BOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
-    force_print(f'', end = '\r')
-    customlog.log_debug(f'BOL computed')
+    force_print('', end = '\r')
+    customlog.log_debug('BOL computed')
 
     return rivs
 
@@ -1055,8 +1055,8 @@ def find_fwhmol(**parameters):
                 customlog.log_error(f'Error computing the FWHMOL of frame {framenumber}: {e!r}')
             if (framenumber+1)%5 == 0:
                 force_print(f'FWHMOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
-    force_print(f'', end = '\r')
-    customlog.log_debug(f'FWHMOL computed')
+    force_print('', end = '\r')
+    customlog.log_debug('FWHMOL computed')
 
     return ws
 

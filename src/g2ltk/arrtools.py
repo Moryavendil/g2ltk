@@ -1,4 +1,4 @@
-from typing import Optional, Any, Tuple, Dict, List, Union
+from typing import Optional, Any, Tuple, Union
 import numpy as np
 from findiff import Diff
 
@@ -57,7 +57,7 @@ def step(arr: Optional[np.ndarray]) -> float:
     maxspan = darr.max()-darr.min()
     mean = darr.mean()
     if mean == 0:
-        customlog.log_warning(f'The array has a mean spacing of 0 (constant array?): its step is 0.')
+        customlog.log_warning('The array has a mean spacing of 0 (constant array?): its step is 0.')
         return 0.
     # relative to |mean|, so that decreasing arrays are handled like increasing ones
     relative_maxspan = maxspan / abs(mean)

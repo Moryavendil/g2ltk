@@ -13,7 +13,7 @@ def generate_parser():
     parser = argparse.ArgumentParser(
         prog='pytojupy',
         description=f'{program_name} - python scriptsa to jupyter notebooks',
-        epilog=f'', add_help=True)
+        epilog='', add_help=True)
     parser.add_argument('n', metavar='PYNAMES', help=f'Scripts (.py) to convert (ex: `scripts/{prefix}foo.py`)', nargs='*', type=pathlib.Path, action='extend')
     # parser.add_argument('-o', metavar='OUTPUTFILE', help='Generate graphs [optional:file prefix]', type=str, nargs='?', const='drop', default = None)
     # parser.add_argument('-v', help='Verbosity (-v: info, -vv: logger.debug, -vvv: trace)', action="count", default=0)
@@ -26,9 +26,9 @@ def main():
     args = parser.parse_args()
     scripts_paths = args.n
 
-    print(f'PyToJupy: Converting .py -> .ipynb')
+    print('PyToJupy: Converting .py -> .ipynb')
     if len(scripts_paths) == 0:
-        print(f'No script specified. Aborting.')
+        print('No script specified. Aborting.')
         sys.exit(-11)
 
     targets = {}

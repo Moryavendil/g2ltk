@@ -1,4 +1,4 @@
-from typing import Optional, Any, Tuple, Dict, List, Union
+from typing import Optional
 import numpy as np
 import os
 import cv2 # to manipulate images and videos
@@ -57,7 +57,7 @@ def save_frames_to_video(video_rawpath:str, frames:np.ndarray, fps:float = 25., 
 def save_acquisition_to_video(acquisition_path:str, do_timestamp:bool = True, fps:float = 25., filetype:str = 'mkv', codec:Optional[str] = None, resize_factor:int = 1):
     if not(is_this_a_gcv(acquisition_path)) and not(is_this_a_t16(acquisition_path)):
         # todo error ERROR here
-        customlog.log_error(f'WAW waow kois')
+        customlog.log_error('WAW waow kois')
         return
 
     frames = get_frames(acquisition_path, framenumbers = None, subregion=None)

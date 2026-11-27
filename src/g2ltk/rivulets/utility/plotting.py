@@ -1,8 +1,7 @@
-from typing import Optional, Any, Tuple, Dict, List, Union
+from typing import Union
 import math
 import numpy as np
 import matplotlib.colors as col
-from matplotlib.colors import Normalize, LogNorm
 
 from . import attenuate_power
 

@@ -1,5 +1,4 @@
 import matplotlib.colors as col
-from matplotlib.colors import Normalize, LogNorm
 
 # The names g2ltk.plotting gets from `from .colorscheme import *`: add new public functions here
 __all__ = ['errorbar_kw_default', 'fill_between_kw_default', 'gray', 'red', 'blue', 'green',
