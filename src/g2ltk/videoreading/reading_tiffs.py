@@ -1,6 +1,5 @@
 from typing import Optional, List
 import numpy as np
-import cv2 # to manipulate images and videos
 import os # to navigate in the directories
 
 from .. import customlog
@@ -116,7 +115,15 @@ def get_number_of_available_frames_t8(acquisition_path: str) -> int:
     else:
         return 0
 
-def get_frames_t16(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
+def _read_tiff_frames(acquisition_path: str, framenumbers: np.ndarray, dtype) -> np.ndarray:
+    """
+    Reads the frames of a t16 or t8 video: the tiff images of the acquisition folder, in the order of their names.
+
+    imagecodecs.tiff_decode is the fastest reader (then cv2.imread with cv2.IMREAD_UNCHANGED, then PIL). It is called
+    directly rather than through imagecodecs.imread, which renamed its codec argument imagecodec in recent versions
+    of imagecodecs (e.g. 2026.11.11): with them, imread(path, codec='tiff') fails on every image.
+    """
+    from imagecodecs import tiff_decode
 
     all_images = os.listdir(acquisition_path)
     all_images.sort()
@@ -126,22 +133,16 @@ def get_frames_t16(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np
 
     width:int = meta_dict['ImageWidth'][0]
     height:int = meta_dict['ImageLength'][0]
-    length:int = len(framenumbers)
 
-    frames = np.empty([length, height, width], np.uint16)
-
+    frames = np.empty([len(framenumbers), height, width], dtype)
     for i_frame, framenumber in enumerate(framenumbers):
-        frames[i_frame] = cv2.imread(os.path.join(acquisition_path, all_images[framenumber]), cv2.IMREAD_UNCHANGED)
+        with open(os.path.join(acquisition_path, all_images[framenumber]), 'rb') as image_file:
+            frames[i_frame] = tiff_decode(image_file.read())
 
-    from imagecodecs import imread
+    return frames
 
-    frames = np.empty([length, height, width], np.uint16)
-
-
-    for i_frame, framenumber in enumerate(framenumbers):
-        frames[i_frame] = imread(os.path.join(acquisition_path, all_images[framenumber]), codec='tiff') # this is the fastest
-        # frames[i_frame] = cv2.imread(os.path.join(acquisition_path, all_images[framenumber]), cv2.IMREAD_UNCHANGED) # this is the 2nd fastest
-        # frames[i_frame] = np.array(Image.open(os.path.join(acquisition_path, all_images[framenumber]))) # this is the 3rd fastest
+def get_frames_t16(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
+    frames = _read_tiff_frames(acquisition_path, framenumbers, np.uint16)
 
     frames = (frames // 2**8).astype(np.uint8, copy=False)
     customlog.log_info('Quality was degraded from 16-bits to 8-bits depth')
@@ -149,63 +150,10 @@ def get_frames_t16(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np
     return frames
 
 def get_frames_t16_conservequality(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
-
-    all_images = os.listdir(acquisition_path)
-    all_images.sort()
-
-    img_metaprobe = Image.open(os.path.join(acquisition_path, all_images[0]))
-    meta_dict = {TAGS[key] : img_metaprobe.tag[key] for key in img_metaprobe.tag_v2}
-
-    width:int = meta_dict['ImageWidth'][0]
-    height:int = meta_dict['ImageLength'][0]
-    length:int = len(framenumbers)
-
-    frames = np.empty([length, height, width], np.uint16)
-
-    for i_frame, framenumber in enumerate(framenumbers):
-        frames[i_frame] = cv2.imread(os.path.join(acquisition_path, all_images[framenumber]), cv2.IMREAD_UNCHANGED)
-
-    from imagecodecs import imread
-
-    frames = np.empty([length, height, width], np.uint16)
-
-
-    for i_frame, framenumber in enumerate(framenumbers):
-        frames[i_frame] = imread(os.path.join(acquisition_path, all_images[framenumber]), codec='tiff') # this is the fastest
-        # frames[i_frame] = cv2.imread(os.path.join(acquisition_path, all_images[framenumber]), cv2.IMREAD_UNCHANGED) # this is the 2nd fastest
-        # frames[i_frame] = np.array(Image.open(os.path.join(acquisition_path, all_images[framenumber]))) # this is the 3rd fastest
-
-    return frames
-
+    return _read_tiff_frames(acquisition_path, framenumbers, np.uint16)
 
 def get_frames_t8(acquisition_path:str, framenumbers:np.ndarray) -> Optional[np.ndarray]:
-
-    all_images = os.listdir(acquisition_path)
-    all_images.sort()
-
-    img_metaprobe = Image.open(os.path.join(acquisition_path, all_images[0]))
-    meta_dict = {TAGS[key] : img_metaprobe.tag[key] for key in img_metaprobe.tag_v2}
-
-    width:int = meta_dict['ImageWidth'][0]
-    height:int = meta_dict['ImageLength'][0]
-    length:int = len(framenumbers)
-
-    frames = np.empty([length, height, width], np.uint16)
-
-    for i_frame, framenumber in enumerate(framenumbers):
-        frames[i_frame] = cv2.imread(os.path.join(acquisition_path, all_images[framenumber]), cv2.IMREAD_UNCHANGED)
-
-    from imagecodecs import imread
-
-    frames = np.empty([length, height, width], np.uint8)
-
-
-    for i_frame, framenumber in enumerate(framenumbers):
-        frames[i_frame] = imread(os.path.join(acquisition_path, all_images[framenumber]), codec='tiff') # this is the fastest
-        # frames[i_frame] = cv2.imread(os.path.join(acquisition_path, all_images[framenumber]), cv2.IMREAD_UNCHANGED) # this is the 2nd fastest
-        # frames[i_frame] = np.array(Image.open(os.path.join(acquisition_path, all_images[framenumber]))) # this is the 3rd fastest
-
-    return frames
+    return _read_tiff_frames(acquisition_path, framenumbers, np.uint8)
 
 def get_acquisition_frequency_t16(acquisition_path: str, unit = None) -> float:
     if '20230309_chronos_b' in acquisition_path:
