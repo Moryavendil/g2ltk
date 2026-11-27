@@ -45,7 +45,7 @@ def dual2d(x: floatarray1D, y: floatarray1D,
     nfft : int, 'auto' or (axis0, axis1), optional
         The size of the nfft
     zpf : int or (int, int), optional
-        The zero padding factor. An alias is ```zero_pad_factor```
+        The zero padding factor. An alias is ``zero_pad_factor``
 
     Returns
     -------
@@ -76,7 +76,7 @@ def rdual2d(x: floatarray1D, y: floatarray1D,
     nfft : int, 'auto' or (axis0, axis1), optional
         The size of the nfft
     zpf : int or (int, int), optional
-        The zero padding factor. An alias is ```zero_pad_factor```
+        The zero padding factor. An alias is ``zero_pad_factor``
 
     Returns
     -------
@@ -277,16 +277,18 @@ def riesz2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Optional[flo
     Returns the two components (R_x, R_y) of the Riesz transform of a real 2-D array.
 
     The Riesz transform is the 2-D generalization of the Hilbert transform. Its components are defined
-    in Fourier space by
+    in Fourier space by::
+
         FT[R_x f](k) = -i k_x / |k| FT[f](k)    and    FT[R_y f](k) = -i k_y / |k| FT[f](k).
+
     For an array that only varies along x, R_x is the Hilbert transform of each row
     (the imaginary part of the analytic signal, see FFT1D.hilbert) and R_y is 0.
 
-    For a plane wave A cos(k.r + phi), R_x = A sin(k.r + phi) k_x/|k| and R_y = A sin(k.r + phi) k_y/|k|.
+    For a plane wave A cos(k.r + phi), ``R_x = A sin(k.r + phi) k_x/|k|`` and ``R_y = A sin(k.r + phi) k_y/|k|``.
     (f, R_x f, R_y f) is the monogenic signal: f = A cos(phi), R_x f = A sin(phi) cos(theta),
     R_y f = A sin(phi) sin(theta), with A the local amplitude, phi the local phase and theta the local orientation.
 
-    The ratios k_x/|k|, k_y/|k| are computed with the physical frequencies, so the result depends on the steps
+    The ratios ``k_x/|k|``, ``k_y/|k|`` are computed with the physical frequencies, so the result depends on the steps
     of x and y when they differ: give them if the grid is not square.
 
     The components of the Nyquist frequency (along x for R_x, along y for R_y), for which the transform
@@ -374,13 +376,16 @@ def monogenic2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Optional
     Returns the local amplitude, local phase and local orientation of a real 2-D array, from its monogenic signal.
 
     The monogenic signal is (f, R_x f, R_y f), with (R_x, R_y) the Riesz transform (see riesz2d).
-    It is the 2-D generalization of the analytic signal, and is written
+    It is the 2-D generalization of the analytic signal, and is written::
+
         f = A cos(phi),    R_x f = A sin(phi) cos(theta),    R_y f = A sin(phi) sin(theta).
+
     For a plane wave A cos(k.r + phi0), A is the amplitude, theta the direction of k and phi = k.r + phi0.
 
     Conventions
     -----------
     Let theta0 be orientation_reference (0 by default).
+
     - amplitude: A = sqrt(f^2 + (R_x f)^2 + (R_y f)^2) >= 0, with f the array after mean removal.
     - orientation: theta in (theta0 - pi/2, theta0 + pi/2], measured from the x axis (axis 1) towards the y axis
       (axis 0), in physical coordinates (so it depends on the steps of x and y if they differ).
@@ -390,6 +395,7 @@ def monogenic2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Optional
     (A, phi, theta) and (A, -phi, theta + pi) describe the same monogenic signal: the orientation is only defined
     modulo pi, and the sign of the phase depends on it. The convention above picks the direction that is within
     pi/2 of theta0. In consequence:
+
     - for a plane wave whose wave vector k is more than pi/2 away from theta0, phi = -(k.r + phi0)
       (the wave is written with -k instead);
     - phi changes sign where the local orientation crosses theta0 +- pi/2. For a wave vector exactly in one of
@@ -478,7 +484,7 @@ def local_frequency2d(arr: floatarray2D, x: Optional[floatarray1D] = None, y: Op
     sin(phi) ~ 0). Instead, the derivatives of the phase vector phi * n (n = (cos(theta), sin(theta))) along x and y
     are computed from the rotation of the unit monogenic vector (f, R_x f, R_y f) / A between neighbours, which
     does not depend on the sign convention. Central differences are used inside, one-sided ones at the edges.
-    This gives the tensor J_ej = d(phi)/de n_j, which for a locally 1-D signal is |k| n_e n_j:
+    This gives the tensor J_ej = d(phi)/de n_j, which for a locally 1-D signal is ``|k| n_e n_j``:
     the wave vector is the eigenvector of (the symmetric part of) J with the largest eigenvalue (in absolute value),
     scaled by this eigenvalue. Its norm is the local frequency, and is negative where the phase decreases along n
     (which happens where the amplitude is small).

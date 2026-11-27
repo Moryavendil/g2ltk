@@ -651,9 +651,10 @@ def fetch_or_generate_data_from_parameters(datatype: str, parameters: dict,
         called once, the result is saved, and returned.  No chunking is
         performed.
 
-    **Video mode** (``'framenumbers'`` key present) — *disabled for now*: logs an
-    error and returns ``None`` (see the TODO in the code).
-        Checks which framenumbers are already cached.  If the wanted subset is
+    **Video mode** (``'framenumbers'`` key present)
+        *Disabled for now*: logs an error and returns ``None`` (see the TODO
+        in the code). Once enabled:
+        checks which framenumbers are already cached.  If the wanted subset is
         fully covered, the cached slice is returned.  Otherwise the missing
         frames are generated in chunks of 500, the complete array is saved,
         and the originally requested subset is returned via a single

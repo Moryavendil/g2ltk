@@ -3,7 +3,8 @@ Reading the tags (metadata) of mkv (Matroska) and mp4 files, and the recording s
 
 Limrendir records mkv and mp4 videos that are played at a fixed frame rate (30 fps), whatever the capture frame rate:
 the frame rate of the video file is not the one of the acquisition. The recording settings are written in the comment
-tag of the file, as "key=value" lines, with the same keys as in the metainfo.meta file of gcv videos:
+tag of the file, as "key=value" lines, with the same keys as in the metainfo.meta file of gcv videos::
+
     captureFrequency=156.000000           frame rate of the camera when the recording started (Hz)
     playbackFrequency=30                  frame rate of the video file (Hz)
     measuredCaptureFrequency=155.980000   frame rate measured from the camera timestamps (Hz), when the recording ends

@@ -223,7 +223,7 @@ def find_global_peak(y: np.ndarray, x: Optional[np.ndarray] = None, peak_categor
     """
     Finds the position of the global peak of y(x), with subpixel resolution.
 
-    It first takes the point of y with the largest value (of |y|, y or -y depending on peak_category), then refines its
+    It first takes the point of y with the largest value (of abs(y), y or -y depending on peak_category), then refines its
     position by taking the closest extremum found by find_extrema (where the derivative vanishes).
     If no extremum can be found, the position of the point itself is returned.
 
@@ -236,7 +236,7 @@ def find_global_peak(y: np.ndarray, x: Optional[np.ndarray] = None, peak_categor
     peak_category : str, optional
         'max' : the global maximum of y.
         'min' : the global minimum of y.
-        'raw' : the global maximum of |y|, refined with any extremum (minimum or maximum). The default.
+        'raw' : the global maximum of abs(y), refined with any extremum (minimum or maximum). The default.
         'all' and 'minmax' are treated as 'raw'.
 
     Returns

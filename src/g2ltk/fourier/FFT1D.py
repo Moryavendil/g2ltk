@@ -38,7 +38,7 @@ def dual1d(arr: floatarray1D,
     nfft : int, optional
         The size of the nfft
     zpf : int, optional
-        The zero padding factor. An alias is ```zero_pad_factor```
+        The zero padding factor. An alias is ``zero_pad_factor``
 
     Returns
     -------
@@ -70,7 +70,7 @@ def rdual1d(arr: floatarray1D,
     nfft : int, optional
         The size of the nfft
     zpf : int, optional
-        The zero padding factor. An alias is ```zero_pad_factor```
+        The zero padding factor. An alias is ``zero_pad_factor``
 
     Returns
     -------
@@ -657,7 +657,7 @@ def monogenic1d(sig: floatarray1D, symmetrize: bool = False,
     Returns
     -------
     (amplitude, phase)
-        amplitude = |sig + i H(sig)| >= 0 and phase = arg(sig + i H(sig)), in (-pi, pi]
+        ``amplitude = |sig + i H(sig)| >= 0`` and ``phase = arg(sig + i H(sig))``, in (-pi, pi]
     """
     analytic = hilbert(sig, symmetrize=symmetrize, remove_mean=remove_mean)
     return np.abs(analytic), np.angle(analytic)
@@ -669,7 +669,7 @@ def local_frequency1d(sig: floatarray1D, x: Optional[floatarray1D] = None, symme
     Returns the local frequency d(phase)/dx / (2 pi) of a real signal, with phase the local phase given by monogenic1d.
 
     The unit is the inverse of the unit of x (cycles per unit of x, as dual1d):
-    for a wave cos(2 pi f0 x + phi0), the local frequency is |f0|.
+    for a wave cos(2 pi f0 x + phi0), the local frequency is ``|f0|``.
 
     The phase is unwrapped, then differentiated with np.gradient (central differences inside,
     one-sided ones at the edges). This is exact for a wave on a regular grid, as long as the phase changes by less
