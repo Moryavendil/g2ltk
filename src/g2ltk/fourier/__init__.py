@@ -20,6 +20,10 @@ floatarray2D = np.ndarray[tuple[int, ...], np.dtype[np.floating]]
 complexarray1D = np.ndarray[tuple[int, ...], np.dtype[np.inexact]]
 complexarray2D = np.ndarray[tuple[int, ...], np.dtype[np.inexact]]
 
+### Defaults
+# The window used by default by every fourier function, in 1D and in 2D
+default_window: str = 'boxcar'
+
 
 ### log
 def attenuate_power(value, attenuation_factor_dB):

@@ -6,11 +6,9 @@ from scipy import fft
 
 from g2ltk import customlog
 from g2ltk.arrtools import step, span
-from . import floatarray1D, floatarray2D, complexarray2D, attenuate_power, alias_argument
+from . import floatarray1D, floatarray2D, complexarray2D, attenuate_power, alias_argument, default_window
 from .FFTHelp import sanitize_nfft_2d, sanitize_zpf_2d, dtype_nfft_2d, dtype_zpf_2d, dtype_shift_2d, split_2d_argument
 from .FFT1D import dual1d, rdual1d
-
-default_window = 'boxcar'
 
 # todo fix directions, (axis0, axis 1) must correspond to x, y...
 # todo because for now x and y are interverted?!
