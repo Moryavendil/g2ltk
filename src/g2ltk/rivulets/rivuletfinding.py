@@ -406,8 +406,8 @@ def borders_framewise(frame:np.ndarray, prominence:float = 1, do_fit:bool=False,
                                                 distance=kwargs['borders_min_distance'],
                                                 width=kwargs['borders_width'],
                                                 prominence=kwargs['borders_prominence'])
-        except:
-            customlog.log_error(f'Error in bimax line {i_l}')
+        except Exception as e:
+            customlog.log_error(f'Error in bimax line {i_l}: {e!r}')
 
     z1, y1, z2, y2 = bmax[:,0], bmax[:,1], bmax[:,2], bmax[:,3]
     x1, x2 = x1D.copy(), x1D.copy()
@@ -929,19 +929,20 @@ def find_bos(**parameters):
         if not key in parameters.keys():
             parameters[key] = default_kwargs[key]
 
-    rivs = np.zeros((length, width * parameters['resize_factor']), dtype=float)
+    # the frames that could not be computed stay NaN
+    rivs = np.full((length, width * parameters['resize_factor']), np.nan, dtype=float)
 
-    np.seterr(all='raise') # we are extra-careful because we do not want trash data
-    try:
-        # we first try the faster videowise
-        rivs = bos_videowise(frames, **parameters)
-    except:
-        customlog.log_error('bos_videowise failed. trying framewise to identify the problematic frame.')
-        for framenumber in range(length):
-            try:
-                rivs[framenumber] = bos_framewise(frames[framenumber], **parameters)
-            except:
-                customlog.log_error(f'Error doint bos_framewise on frame {framenumber}')
+    with np.errstate(all='raise'): # we are extra-careful because we do not want trash data
+        try:
+            # we first try the faster videowise
+            rivs = bos_videowise(frames, **parameters)
+        except Exception as e:
+            customlog.log_error(f'bos_videowise failed ({e!r}). trying framewise to identify the problematic frame.')
+            for framenumber in range(length):
+                try:
+                    rivs[framenumber] = bos_framewise(frames[framenumber], **parameters)
+                except Exception as e:
+                    customlog.log_error(f'Error doing bos_framewise on frame {framenumber}: {e!r}')
 
     return rivs
 
@@ -954,16 +955,17 @@ def find_borders(**parameters):
         if not key in parameters.keys():
             parameters[key] = default_kwargs[key]
 
-    brds = np.zeros((length, 2, width * parameters['resize_factor']), float)
+    # the frames that could not be computed stay NaN
+    brds = np.full((length, 2, width * parameters['resize_factor']), np.nan, dtype=float)
 
-    np.seterr(all='raise')
-    for framenumber in range(length):
-        try:
-            brds[framenumber] = borders_framewise(frames[framenumber], **parameters)
-        except:
-            print(f'Error frame {framenumber}')
-        if (framenumber+1)%5 == 0:
-            force_print(f'Borders finding ({round(100*(framenumber+1)/length, 2)} %)', end = '\r')
+    with np.errstate(all='raise'):
+        for framenumber in range(length):
+            try:
+                brds[framenumber] = borders_framewise(frames[framenumber], **parameters)
+            except Exception as e:
+                customlog.log_error(f'Error finding the borders of frame {framenumber}: {e!r}')
+            if (framenumber+1)%5 == 0:
+                force_print(f'Borders finding ({round(100*(framenumber+1)/length, 2)} %)', end = '\r')
     force_print(f'', end = '\r')
     customlog.log_debug(f'Borders found')
 
@@ -982,16 +984,17 @@ def find_bol(**parameters):
         if not key in parameters.keys():
             parameters[key] = default_kwargs[key]
 
-    rivs = np.zeros((length, width * parameters['resize_factor']), float)
+    # the frames that could not be computed stay NaN
+    rivs = np.full((length, width * parameters['resize_factor']), np.nan, dtype=float)
 
-    np.seterr(all='raise')
-    for framenumber in range(length):
-        try:
-            rivs[framenumber] = bol_framewise(frames[framenumber], borders_for_this_frame=borders_for_this_video[framenumber], **parameters)
-        except:
-            print(f'Error frame {framenumber}')
-        if (framenumber+1)%5 == 0:
-            force_print(f'BOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
+    with np.errstate(all='raise'):
+        for framenumber in range(length):
+            try:
+                rivs[framenumber] = bol_framewise(frames[framenumber], borders_for_this_frame=borders_for_this_video[framenumber], **parameters)
+            except Exception as e:
+                customlog.log_error(f'Error computing the BOL of frame {framenumber}: {e!r}')
+            if (framenumber+1)%5 == 0:
+                force_print(f'BOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
     force_print(f'', end = '\r')
     customlog.log_debug(f'BOL computed')
 
@@ -1009,16 +1012,17 @@ def find_fwhmol(**parameters):
         if not key in parameters.keys():
             parameters[key] = default_kwargs[key]
 
-    ws = np.zeros((length, width * parameters['resize_factor']), float)
+    # the frames that could not be computed stay NaN
+    ws = np.full((length, width * parameters['resize_factor']), np.nan, dtype=float)
 
-    np.seterr(all='raise')
-    for framenumber in range(length):
-        try:
-            ws[framenumber] = fwhmol_framewise(frames[framenumber], borders_for_this_frame=borders_for_this_video[framenumber], **parameters)
-        except:
-            print(f'Error frame {framenumber}')
-        if (framenumber+1)%5 == 0:
-            force_print(f'FWHMOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
+    with np.errstate(all='raise'):
+        for framenumber in range(length):
+            try:
+                ws[framenumber] = fwhmol_framewise(frames[framenumber], borders_for_this_frame=borders_for_this_video[framenumber], **parameters)
+            except Exception as e:
+                customlog.log_error(f'Error computing the FWHMOL of frame {framenumber}: {e!r}')
+            if (framenumber+1)%5 == 0:
+                force_print(f'FWHMOL finding ({round(100*(framenumber+1)/length,2)} %)', end='\r')
     force_print(f'', end = '\r')
     customlog.log_debug(f'FWHMOL computed')
 
