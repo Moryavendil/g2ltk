@@ -6,6 +6,14 @@ from matplotlib.colors import Normalize, LogNorm
 
 from . import attenuate_power
 
+# The names g2ltk.rivulets.utility gets from `from .plotting import *`: add new public functions here
+__all__ = ['errorbar_kw_default', 'fill_between_kw_default', 'cb_magic_args', 'gray', 'red',
+           'blue', 'green', 'anglecmap', 'anglecmap_r', 'anglecmap_shifted', 'anglecmap_shifted_r',
+           'color_w', 'color_w_rgb', 'cmap_w_dict', 'cmap_w', 'color_z', 'color_z_rgb',
+           'cmap_z_dict', 'cmap_z', 'color_q', 'color_smallQ', 'color_bigQ', 'cmap_zonly',
+           'cmap_wonly', 'force_aspect_ratio', 'set_yaxis_rad', 'set_yaxis_log',
+           'set_ticks_log_cb']
+
 # default settings
 errorbar_kw_default = {'capsize':3, 'ls':''}
 fill_between_kw_default = {'lw':0.0}

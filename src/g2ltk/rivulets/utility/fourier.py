@@ -6,6 +6,16 @@ from g2ltk import log_error, log_warning, log_info, log_debug, log_trace, log_su
 
 from . import step, span, find_roots, find_global_max, correct_limits, attenuate_power
 
+# The names g2ltk.rivulets.utility gets from `from .fourier import *`: add new public functions here
+__all__ = ['dual', 'rdual', 'dual2d', 'rdual2d', 'prepare_signal_for_ft1d', 'rft1d', 'ft1d',
+           'prepare_signal_for_ft2d', 'ft2d', 'rft2d', 'window_factor1d', 'window_factor2d',
+           'rpsd1d', 'psd1d', 'ifft1d', 'rpsd2d', 'psd2d', 'estimatesignalfrequency',
+           'peak_contour1d', 'peak_vicinity1d', 'power_near_peak1d', 'find_shapely_contours',
+           'contour_containspoint', 'contour_containspoints', 'contours_containsanyofthepoints',
+           'contours_areas', 'contours_perimeters', 'draw_multipolygon_edge',
+           'peak_max_area_default', 'peak_min_circularity_default', 'peak_contour2d',
+           'grid_points_in_contour', 'peak_vicinity2d', 'power_near_peak2d']
+
 log_warning('g2ltk.utility.fourier is deprecated. Please use g2ltk.fourier')
 
 ### FFT AND PSD COMPUTATIONS

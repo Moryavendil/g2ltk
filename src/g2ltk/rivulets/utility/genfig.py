@@ -3,6 +3,17 @@ import numpy as np
 
 from g2ltk import log_error, log_warning, log_info, log_debug, log_trace, log_subtrace
 
+# The names g2ltk.rivulets.utility gets from `from .genfig import *`: add new public functions here
+__all__ = ['in_per_mm', 'in_per_pt', 'in_per_pc', 'screen_dpi', 'figw_aps', 'figw_jfm',
+           'figw_thesis', 'figw_thezprez', 'figw_confort', 'figw', 'figsize', 'subplots_adjust',
+           'jfm_latex_preamble', 'thesis_latex_preamble', 'styledict_default',
+           'styledict_presentation', 'styledict_thesis', 'styledict_thezprez', 'styledict_jfm',
+           'styledict_aps', 'styledicts', 'fetch_styledict', 'styled', 'general_latex_preamble',
+           'paper_specific_latex_preamble', 'LATEX_STYLE_THESIS', 'latex_preamble', 'params_lines',
+           'params_legend', 'params_saving', 'params_fontsize', 'configure_mpl',
+           'activate_saveplot', 'is_saveplot_activated', 'deactivate_saveplot', 'tighten_graph',
+           'save_graphe']
+
 ########## SAVE GRAPHE
 import os
 import matplotlib.pyplot as plt
